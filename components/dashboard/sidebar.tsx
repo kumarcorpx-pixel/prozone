@@ -22,6 +22,7 @@ import {
   CalendarCheck,
   Activity,
   Bell,
+  CreditCard,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { YabsLogo } from "@/components/marketing/yabs-logo"
@@ -34,9 +35,13 @@ interface NavItem {
 
 const clientLinks: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Tracking", href: "/dashboard/tracking", icon: Search },
-  { label: "Requests", href: "/dashboard/requests", icon: FileText },
-  { label: "Documents", href: "/dashboard/documents", icon: FolderOpen },
+  { label: "My Requests", href: "/dashboard/requests", icon: FileText },
+  { label: "Track Progress", href: "/dashboard/tracking", icon: Search },
+  { label: "My Documents", href: "/dashboard/documents", icon: FolderOpen },
+  { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
+  { label: "My Company", href: "/dashboard/company", icon: Building2 },
+  { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 
 const adminLinks: NavItem[] = [

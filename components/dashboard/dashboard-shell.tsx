@@ -22,16 +22,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       router.replace("/staff")
       return
     }
+    // Staff trying to access client dashboard → redirect to /staff
+    if (role === "pro_staff" && pathname.startsWith("/dashboard")) {
+      router.replace("/staff")
+      return
+    }
     // Client trying to access admin or staff routes → redirect to /dashboard
     if (role === "client" && (pathname.startsWith("/admin") || pathname.startsWith("/staff"))) {
       router.replace("/dashboard")
       return
     }
-    // Admin trying to access staff or client routes → redirect to /admin
-    if (role === "admin" && (pathname.startsWith("/staff") || pathname.startsWith("/dashboard"))) {
-      router.replace("/admin")
-      return
-    }
+    // Admin can access all portals — no redirect
   }, [user, isLoading, pathname, router])
 
   if (isLoading) {
