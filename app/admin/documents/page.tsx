@@ -1,88 +1,49 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { companyDocuments, demoCompanies, documentCategories } from "@/lib/company-data"
+import { companyDocuments, demoCompanies, demoEmployees, documentCategories } from "@/lib/company-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { FileText, Search, Filter } from "lucide-react"
+import { Search, FileText, Filter } from "lucide-react"
 
-const statusOptions = [
-  { value: "all", label: "All Statuses" },
-  { value: "valid", label: "Valid" },
-  { value: "expiring_soon", label: "Expiring Soon" },
-  { value: "expired", label: "Expired" },
-]
+const statusOptions = ["all", "valid", "expiring_soon", "expired"]
+const categoryKeys = ["all", ...Object.keys(documentCategories)]
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "N/A"
-  return new Date(dateStr).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  })
-}
-
-function expiryColor(dateStr: string | null): string {
-  if (!dateStr) return "text-gray-500"
+function getExpiryColor(dateStr: string | null): string {
+  if (!dateStr) return "text-gray-400"
   const now = new Date()
   const expiry = new Date(dateStr)
-  if (expiry < now) return "text-red-600 font-medium"
-  const diffDays = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-  if (diffDays < 30) return "text-yellow-600 font-medium"
+  const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) return "text-red-600 font-medium"
+  if (diffDays <= 30) return "text-yellow-600 font-medium"
   return "text-green-600"
 }
 
-function getComputedStatus(doc: (typeof companyDocuments)[number]): string {
-  if (!doc.expiry_date) return "valid"
-  const now = new Date()
-  const expiry = new Date(doc.expiry_date)
-  if (expiry < now) return "expired"
-  const diffDays = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-  if (diffDays < 30) return "expiring_soon"
-  return "valid"
-}
-
-function getDocUrgency(doc: (typeof companyDocuments)[number]): number {
-  if (!doc.expiry_date) return 999999
-  const now = new Date()
-  const expiry = new Date(doc.expiry_date)
-  return (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-}
-
-export default function AdminDocumentsPage() {
+export default function DocumentsPage() {
+  const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
-  const [search, setSearch] = useState("")
 
-  const categoryOptions = useMemo(() => {
-    const cats = Object.entries(documentCategories).map(([key, val]) => ({
-      value: key,
-      label: val.label,
-    }))
-    return [{ value: "all", label: "All Categories" }, ...cats]
-  }, [])
+  const sorted = useMemo(() => {
+    const filtered = companyDocuments.filter((doc) => {
+      const matchesSearch = doc.name.toLowerCase().includes(search.toLowerCase())
+      const matchesStatus = statusFilter === "all" || doc.status === statusFilter
+      const matchesCategory = categoryFilter === "all" || doc.document_type === categoryFilter
+      return matchesSearch && matchesStatus && matchesCategory
+    })
 
-  const filtered = useMemo(() => {
-    return companyDocuments
-      .filter((doc) => {
-        const computedStatus = getComputedStatus(doc)
-        const matchesStatus = statusFilter === "all" || computedStatus === statusFilter
-        const matchesCategory = categoryFilter === "all" || doc.document_type === categoryFilter
-        const matchesSearch =
-          search === "" ||
-          doc.name.toLowerCase().includes(search.toLowerCase()) ||
-          (demoCompanies.find((c) => c.id === doc.company_id)?.name || "")
-            .toLowerCase()
-            .includes(search.toLowerCase())
-        return matchesStatus && matchesCategory && matchesSearch
-      })
-      .sort((a, b) => getDocUrgency(a) - getDocUrgency(b))
-  }, [statusFilter, categoryFilter, search])
+    return [...filtered].sort((a, b) => {
+      // Expired and expiring first
+      const aExpiry = a.expiry_date ? new Date(a.expiry_date).getTime() : Infinity
+      const bExpiry = b.expiry_date ? new Date(b.expiry_date).getTime() : Infinity
+      return aExpiry - bExpiry
+    })
+  }, [search, statusFilter, categoryFilter])
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Document Management</h1>
-        <p className="text-gray-500 text-sm">All documents with expiry tracking</p>
+        <h1 className="text-2xl font-bold text-[#1a3a6b]">Document Management</h1>
+        <p className="text-sm text-gray-500 mt-1">All documents across companies with expiry tracking</p>
       </div>
 
       {/* Filters */}
@@ -94,95 +55,87 @@ export default function AdminDocumentsPage() {
             placeholder="Search documents..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
           />
-        </div>
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-10 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white appearance-none"
-          >
-            {statusOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
         </div>
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white appearance-none"
+          className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
         >
-          {categoryOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          {categoryKeys.map((key) => (
+            <option key={key} value={key}>
+              {key === "all" ? "All Categories" : (documentCategories[key]?.label || key)}
+            </option>
+          ))}
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
+        >
+          {statusOptions.map((s) => (
+            <option key={s} value={s}>
+              {s === "all" ? "All Statuses" : s === "expiring_soon" ? "Expiring Soon" : s.charAt(0).toUpperCase() + s.slice(1)}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Results */}
-      <p className="text-sm text-gray-400">
-        {filtered.length} document{filtered.length !== 1 ? "s" : ""} found
-      </p>
+      {/* Table */}
+      <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-6 py-3 text-gray-500 font-medium">Name</th>
+                <th className="text-left px-6 py-3 text-gray-500 font-medium">Company</th>
+                <th className="text-left px-6 py-3 text-gray-500 font-medium">Employee</th>
+                <th className="text-left px-6 py-3 text-gray-500 font-medium">Type</th>
+                <th className="text-left px-6 py-3 text-gray-500 font-medium">Expiry Date</th>
+                <th className="text-left px-6 py-3 text-gray-500 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((doc) => {
+                const company = demoCompanies.find((c) => c.id === doc.company_id)
+                const employee = doc.employee_id ? demoEmployees.find((e) => e.id === doc.employee_id) : null
+                const cat = documentCategories[doc.document_type] || documentCategories.other
 
-      {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
-          <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-600">No documents found</h3>
-          <p className="text-sm text-gray-400 mt-1">Try adjusting your filters.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wide font-medium">Document</th>
-                  <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wide font-medium">Company</th>
-                  <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wide font-medium">Type</th>
-                  <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wide font-medium">Expiry Date</th>
-                  <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wide font-medium">Status</th>
+                return (
+                  <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span className="font-medium text-gray-900">{doc.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">{company?.name || "Unknown"}</td>
+                    <td className="px-6 py-4 text-gray-600">{employee?.full_name || "-"}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cat.color}`}>
+                        {cat.label}
+                      </span>
+                    </td>
+                    <td className={`px-6 py-4 ${getExpiryColor(doc.expiry_date)}`}>
+                      {doc.expiry_date ? new Date(doc.expiry_date).toLocaleDateString() : "No expiry"}
+                    </td>
+                    <td className="px-6 py-4"><StatusBadge status={doc.status} /></td>
+                  </tr>
+                )
+              })}
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <FileText className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                    No documents found matching your filters.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((doc) => {
-                  const company = demoCompanies.find((c) => c.id === doc.company_id)
-                  const cat = documentCategories[doc.document_type] || documentCategories.other
-                  const computedStatus = getComputedStatus(doc)
-                  return (
-                    <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          <span className="font-medium">{doc.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-gray-600">{company?.name || "Unknown"}</td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cat.color}`}
-                        >
-                          {cat.label}
-                        </span>
-                      </td>
-                      <td className={`py-3 px-4 ${expiryColor(doc.expiry_date)}`}>
-                        {doc.expiry_date ? formatDate(doc.expiry_date) : "No expiry"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <StatusBadge status={computedStatus} />
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
     </div>
   )
 }
