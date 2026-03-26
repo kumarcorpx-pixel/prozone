@@ -27,7 +27,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  const role = user.role === "admin" ? "admin" : "client"
+  const role = user.role === "admin" ? "admin" : user.role === "pro_staff" ? "pro_staff" : "client"
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -70,7 +70,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {/* Breadcrumb area */}
             <div className="hidden sm:block">
               <h1 className="text-lg font-semibold text-gray-900">
-                {role === "admin" ? "Admin Portal" : "Client Portal"}
+                {role === "admin" ? "Admin Portal" : role === "pro_staff" ? "PRO Staff Portal" : "Client Portal"}
               </h1>
             </div>
           </div>

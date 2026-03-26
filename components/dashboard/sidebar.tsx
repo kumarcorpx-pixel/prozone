@@ -66,7 +66,10 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
     if (role === "client" && href === "/dashboard") {
       return pathname === "/dashboard"
     }
-    return pathname.startsWith(href) && href !== "/dashboard" && href !== "/admin"
+    if (role === "pro_staff" && href === "/staff") {
+      return pathname === "/staff"
+    }
+    return pathname.startsWith(href) && href !== "/dashboard" && href !== "/admin" && href !== "/staff"
   }
 
   return (
@@ -77,7 +80,7 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-5 border-b border-gray-100">
-        <Link href={role === "admin" ? "/admin" : "/dashboard"} className="flex items-center">
+        <Link href={role === "admin" ? "/admin" : role === "pro_staff" ? "/staff" : "/dashboard"} className="flex items-center">
           <YabsLogo variant="compact" className="h-8 w-auto" />
         </Link>
         {mobile && onClose && (
@@ -134,10 +137,12 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
               className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
                 role === "admin"
                   ? "bg-purple-100 text-purple-700"
+                  : role === "pro_staff"
+                  ? "bg-emerald-100 text-emerald-700"
                   : "bg-blue-100 text-blue-700"
               }`}
             >
-              {role}
+              {role === "pro_staff" ? "PRO Staff" : role}
             </span>
           </div>
           <button

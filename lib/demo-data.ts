@@ -699,21 +699,3 @@ export const demoNotifications: Notification[] = [
   },
 ]
 
-// ─── Demo Checklist ─────────────────────────────────────────────────────────
-
-export const demoChecklist: RequestChecklist[] = [
-  // For the first demo request
-  { id: "chk-001", request_id: "req-001", item: "Collect trade license copy from client", is_completed: true, completed_by: "demo-staff-001", completed_at: "2025-03-20T10:00:00Z", sort_order: 1, created_at: "2025-03-18T08:00:00Z" },
-  { id: "chk-002", request_id: "req-001", item: "Verify tenancy contract validity", is_completed: true, completed_by: "demo-staff-001", completed_at: "2025-03-20T11:00:00Z", sort_order: 2, created_at: "2025-03-18T08:00:00Z" },
-  { id: "chk-003", request_id: "req-001", item: "Submit application to DED", is_completed: false, completed_by: null, completed_at: null, sort_order: 3, created_at: "2025-03-18T08:00:00Z" },
-  { id: "chk-004", request_id: "req-001", item: "Pay government fees", is_completed: false, completed_by: null, completed_at: null, sort_order: 4, created_at: "2025-03-18T08:00:00Z" },
-  { id: "chk-005", request_id: "req-001", item: "Collect renewed license", is_completed: false, completed_by: null, completed_at: null, sort_order: 5, created_at: "2025-03-18T08:00:00Z" },
-]
-
-// ─── Demo Request Documents ─────────────────────────────────────────────────
-
-export const demoRequestDocuments: RequestDocument[] = [
-  { id: "rdoc-001", request_id: "req-001", document_id: null, file_name: "Trade License (Current).pdf", file_url: "#", doc_type: "required", notes: "Current trade license", uploaded_by: "demo-client-001", created_at: "2025-03-18T09:00:00Z" },
-  { id: "rdoc-002", request_id: "req-001", document_id: null, file_name: "Tenancy Contract.pdf", file_url: "#", doc_type: "required", notes: "Valid tenancy", uploaded_by: "demo-client-001", created_at: "2025-03-18T09:05:00Z" },
-  { id: "rdoc-003", request_id: "req-001", document_id: null, file_name: "MOA.pdf", file_url: "#", doc_type: "submitted", notes: "Submitted to DED", uploaded_by: "demo-staff-001", created_at: "2025-03-20T14:00:00Z" },
-]
