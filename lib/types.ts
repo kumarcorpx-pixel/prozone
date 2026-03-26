@@ -212,7 +212,7 @@ export interface WPSData {
 }
 
 export interface MonthlyUpload {
-  month: string
+  month: string | number
   year: number
   employee_list: boolean
   wps_report: boolean

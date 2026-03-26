@@ -30,7 +30,7 @@ export default function SignupPage() {
 
     setLoading(true)
     try {
-      await signup(name, email, password, "client")
+      await signup(email, password, name)
       router.push("/dashboard")
       toast.success("Account created successfully!")
     } catch (err: any) {
