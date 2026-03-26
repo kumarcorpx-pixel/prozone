@@ -55,8 +55,8 @@ const DEMO_PROFILES: Record<string, Profile> = {
 }
 
 function isDemoMode(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  return !url || url === "your_supabase_url_here"
+  const dbUrl = process.env.NEXT_PUBLIC_DATABASE_URL || process.env.DATABASE_URL
+  return !dbUrl || dbUrl === ""
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -65,65 +65,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isDemo = isDemoMode()
 
   useEffect(() => {
-    if (isDemo) {
-      const savedRole = localStorage.getItem("prozone_demo_role")
-      if (savedRole === "client") {
-        setUser(DEMO_PROFILES["ahmed@company.ae"])
-      } else if (savedRole === "admin") {
-        setUser(DEMO_PROFILES["admin@yabs.ae"])
-      } else if (savedRole === "pro_staff") {
-        setUser(DEMO_PROFILES["staff@yabs.ae"])
+    async function checkAuth() {
+      // Check localStorage first
+      const saved = localStorage.getItem("prozone_user")
+      if (saved) {
+        try {
+          setUser(JSON.parse(saved))
+        } catch {}
       }
-      setIsLoading(false)
-      return
-    }
 
-    // Real Supabase auth
-    let isMounted = true
+      // Also check demo role
+      if (isDemo) {
+        const savedRole = localStorage.getItem("prozone_demo_role")
+        if (savedRole === "client") {
+          setUser(DEMO_PROFILES["ahmed@company.ae"])
+        } else if (savedRole === "admin") {
+          setUser(DEMO_PROFILES["admin@yabs.ae"])
+        } else if (savedRole === "pro_staff") {
+          setUser(DEMO_PROFILES["staff@yabs.ae"])
+        }
+        setIsLoading(false)
+        return
+      }
 
-    async function initAuth() {
+      // Verify with server
       try {
-        const { createClient } = await import("./supabase/client")
-        const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-
-        if (session?.user && isMounted) {
-          const { getProfile } = await import("./supabase/api")
-          const profile = await getProfile(session.user.id)
-          if (isMounted) setUser(profile)
+        const res = await fetch("/api/auth/me")
+        if (res.ok) {
+          const data = await res.json()
+          setUser(data.user)
+          localStorage.setItem("prozone_user", JSON.stringify(data.user))
         }
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (_event, session) => {
-            if (session?.user && isMounted) {
-              const { getProfile } = await import("./supabase/api")
-              const profile = await getProfile(session.user.id)
-              if (isMounted) setUser(profile)
-            } else if (isMounted) {
-              setUser(null)
-            }
-          }
-        )
-
-        if (isMounted) setIsLoading(false)
-
-        return () => {
-          subscription.unsubscribe()
-        }
-      } catch {
-        if (isMounted) setIsLoading(false)
-      }
+      } catch {}
+      setIsLoading(false)
     }
-
-    initAuth()
-
-    return () => {
-      isMounted = false
-    }
+    checkAuth()
   }, [isDemo])
 
   const login = useCallback(
     async (email: string, password: string) => {
+      // Try API login first
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setUser(data.user)
+          localStorage.setItem("prozone_user", JSON.stringify(data.user))
+          return
+        }
+        const err = await res.json()
+        // If not a network/server issue, and we're not in demo mode, throw
+        if (!isDemo) {
+          throw new Error(err.error || "Login failed")
+        }
+      } catch (e: any) {
+        if (!isDemo) throw e
+      }
+
+      // Fall back to demo mode if API fails
       if (isDemo) {
         let role: UserRole = "client"
         let profileKey = "ahmed@company.ae"
@@ -140,13 +143,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(profile)
         return
       }
-
-      const { signIn, getProfile } = await import("./supabase/api")
-      const data = await signIn(email, password)
-      if (data.user) {
-        const profile = await getProfile(data.user.id)
-        setUser(profile)
-      }
     },
     [isDemo]
   )
@@ -157,26 +153,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Sign up is not available in demo mode")
       }
 
-      const { signUp } = await import("./supabase/api")
-      await signUp(email, password, fullName)
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, fullName, confirmPassword: password }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Sign up failed")
+      }
     },
     [isDemo]
   )
 
   const logout = useCallback(async () => {
-    if (isDemo) {
-      localStorage.removeItem("prozone_demo_role")
-      document.cookie = "prozone_demo_role=; path=/; max-age=0"
-      setUser(null)
-      window.location.href = "/login"
-      return
-    }
+    localStorage.removeItem("prozone_user")
+    localStorage.removeItem("prozone_demo_role")
+    document.cookie = "prozone_demo_role=; path=/; max-age=0"
 
-    const { signOut } = await import("./supabase/api")
-    await signOut()
+    try {
+      await fetch("/api/auth/logout", { method: "POST" })
+    } catch {}
+
     setUser(null)
     window.location.href = "/login"
-  }, [isDemo])
+  }, [])
 
   const switchRole = useCallback(
     (role: UserRole) => {
