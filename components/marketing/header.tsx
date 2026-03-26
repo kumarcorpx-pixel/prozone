@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Phone, Menu, X } from "lucide-react"
+import { YabsLogo } from "./yabs-logo"
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -19,9 +20,9 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-[#1a3a6b]">YABS</span>
-            <span className="hidden sm:inline text-xs text-gray-500">Public Relations Management</span>
+          <Link href="/" className="flex items-center">
+            <YabsLogo variant="full" className="h-10 w-auto hidden sm:block" />
+            <YabsLogo variant="compact" className="h-8 w-auto sm:hidden" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">

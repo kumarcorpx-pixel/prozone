@@ -18,6 +18,7 @@ import {
   ChevronLeft,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import { YabsLogo } from "@/components/marketing/yabs-logo"
 
 interface NavItem {
   label: string
@@ -70,11 +71,8 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-5 border-b border-gray-100">
-        <Link href={role === "admin" ? "/admin" : "/dashboard"} className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-[#1a3a6b] flex items-center justify-center">
-            <span className="text-white text-sm font-bold">Y</span>
-          </div>
-          <span className="text-lg font-semibold text-[#1a3a6b]">YABS PRO</span>
+        <Link href={role === "admin" ? "/admin" : "/dashboard"} className="flex items-center">
+          <YabsLogo variant="compact" className="h-8 w-auto" />
         </Link>
         {mobile && onClose && (
           <button
