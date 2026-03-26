@@ -1,13 +1,28 @@
 "use client"
 
-import { demoRequests } from "@/lib/demo-data"
+import { useState, useEffect } from "react"
+import { fetchRequests } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { CheckCircle2, Circle, Clock, User, MessageSquare } from "lucide-react"
 
 export default function TrackingPage() {
-  const activeRequests = demoRequests.filter(r => !["completed", "rejected"].includes(r.status))
-  const completedRequests = demoRequests.filter(r => r.status === "completed")
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const r = await fetchRequests()
+      setRequests(r)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+
+  const activeRequests = requests.filter(r => !["completed", "rejected"].includes(r.status))
+  const completedRequests = requests.filter(r => r.status === "completed")
 
   return (
     <div className="space-y-6">

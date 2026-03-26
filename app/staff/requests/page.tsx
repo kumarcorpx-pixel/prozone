@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { demoRequests, demoChecklist } from "@/lib/demo-data"
+import { fetchRequests } from "@/lib/data-fetcher"
+import { demoChecklist } from "@/lib/demo-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 
 const priorityColors: Record<string, string> = {
@@ -23,9 +24,22 @@ type TabKey = (typeof tabs)[number]["key"]
 
 export default function StaffRequestsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("all")
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const r = await fetchRequests()
+      setRequests(r)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
   // Show all requests as if assigned to current staff
-  const allRequests = demoRequests
+  const allRequests = requests
 
   const filteredRequests =
     activeTab === "all"

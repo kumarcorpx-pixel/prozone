@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { companyDocuments, documentCategories, demoCompanies, demoEmployees } from "@/lib/company-data"
-import { demoRequests, demoRequestDocuments } from "@/lib/demo-data"
+import { fetchDocuments, fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
+import { documentCategories } from "@/lib/company-data"
+import { demoRequestDocuments } from "@/lib/demo-data"
 import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2 } from "lucide-react"
 
 const allCategories = ["all", ...Object.keys(documentCategories)] as const
@@ -32,14 +33,35 @@ export default function DocumentsPage() {
   const { user } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [activeTab, setActiveTab] = useState<TabType>("company")
+  const [documents, setDocuments] = useState<any[]>([])
+  const [companies, setCompanies] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const myCompany = demoCompanies.find(c => c.id === user?.company_id)
-  const myEmployees = demoEmployees.filter(e => e.company_id === user?.company_id)
+  useEffect(() => {
+    async function load() {
+      const [d, c, e] = await Promise.all([
+        fetchDocuments(user?.company_id),
+        fetchCompanies(),
+        fetchEmployees(),
+      ])
+      setDocuments(d)
+      setCompanies(c)
+      setEmployees(e)
+      setLoading(false)
+    }
+    load()
+  }, [user?.company_id])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+
+  const myCompany = companies.find(c => c.id === user?.company_id)
+  const myEmployees = employees.filter(e => e.company_id === user?.company_id)
 
   // Company documents
-  const myCompanyDocs = companyDocuments.filter(d => d.company_id === user?.company_id && !d.employee_id)
+  const myCompanyDocs = documents.filter(d => d.company_id === user?.company_id && !d.employee_id)
   // Employee documents
-  const myEmployeeDocs = companyDocuments.filter(d => d.company_id === user?.company_id && d.employee_id)
+  const myEmployeeDocs = documents.filter(d => d.company_id === user?.company_id && d.employee_id)
   // Request-linked documents
   const myRequestDocs = demoRequestDocuments
 
@@ -104,7 +126,7 @@ export default function DocumentsPage() {
       {/* Request Documents Tab */}
       {activeTab === "requests" ? (
         <div className="space-y-4">
-          {demoRequests.map(request => {
+          {documents.map(request => {
             const reqDocs = myRequestDocs.filter(d => d.request_id === request.id)
             if (reqDocs.length === 0) return null
             return (
@@ -119,7 +141,7 @@ export default function DocumentsPage() {
                     request.status === "in_progress" ? "bg-blue-100 text-blue-700" :
                     "bg-yellow-100 text-yellow-700"
                   }`}>
-                    {request.status.replace("_", " ")}
+                    {request.status?.replace("_", " ")}
                   </span>
                 </div>
                 <div className="divide-y divide-gray-100">

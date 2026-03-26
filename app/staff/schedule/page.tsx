@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { demoRequests } from "@/lib/demo-data"
+import { useState, useEffect } from "react"
+import { fetchRequests } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { CalendarCheck, MapPin, X, Clock } from "lucide-react"
 
@@ -17,8 +17,21 @@ export default function SchedulePage() {
   const [locations, setLocations] = useState<string[]>([])
   const [locationInput, setLocationInput] = useState("")
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set())
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const todaysTasks = demoRequests
+  useEffect(() => {
+    async function load() {
+      const r = await fetchRequests()
+      setRequests(r)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+
+  const todaysTasks = requests
     .flatMap(req => {
       const items = getChecklistForServiceType(req.service_type)
       return items.slice(0, 3).map((item, i) => ({

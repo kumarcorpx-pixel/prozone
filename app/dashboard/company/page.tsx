@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { demoCompanies, demoEmployees } from "@/lib/company-data"
+import { fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Building2, Users, FileText, Shield, CheckCircle2, AlertTriangle, XCircle } from "lucide-react"
 
@@ -17,10 +17,31 @@ function getExpiryInfo(date: string | null) {
 
 export default function CompanyPage() {
   const { user } = useAuth()
-  const myCompanies = demoCompanies.filter(c => c.id === user?.company_id || c.id === "comp-002")
-  const [selectedId, setSelectedId] = useState(myCompanies[0]?.id || "")
+  const [companies, setCompanies] = useState<any[]>([])
+  const [allEmployees, setAllEmployees] = useState<any[]>([])
+  const [selectedId, setSelectedId] = useState("")
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [c, e] = await Promise.all([
+        fetchCompanies(),
+        fetchEmployees(),
+      ])
+      setCompanies(c)
+      setAllEmployees(e)
+      const myCompanies = c.filter((co: any) => co.id === user?.company_id || co.id === "comp-002")
+      if (myCompanies.length > 0) setSelectedId(myCompanies[0].id)
+      setLoading(false)
+    }
+    load()
+  }, [user?.company_id])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+
+  const myCompanies = companies.filter(c => c.id === user?.company_id || c.id === "comp-002")
   const company = myCompanies.find(c => c.id === selectedId) || myCompanies[0]
-  const employees = demoEmployees.filter(e => e.company_id === selectedId)
+  const employees = allEmployees.filter(e => e.company_id === selectedId)
   const licenseExpiry = getExpiryInfo(company?.license_expiry)
 
   const complianceItems = [

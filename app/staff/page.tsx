@@ -1,7 +1,9 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { demoRequests, demoChecklist } from "@/lib/demo-data"
+import { fetchRequests } from "@/lib/data-fetcher"
+import { demoChecklist } from "@/lib/demo-data"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { FileText, CheckCircle2, Clock, ClipboardList, ArrowRight } from "lucide-react"
@@ -9,9 +11,22 @@ import Link from "next/link"
 
 export default function StaffDashboardPage() {
   const { user } = useAuth()
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const r = await fetchRequests()
+      setRequests(r)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
   // Show all requests as assigned to current staff
-  const assignedRequests = demoRequests.filter(
+  const assignedRequests = requests.filter(
     (r) => r.status !== "rejected"
   )
   const inProgressCount = assignedRequests.filter((r) => r.status === "in_progress").length

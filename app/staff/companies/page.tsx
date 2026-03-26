@@ -1,6 +1,7 @@
 "use client"
 
-import { demoCompanies, demoEmployees } from "@/lib/company-data"
+import { useState, useEffect } from "react"
+import { fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
 import { Building2, MapPin, FileText, Users, Calendar } from "lucide-react"
 
 function getExpiryColor(date: string | null) {
@@ -12,6 +13,25 @@ function getExpiryColor(date: string | null) {
 }
 
 export default function StaffCompaniesPage() {
+  const [companies, setCompanies] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [c, e] = await Promise.all([
+        fetchCompanies(),
+        fetchEmployees(),
+      ])
+      setCompanies(c)
+      setEmployees(e)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+
   return (
     <div className="space-y-6">
       <div>
@@ -20,8 +40,8 @@ export default function StaffCompaniesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {demoCompanies.filter(c => c.status === "active").map(company => {
-          const empCount = demoEmployees.filter(e => e.company_id === company.id).length
+        {companies.filter(c => c.status === "active").map(company => {
+          const empCount = employees.filter(e => e.company_id === company.id).length
           return (
             <div key={company.id} className="bg-white rounded-xl ring-1 ring-gray-200 p-5">
               <div className="flex items-start gap-3">

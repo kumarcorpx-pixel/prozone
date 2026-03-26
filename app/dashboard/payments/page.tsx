@@ -3,6 +3,7 @@
 import { Download, CreditCard, Clock, CheckCircle2 } from "lucide-react"
 import { AedIcon } from "@/components/ui/aed-icon"
 
+// TODO: Replace with real payments table data once available (e.g. fetchInvoices() from data-fetcher)
 const demoInvoices = [
   { id: "INV-2026-001", date: "2026-03-15", service: "Trade License Renewal", company: "Gulf Trading LLC", govFees: 10000, serviceFee: 2000, vat: 600, total: 12600, status: "pending" },
   { id: "INV-2026-002", date: "2026-03-01", service: "Document Attestation", company: "Gulf Trading LLC", govFees: 500, serviceFee: 300, vat: 40, total: 840, status: "paid" },

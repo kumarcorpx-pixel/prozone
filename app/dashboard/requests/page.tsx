@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { demoRequests } from "@/lib/demo-data"
+import { fetchRequests } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Plus, Calendar, User, ArrowRight } from "lucide-react"
@@ -15,8 +15,21 @@ const priorityColors: Record<string, string> = {
 
 export default function ClientRequestsPage() {
   const [tab, setTab] = useState<string>("all")
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const filtered = demoRequests.filter(r => {
+  useEffect(() => {
+    async function load() {
+      const r = await fetchRequests()
+      setRequests(r)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+
+  const filtered = requests.filter(r => {
     if (tab === "active") return ["pending", "in_progress", "under_review"].includes(r.status)
     if (tab === "completed") return r.status === "completed"
     if (tab === "cancelled") return r.status === "rejected"

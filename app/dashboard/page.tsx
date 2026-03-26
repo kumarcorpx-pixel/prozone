@@ -1,8 +1,9 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { demoRequests, demoNotifications, demoPayments, demoRequestDocuments, demoChecklist } from "@/lib/demo-data"
-import { companyDocuments, demoCompanies, demoEmployees } from "@/lib/company-data"
+import { fetchCompanies, fetchEmployees, fetchDocuments, fetchRequests } from "@/lib/data-fetcher"
+import { demoNotifications, demoPayments, demoRequestDocuments } from "@/lib/demo-data"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import Link from "next/link"
@@ -27,14 +28,38 @@ const notificationColors: Record<string, string> = {
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const [companies, setCompanies] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [documents, setDocuments] = useState<any[]>([])
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [c, e, d, r] = await Promise.all([
+        fetchCompanies(),
+        fetchEmployees(),
+        fetchDocuments(),
+        fetchRequests(),
+      ])
+      setCompanies(c)
+      setEmployees(e)
+      setDocuments(d)
+      setRequests(r)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
   // Get client's company
-  const myCompany = demoCompanies.find(c => c.id === user?.company_id)
-  const myEmployees = demoEmployees.filter(e => e.company_id === user?.company_id)
-  const myDocuments = companyDocuments.filter(d => d.company_id === user?.company_id)
+  const myCompany = companies.find(c => c.id === user?.company_id)
+  const myEmployees = employees.filter(e => e.company_id === user?.company_id)
+  const myDocuments = documents.filter(d => d.company_id === user?.company_id)
 
   // Requests linked to client
-  const myRequests = demoRequests.filter(r => r.client_id === user?.id || r.company?.name === myCompany?.name)
+  const myRequests = requests.filter(r => r.client_id === user?.id || r.company?.name === myCompany?.name)
   const activeRequests = myRequests.filter(r => r.status !== "completed" && r.status !== "rejected")
   const completedRequests = myRequests.filter(r => r.status === "completed")
   const pendingPayments = demoPayments.filter(p => p.status === "pending")
