@@ -168,12 +168,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("prozone_demo_role")
       document.cookie = "prozone_demo_role=; path=/; max-age=0"
       setUser(null)
+      window.location.href = "/login"
       return
     }
 
     const { signOut } = await import("./supabase/api")
     await signOut()
     setUser(null)
+    window.location.href = "/login"
   }, [isDemo])
 
   const switchRole = useCallback(

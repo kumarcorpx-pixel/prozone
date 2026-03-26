@@ -114,18 +114,27 @@ export default function StaffDashboardPage() {
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
+          <Link
+            href="/staff/requests"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+          >
             <Clock className="h-4 w-4" />
             Update Status
-          </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 rounded-lg text-sm font-medium ring-1 ring-gray-200 hover:bg-gray-50 transition-colors">
+          </Link>
+          <Link
+            href="/staff/documents"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 rounded-lg text-sm font-medium ring-1 ring-gray-200 hover:bg-gray-50 transition-colors"
+          >
             <FileText className="h-4 w-4" />
             Upload Document
-          </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 rounded-lg text-sm font-medium ring-1 ring-gray-200 hover:bg-gray-50 transition-colors">
+          </Link>
+          <Link
+            href="/staff/activity"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 rounded-lg text-sm font-medium ring-1 ring-gray-200 hover:bg-gray-50 transition-colors"
+          >
             <ClipboardList className="h-4 w-4" />
             Add Note
-          </button>
+          </Link>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "./sidebar"
 import { Menu, Bell } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
+import Link from "next/link"
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -101,10 +102,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-3">
             {/* Notification bell */}
-            <button className="relative p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+            <Link
+              href={
+                pathname.startsWith("/admin")
+                  ? "/admin/messages"
+                  : pathname.startsWith("/staff")
+                  ? "/staff/notifications"
+                  : "/dashboard/notifications"
+              }
+              className="relative p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
               <Bell className="h-5 w-5" />
               <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full" />
-            </button>
+            </Link>
             {/* User avatar */}
             <div className="h-8 w-8 rounded-full bg-[#1a3a6b] flex items-center justify-center cursor-pointer">
               <span className="text-white text-xs font-medium">

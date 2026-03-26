@@ -138,7 +138,7 @@ export default function DashboardPage() {
           <p className="text-sm font-medium">Track Progress</p>
           <p className="text-xs text-gray-500 mt-0.5">{activeRequests.length} active</p>
         </Link>
-        <Link href="/dashboard/requests" className="bg-white rounded-xl ring-1 ring-gray-200 p-4 hover:ring-[#1a3a6b] hover:shadow-md transition-all group">
+        <Link href="/dashboard/payments" className="bg-white rounded-xl ring-1 ring-gray-200 p-4 hover:ring-[#1a3a6b] hover:shadow-md transition-all group">
           <CreditCard className="h-6 w-6 text-orange-500 mb-2" />
           <p className="text-sm font-medium">Payments</p>
           <p className="text-xs text-gray-500 mt-0.5">{pendingPayments.length} pending</p>
@@ -162,7 +162,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               recentRequests.map((request) => (
-                <div key={request.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                <Link key={request.id} href={`/dashboard/requests/${request.id}`} className="block px-6 py-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-gray-900">{request.service_type}</p>
@@ -179,7 +179,7 @@ export default function DashboardPage() {
                     </div>
                     <StatusBadge status={request.status} />
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>

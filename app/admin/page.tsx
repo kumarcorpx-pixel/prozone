@@ -157,24 +157,28 @@ export default function AdminDashboard() {
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Company Portfolio</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Companies" value={stats.companies} icon={Building2} description="Managed companies" />
-          <div className="bg-white rounded-xl p-6 ring-1 ring-gray-200">
+          <Link href="/admin/companies" className="block">
+            <StatCard title="Total Companies" value={stats.companies} icon={Building2} description="Managed companies" />
+          </Link>
+          <Link href="/admin/companies" className="block bg-white rounded-xl p-6 ring-1 ring-gray-200 hover:ring-[#1a3a6b] transition-colors">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">Active</p>
               <Building2 className="h-5 w-5 text-green-500" />
             </div>
             <p className="text-2xl font-bold mt-2 text-green-600">{activeCompanies.length}</p>
             <p className="text-xs text-gray-500 mt-1">Fully operational</p>
-          </div>
-          <div className="bg-white rounded-xl p-6 ring-1 ring-gray-200">
+          </Link>
+          <Link href="/admin/companies" className="block bg-white rounded-xl p-6 ring-1 ring-gray-200 hover:ring-[#1a3a6b] transition-colors">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">Expired License</p>
               <AlertTriangle className="h-5 w-5 text-red-500" />
             </div>
             <p className="text-2xl font-bold mt-2 text-red-600">{expiredCompanies.length}</p>
             <p className="text-xs text-gray-500 mt-1">Needs renewal</p>
-          </div>
-          <StatCard title="Total Employees" value={stats.employees} icon={Users} description="Across all companies" />
+          </Link>
+          <Link href="/admin/employees" className="block">
+            <StatCard title="Total Employees" value={stats.employees} icon={Users} description="Across all companies" />
+          </Link>
         </div>
       </div>
 
@@ -207,8 +211,8 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-500 text-center py-4">No expiring items in the next 30 days</p>
             )}
           </div>
-          <Link href="/admin/documents" className="block mt-4 text-sm text-[#1a3a6b] hover:underline font-medium text-center">
-            View All Documents
+          <Link href="/admin/expiry-calendar" className="block mt-4 text-sm text-[#1a3a6b] hover:underline font-medium text-center">
+            View All Expiry Alerts
           </Link>
         </div>
 
@@ -262,7 +266,11 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {requests.slice(0, 5).map((req) => (
-                  <tr key={req.id} className="border-b border-gray-50">
+                  <tr
+                    key={req.id}
+                    className="border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => window.location.href = `/admin/requests/${req.id}`}
+                  >
                     <td className="py-2.5 text-gray-900">{req.company?.name || "N/A"}</td>
                     <td className="py-2.5 text-gray-600">{req.service_type}</td>
                     <td className="py-2.5"><StatusBadge status={req.status} /></td>
