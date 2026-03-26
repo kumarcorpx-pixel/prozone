@@ -6,6 +6,7 @@ import { createEmployee } from "@/lib/supabase/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye, Loader2, X } from "lucide-react"
 import { toast } from "sonner"
+import Link from "next/link"
 
 function getExpiryLabel(dateStr: string | null): { text: string; color: string } {
   if (!dateStr) return { text: "N/A", color: "text-gray-400" }
@@ -448,10 +449,10 @@ export default function EmployeesPage() {
                       {laborExpiry.text}
                     </td>
                     <td className="py-3 px-4">
-                      <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1a3a6b] bg-[#1a3a6b]/10 rounded-lg hover:bg-[#1a3a6b]/20 transition-colors">
+                      <Link href={`/admin/employees/${emp.id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1a3a6b] bg-[#1a3a6b]/10 rounded-lg hover:bg-[#1a3a6b]/20 transition-colors">
                         <Eye className="h-3.5 w-3.5" />
                         View
-                      </button>
+                      </Link>
                     </td>
                   </tr>
                 )
