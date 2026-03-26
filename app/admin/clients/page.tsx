@@ -1,14 +1,36 @@
 "use client"
 
-import { useState } from "react"
-import { demoProfiles } from "@/lib/demo-data"
+import { useState, useEffect } from "react"
+import { fetchProfiles } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, Users } from "lucide-react"
+import { Search, Users, Loader2 } from "lucide-react"
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("")
+  const [profiles, setProfiles] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const filtered = demoProfiles.filter(
+  useEffect(() => {
+    async function load() {
+      const data = await fetchProfiles()
+      setProfiles(data)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1a3a6b]" />
+          <p className="text-sm text-gray-500">Loading clients...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const filtered = profiles.filter(
     (p) =>
       p.full_name.toLowerCase().includes(search.toLowerCase()) ||
       p.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -55,7 +77,7 @@ export default function ClientsPage() {
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-[#1a3a6b] flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-xs font-medium">
-                          {profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                          {profile.full_name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                         </span>
                       </div>
                       <span className="font-medium text-gray-900">{profile.full_name}</span>
