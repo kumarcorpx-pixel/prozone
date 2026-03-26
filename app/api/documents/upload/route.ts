@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, uploadRateLimit } from "@/lib/rate-limit"
+import { writeFile, mkdir } from "fs/promises"
+import path from "path"
 
 export async function POST(request: NextRequest) {
   // Rate limit
@@ -31,36 +33,13 @@ export async function POST(request: NextRequest) {
     const ext = file.name.split(".").pop()
     const fileName = `${companyId}-${docType}-${timestamp}.${ext}`
 
-    // Try Supabase Storage upload
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      const { createClient } = await import("@/lib/supabase/server")
-      const supabase = await createClient()
-      const buffer = Buffer.from(await file.arrayBuffer())
+    // Save file to local uploads directory
+    const uploadsDir = path.join(process.cwd(), "public", "uploads")
+    await mkdir(uploadsDir, { recursive: true })
 
-      const { data, error } = await supabase.storage
-        .from("documents")
-        .upload(fileName, buffer, {
-          contentType: file.type,
-          upsert: false,
-        })
+    const buffer = Buffer.from(await file.arrayBuffer())
+    await writeFile(path.join(uploadsDir, fileName), buffer)
 
-      if (error) throw error
-
-      const { data: urlData } = supabase.storage
-        .from("documents")
-        .getPublicUrl(data.path)
-
-      return NextResponse.json({
-        success: true,
-        fileName: file.name,
-        storedName: fileName,
-        fileUrl: urlData.publicUrl,
-        fileSize: file.size,
-        mimeType: file.type,
-      })
-    }
-
-    // Demo mode - return mock success
     return NextResponse.json({
       success: true,
       fileName: file.name,
@@ -68,7 +47,6 @@ export async function POST(request: NextRequest) {
       fileUrl: `/uploads/${fileName}`,
       fileSize: file.size,
       mimeType: file.type,
-      demo: true,
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Upload failed" }, { status: 500 })

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     })
 
-    const mapped = documents.map((d) => ({
+    const mapped = documents.map((d: any) => ({
       id: d.id,
       company_id: d.companyId,
       employee_id: d.employeeId,

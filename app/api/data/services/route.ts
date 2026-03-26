@@ -7,7 +7,7 @@ export async function GET() {
       orderBy: { name: "asc" },
     })
 
-    const mapped = services.map((s) => ({
+    const mapped = services.map((s: any) => ({
       id: s.id,
       name: s.name,
       category: s.category,

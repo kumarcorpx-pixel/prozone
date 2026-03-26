@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
+import { getUserFromToken } from "@/lib/auth"
+import prisma from "@/lib/prisma"
 
 const demoDashboard = {
   assignedRequests: 8,
@@ -20,66 +22,53 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const token = request.cookies.get("auth_token")?.value
+    const user = token ? await getUserFromToken(token) : null
+
+    if (!user) {
       return NextResponse.json({ ...demoDashboard, demo: true })
     }
 
-    const { createClient } = await import("@/lib/supabase/server")
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-
-    if (!profile || !["staff", "admin"].includes(profile.role)) {
+    if (!["staff", "admin"].includes(user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
 
-    const [assignedRes, pendingRes, completedTodayRes] = await Promise.all([
-      supabase
-        .from("service_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("assigned_to", user.id)
-        .in("status", ["pending", "in_progress", "under_review"]),
-      supabase
-        .from("service_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("assigned_to", user.id)
-        .eq("status", "pending"),
-      supabase
-        .from("service_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("assigned_to", user.id)
-        .eq("status", "completed")
-        .gte("updated_at", todayStart.toISOString()),
+    const [assignedCount, pendingCount, completedTodayCount] = await Promise.all([
+      prisma.serviceRequest.count({
+        where: {
+          assignedTo: user.id,
+          status: { in: ["pending", "in_progress", "under_review"] },
+        },
+      }),
+      prisma.serviceRequest.count({
+        where: {
+          assignedTo: user.id,
+          status: "pending",
+        },
+      }),
+      prisma.serviceRequest.count({
+        where: {
+          assignedTo: user.id,
+          status: "completed",
+          updatedAt: { gte: todayStart },
+        },
+      }),
     ])
 
     // Recent activity for this staff member
-    const { data: recentActivity } = await supabase
-      .from("activity_log")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(10)
+    const recentActivity = await prisma.activityLog.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    })
 
     return NextResponse.json({
-      assignedRequests: assignedRes.count || 0,
-      pendingTasks: pendingRes.count || 0,
-      completedToday: completedTodayRes.count || 0,
+      assignedRequests: assignedCount,
+      pendingTasks: pendingCount,
+      completedToday: completedTodayCount,
       recentActivity: recentActivity || [],
     })
   } catch (err: any) {

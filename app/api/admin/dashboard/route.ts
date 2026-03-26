@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
+import { getUserFromToken } from "@/lib/auth"
+import prisma from "@/lib/prisma"
 
 const demoStats = {
   companies: 24,
@@ -27,62 +29,43 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const token = request.cookies.get("auth_token")?.value
+    const user = token ? await getUserFromToken(token) : null
+
+    if (!user) {
       return NextResponse.json({ ...demoStats, demo: true })
     }
 
-    const { createClient } = await import("@/lib/supabase/server")
-    const supabase = await createClient()
-
-    // Auth check - admin only
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-
-    if (!profile || profile.role !== "admin") {
+    if (user.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     // Fetch counts in parallel
-    const [companiesRes, employeesRes, activeReqRes, completedReqRes, documentsRes] =
+    const [companiesCount, employeesCount, activeReqCount, completedReqCount, documentsCount] =
       await Promise.all([
-        supabase.from("companies").select("id", { count: "exact", head: true }),
-        supabase.from("employees").select("id", { count: "exact", head: true }),
-        supabase
-          .from("service_requests")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["pending", "in_progress", "under_review"]),
-        supabase
-          .from("service_requests")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "completed"),
-        supabase.from("documents").select("id", { count: "exact", head: true }),
+        prisma.company.count(),
+        prisma.employee.count(),
+        prisma.serviceRequest.count({
+          where: { status: { in: ["pending", "in_progress", "under_review"] } },
+        }),
+        prisma.serviceRequest.count({
+          where: { status: "completed" },
+        }),
+        prisma.document.count(),
       ])
 
     // Recent activity
-    const { data: recentActivity } = await supabase
-      .from("activity_log")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(10)
+    const recentActivity = await prisma.activityLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    })
 
     return NextResponse.json({
-      companies: companiesRes.count || 0,
-      employees: employeesRes.count || 0,
-      activeRequests: activeReqRes.count || 0,
-      completedRequests: completedReqRes.count || 0,
-      documents: documentsRes.count || 0,
+      companies: companiesCount,
+      employees: employeesCount,
+      activeRequests: activeReqCount,
+      completedRequests: completedReqCount,
+      documents: documentsCount,
       recentActivity: recentActivity || [],
     })
   } catch (err: any) {

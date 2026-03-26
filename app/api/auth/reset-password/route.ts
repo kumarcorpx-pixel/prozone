@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     // Validate input
     const result = resetPasswordSchema.safeParse(body)
     if (!result.success) {
-      const errors = result.error.issues.map((e) => e.message)
+      const errors = result.error.issues.map((e: any) => e.message)
       return NextResponse.json({ error: errors[0] }, { status: 400 })
     }
 

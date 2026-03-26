@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { serviceRequestSchema, sanitize } from "@/lib/validation/schemas"
+import { getUserFromToken } from "@/lib/auth"
+import prisma from "@/lib/prisma"
 
 const demoRequests = [
   {
@@ -33,41 +35,27 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const token = request.cookies.get("auth_token")?.value
+    const user = token ? await getUserFromToken(token) : null
+
+    if (!user) {
       return NextResponse.json({ requests: demoRequests, demo: true })
     }
 
-    const { createClient } = await import("@/lib/supabase/server")
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const { data: requests, error } = await supabase
-      .from("service_requests")
-      .select(
-        `
-        *,
-        company:companies!company_id(name),
-        assignee:profiles!assigned_to(full_name)
-      `
-      )
-      .eq("client_id", user.id)
-      .order("created_at", { ascending: false })
-
-    if (error) throw error
+    const requests = await prisma.serviceRequest.findMany({
+      where: { clientId: user.id },
+      include: {
+        company: { select: { name: true } },
+        assignee: { select: { fullName: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    })
 
     return NextResponse.json({
-      requests: (requests || []).map((r: any) => ({
+      requests: requests.map((r: any) => ({
         ...r,
         companyName: r.company?.name,
-        assignedToName: r.assignee?.full_name,
+        assignedToName: r.assignee?.fullName,
       })),
     })
   } catch (err: any) {
@@ -86,19 +74,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      return NextResponse.json({ error: "Supabase not configured" }, { status: 503 })
-    }
+    const token = request.cookies.get("auth_token")?.value
+    const user = token ? await getUserFromToken(token) : null
 
-    const { createClient } = await import("@/lib/supabase/server")
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
@@ -111,20 +90,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: newRequest, error } = await supabase
-      .from("service_requests")
-      .insert({
-        service_type: sanitize(result.data.serviceType),
+    const newRequest = await prisma.serviceRequest.create({
+      data: {
+        serviceType: sanitize(result.data.serviceType),
         description: result.data.description ? sanitize(result.data.description) : null,
         priority: result.data.priority,
-        company_id: result.data.companyId || null,
-        client_id: user.id,
+        companyId: result.data.companyId || null,
+        clientId: user.id,
         status: "pending",
-      })
-      .select()
-      .single()
-
-    if (error) throw error
+      },
+    })
 
     return NextResponse.json({ request: newRequest }, { status: 201 })
   } catch (err: any) {

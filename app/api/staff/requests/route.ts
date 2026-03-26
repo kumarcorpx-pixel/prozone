@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
+import { getUserFromToken } from "@/lib/auth"
+import prisma from "@/lib/prisma"
 
 const demoRequests = [
   {
@@ -26,34 +28,19 @@ const demoRequests = [
   },
 ]
 
-async function checkStaffAuth() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    return { authorized: false, noSupabase: true, user: null, supabase: null }
+async function checkStaffAuth(request: NextRequest) {
+  const token = request.cookies.get("auth_token")?.value
+  const user = token ? await getUserFromToken(token) : null
+
+  if (!user) {
+    return { authorized: false, user: null }
   }
 
-  const { createClient } = await import("@/lib/supabase/server")
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return { authorized: false, noSupabase: false, user: null, supabase }
+  if (!["staff", "admin"].includes(user.role)) {
+    return { authorized: false, user }
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
-
-  if (!profile || !["staff", "admin"].includes(profile.role)) {
-    return { authorized: false, noSupabase: false, user, supabase }
-  }
-
-  return { authorized: true, noSupabase: false, user, supabase }
+  return { authorized: true, user }
 }
 
 export async function GET(request: NextRequest) {
@@ -64,38 +51,32 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const auth = await checkStaffAuth()
+    const auth = await checkStaffAuth(request)
 
-    if (auth.noSupabase) {
+    if (!auth.user) {
       return NextResponse.json({ requests: demoRequests, demo: true })
     }
 
     if (!auth.authorized) {
       return NextResponse.json(
-        { error: auth.user ? "Forbidden" : "Not authenticated" },
-        { status: auth.user ? 403 : 401 }
+        { error: "Forbidden" },
+        { status: 403 }
       )
     }
 
-    const supabase = auth.supabase!
-    const { data: requests, error } = await supabase
-      .from("service_requests")
-      .select(
-        `
-        *,
-        client:profiles!client_id(full_name),
-        company:companies!company_id(name)
-      `
-      )
-      .eq("assigned_to", auth.user!.id)
-      .order("created_at", { ascending: false })
-
-    if (error) throw error
+    const requests = await prisma.serviceRequest.findMany({
+      where: { assignedTo: auth.user.id },
+      include: {
+        client: { select: { fullName: true } },
+        company: { select: { name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    })
 
     return NextResponse.json({
-      requests: (requests || []).map((r: any) => ({
+      requests: requests.map((r: any) => ({
         ...r,
-        clientName: r.client?.full_name,
+        clientName: r.client?.fullName,
         companyName: r.company?.name,
       })),
     })
@@ -115,16 +96,19 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    const auth = await checkStaffAuth()
+    const auth = await checkStaffAuth(request)
 
-    if (auth.noSupabase) {
-      return NextResponse.json({ error: "Supabase not configured" }, { status: 503 })
+    if (!auth.user) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      )
     }
 
     if (!auth.authorized) {
       return NextResponse.json(
-        { error: auth.user ? "Forbidden" : "Not authenticated" },
-        { status: auth.user ? 403 : 401 }
+        { error: "Forbidden" },
+        { status: 403 }
       )
     }
 
@@ -146,20 +130,17 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const supabase = auth.supabase!
-
     // Verify the request is assigned to this staff member
-    const { data: existing, error: fetchError } = await supabase
-      .from("service_requests")
-      .select("id, assigned_to")
-      .eq("id", id)
-      .single()
+    const existing = await prisma.serviceRequest.findUnique({
+      where: { id },
+      select: { id: true, assignedTo: true },
+    })
 
-    if (fetchError || !existing) {
+    if (!existing) {
       return NextResponse.json({ error: "Request not found" }, { status: 404 })
     }
 
-    if (existing.assigned_to !== auth.user!.id) {
+    if (existing.assignedTo !== auth.user.id) {
       return NextResponse.json(
         { error: "You can only update requests assigned to you" },
         { status: 403 }
@@ -168,18 +149,14 @@ export async function PATCH(request: NextRequest) {
 
     const updateData: Record<string, any> = {
       status,
-      updated_at: new Date().toISOString(),
+      updatedAt: new Date(),
     }
     if (notes) updateData.notes = notes
 
-    const { data: updated, error: updateError } = await supabase
-      .from("service_requests")
-      .update(updateData)
-      .eq("id", id)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
+    const updated = await prisma.serviceRequest.update({
+      where: { id },
+      data: updateData,
+    })
 
     return NextResponse.json({ request: updated })
   } catch (err: any) {

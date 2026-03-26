@@ -7,7 +7,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     })
 
-    const mapped = users.map((u) => ({
+    const mapped = users.map((u: any) => ({
       id: u.id,
       email: u.email,
       full_name: u.fullName,

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
+import { getUserFromToken } from "@/lib/auth"
+import prisma from "@/lib/prisma"
 
 const demoNotifications = [
   {
@@ -36,30 +38,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const token = request.cookies.get("auth_token")?.value
+    const user = token ? await getUserFromToken(token) : null
+
+    if (!user) {
       return NextResponse.json({ notifications: demoNotifications, demo: true })
     }
 
-    const { createClient } = await import("@/lib/supabase/server")
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const { data: notifications, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(50)
-
-    if (error) throw error
+    const notifications = await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    })
 
     return NextResponse.json({ notifications: notifications || [] })
   } catch (err: any) {
@@ -88,29 +78,17 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      return NextResponse.json({ success: true, demo: true })
-    }
+    const token = request.cookies.get("auth_token")?.value
+    const user = token ? await getUserFromToken(token) : null
 
-    const { createClient } = await import("@/lib/supabase/server")
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    const { error } = await supabase
-      .from("notifications")
-      .update({ is_read: isRead })
-      .eq("id", id)
-      .eq("user_id", user.id)
-
-    if (error) throw error
+    await prisma.notification.update({
+      where: { id, userId: user.id },
+      data: { isRead },
+    })
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

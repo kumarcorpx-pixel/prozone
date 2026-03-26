@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, loginRateLimit } from "@/lib/rate-limit"
 import { contactFormSchema, sanitize } from "@/lib/validation/schemas"
+import prisma from "@/lib/prisma"
 
 export async function POST(request: NextRequest) {
   // Rate limit: 5 per 15 min (reuse loginRateLimit config)
@@ -36,18 +37,20 @@ export async function POST(request: NextRequest) {
       message: sanitize(message),
     }
 
-    // Store in Supabase if configured
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      const { createClient } = await import("@/lib/supabase/server")
-      const supabase = await createClient()
-
-      await supabase.from("contact_submissions").insert({
-        name: sanitizedData.name,
-        email: sanitizedData.email,
-        phone: sanitizedData.phone,
-        service: sanitizedData.service,
-        message: sanitizedData.message,
+    // Store in database
+    try {
+      await prisma.contactSubmission.create({
+        data: {
+          name: sanitizedData.name,
+          email: sanitizedData.email,
+          phone: sanitizedData.phone || null,
+          service: sanitizedData.service || null,
+          message: sanitizedData.message,
+        },
       })
+    } catch {
+      // DB insert failure should not block the response
+      console.error("Failed to store contact submission")
     }
 
     // Send email notification via Resend

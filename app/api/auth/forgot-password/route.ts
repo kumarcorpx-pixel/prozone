@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { forgotPasswordSchema } from "@/lib/validation/schemas"
 import { rateLimit } from "@/lib/rate-limit"
+import prisma from "@/lib/prisma"
+import crypto from "crypto"
 
 const forgotPasswordRateLimit = { maxRequests: 3, windowMs: 15 * 60 * 1000 }
 
@@ -26,17 +28,43 @@ export async function POST(request: Request) {
       )
     }
 
-    // Attempt to send reset email via Supabase if configured
+    // Generate a password reset token and store it
     try {
-      const { createClient } = await import("@supabase/supabase-js")
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      const user = await prisma.user.findUnique({ where: { email } })
+      if (user) {
+        const resetToken = crypto.randomBytes(32).toString("hex")
+        const resetExpiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey)
-        await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://corporatepro.cloud"}/reset-password`,
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            resetToken,
+            resetTokenExpiry: resetExpiry,
+          },
         })
+
+        // Send email via Resend if configured
+        if (process.env.RESEND_API_KEY) {
+          try {
+            const { Resend } = await import("resend")
+            const resend = new Resend(process.env.RESEND_API_KEY)
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://corporatepro.cloud"
+
+            await resend.emails.send({
+              from: process.env.EMAIL_FROM || "YABS PRO <noreply@yabspro.com>",
+              to: email,
+              subject: "Reset Your Password",
+              html: `
+                <h2>Password Reset</h2>
+                <p>Click the link below to reset your password:</p>
+                <a href="${siteUrl}/reset-password?token=${resetToken}">Reset Password</a>
+                <p>This link expires in 1 hour.</p>
+              `,
+            })
+          } catch {
+            // Silently fail email send
+          }
+        }
       }
     } catch {
       // Silently fail - don't reveal if email exists

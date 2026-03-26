@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { fetchProfiles } from "@/lib/data-fetcher"
-import { createClient as createSupabaseClient } from "@/lib/supabase/client"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, Users, Loader2, Plus, X } from "lucide-react"
 import { toast } from "sonner"
@@ -42,17 +41,20 @@ export default function ClientsPage() {
     }
     setSaving(true)
     try {
-      const supabase = createSupabaseClient()
-      const { error } = await supabase
-        .from("profiles")
-        .insert({
+      const res = await fetch("/api/admin/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           full_name: formData.full_name,
           email: formData.email,
           phone: formData.phone || null,
           role: "client",
-          is_active: true,
-        })
-      if (error) throw error
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Failed to add client")
+      }
       toast.success("Client added successfully")
       setShowAddForm(false)
       setFormData(defaultClientForm)

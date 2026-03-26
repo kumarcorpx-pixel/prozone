@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import prisma from "@/lib/prisma"
 
 export async function GET(request: NextRequest) {
   // Verify cron secret to prevent unauthorized access
@@ -10,80 +11,96 @@ export async function GET(request: NextRequest) {
   const results = { checked: 0, alerts90: 0, alerts60: 0, alerts30: 0, alerts7: 0, expired: 0 }
 
   try {
-    // If Supabase configured, check real data
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== "your_supabase_url_here") {
-      const { createClient } = await import("@/lib/supabase/server")
-      const supabase = await createClient()
+    // Check employees table for visa/EID/passport/labor card expiry
+    const employees = await prisma.employee.findMany({
+      select: {
+        id: true,
+        fullName: true,
+        companyId: true,
+        visaExpiry: true,
+        emiratesIdExpiry: true,
+        passportExpiry: true,
+        laborCardExpiry: true,
+      },
+    })
 
-      // Check employees table for visa/EID/passport/labor card expiry
-      const { data: employees } = await supabase
-        .from("employees")
-        .select("id, full_name, company_id, visa_expiry, emirates_id_expiry, passport_expiry, labor_card_expiry")
+    // Check companies table for license expiry
+    const companies = await prisma.company.findMany({
+      select: {
+        id: true,
+        name: true,
+        licenseExpiry: true,
+      },
+    })
 
-      // Check companies table for license expiry
-      const { data: companies } = await supabase
-        .from("companies")
-        .select("id, name, license_expiry")
+    // Check documents table for document expiry
+    const documents = await prisma.document.findMany({
+      where: { expiryDate: { not: null } },
+      select: {
+        id: true,
+        name: true,
+        expiryDate: true,
+        companyId: true,
+      },
+    })
 
-      // Check documents table for document expiry
-      const { data: documents } = await supabase
-        .from("documents")
-        .select("id, name, expiry_date, company_id")
-        .not("expiry_date", "is", null)
+    const now = new Date()
+    const allItems: { name: string; type: string; expiryDate: Date; companyId?: string; entityName?: string }[] = []
 
-      const now = new Date()
-      const allItems: { name: string; type: string; expiryDate: string; companyId?: string; entityName?: string }[] = []
+    // Collect all expiry items
+    employees.forEach((emp: any) => {
+      if (emp.visaExpiry) allItems.push({ name: `${emp.fullName} - Visa`, type: "visa", expiryDate: emp.visaExpiry, companyId: emp.companyId, entityName: emp.fullName })
+      if (emp.emiratesIdExpiry) allItems.push({ name: `${emp.fullName} - Emirates ID`, type: "emirates_id", expiryDate: emp.emiratesIdExpiry, companyId: emp.companyId, entityName: emp.fullName })
+      if (emp.passportExpiry) allItems.push({ name: `${emp.fullName} - Passport`, type: "passport", expiryDate: emp.passportExpiry, companyId: emp.companyId, entityName: emp.fullName })
+      if (emp.laborCardExpiry) allItems.push({ name: `${emp.fullName} - Labor Card`, type: "labor_card", expiryDate: emp.laborCardExpiry, companyId: emp.companyId, entityName: emp.fullName })
+    })
 
-      // Collect all expiry items
-      employees?.forEach(emp => {
-        if (emp.visa_expiry) allItems.push({ name: `${emp.full_name} - Visa`, type: "visa", expiryDate: emp.visa_expiry, companyId: emp.company_id, entityName: emp.full_name })
-        if (emp.emirates_id_expiry) allItems.push({ name: `${emp.full_name} - Emirates ID`, type: "emirates_id", expiryDate: emp.emirates_id_expiry, companyId: emp.company_id, entityName: emp.full_name })
-        if (emp.passport_expiry) allItems.push({ name: `${emp.full_name} - Passport`, type: "passport", expiryDate: emp.passport_expiry, companyId: emp.company_id, entityName: emp.full_name })
-        if (emp.labor_card_expiry) allItems.push({ name: `${emp.full_name} - Labor Card`, type: "labor_card", expiryDate: emp.labor_card_expiry, companyId: emp.company_id, entityName: emp.full_name })
-      })
+    companies.forEach((comp: any) => {
+      if (comp.licenseExpiry) allItems.push({ name: `${comp.name} - Trade License`, type: "license", expiryDate: comp.licenseExpiry, companyId: comp.id, entityName: comp.name })
+    })
 
-      companies?.forEach(comp => {
-        if (comp.license_expiry) allItems.push({ name: `${comp.name} - Trade License`, type: "license", expiryDate: comp.license_expiry, companyId: comp.id, entityName: comp.name })
-      })
+    documents.forEach((doc: any) => {
+      if (doc.expiryDate) allItems.push({ name: doc.name, type: "document", expiryDate: doc.expiryDate, companyId: doc.companyId ?? undefined })
+    })
 
-      documents?.forEach(doc => {
-        if (doc.expiry_date) allItems.push({ name: doc.name, type: "document", expiryDate: doc.expiry_date, companyId: doc.company_id })
-      })
+    results.checked = allItems.length
 
-      results.checked = allItems.length
+    // Check each item and create notifications
+    for (const item of allItems) {
+      const expiry = new Date(item.expiryDate)
+      const daysUntil = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
-      // Check each item and create notifications
-      for (const item of allItems) {
-        const expiry = new Date(item.expiryDate)
-        const daysUntil = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      let alertLevel: string | null = null
+      if (daysUntil < 0) { results.expired++; alertLevel = "expired" }
+      else if (daysUntil <= 7) { results.alerts7++; alertLevel = "critical" }
+      else if (daysUntil <= 30) { results.alerts30++; alertLevel = "warning" }
+      else if (daysUntil <= 60) { results.alerts60++; alertLevel = "notice" }
+      else if (daysUntil <= 90) { results.alerts90++; alertLevel = "info" }
 
-        let alertLevel: string | null = null
-        if (daysUntil < 0) { results.expired++; alertLevel = "expired" }
-        else if (daysUntil <= 7) { results.alerts7++; alertLevel = "critical" }
-        else if (daysUntil <= 30) { results.alerts30++; alertLevel = "warning" }
-        else if (daysUntil <= 60) { results.alerts60++; alertLevel = "notice" }
-        else if (daysUntil <= 90) { results.alerts90++; alertLevel = "info" }
-
-        if (alertLevel) {
-          // Create notification for admin
-          await supabase.from("notifications").insert({
-            user_id: null, // null = admin notification
+      if (alertLevel) {
+        // Create notification for admin
+        await prisma.notification.create({
+          data: {
+            userId: null as any, // null = admin notification
             title: daysUntil < 0 ? `EXPIRED: ${item.name}` : `Expiry Alert: ${item.name}`,
             message: daysUntil < 0
               ? `${item.name} expired ${Math.abs(daysUntil)} days ago. Immediate action required.`
               : `${item.name} expires in ${daysUntil} days.`,
             type: daysUntil <= 7 ? "error" : daysUntil <= 30 ? "warning" : "info",
-            is_read: false,
-          }).select().maybeSingle()
-        }
+            isRead: false,
+          },
+        })
       }
-
-      // Auto-mark expired documents
-      await supabase.from("documents")
-        .update({ status: "expired" })
-        .lt("expiry_date", now.toISOString().split("T")[0])
-        .neq("status", "expired")
     }
+
+    // Auto-mark expired documents
+    await prisma.document.updateMany({
+      where: {
+        expiryDate: { lt: new Date(now.toISOString().split("T")[0]) },
+        status: { not: "expired" },
+      },
+      data: { status: "expired" },
+    })
 
     return NextResponse.json({
       success: true,

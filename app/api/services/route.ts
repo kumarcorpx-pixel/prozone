@@ -1,21 +1,16 @@
 import { NextResponse } from "next/server"
 import { serviceCatalog } from "@/lib/service-catalog"
+import prisma from "@/lib/prisma"
 
 export async function GET() {
   try {
-    // Try Supabase first
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      const { createClient } = await import("@/lib/supabase/server")
-      const supabase = await createClient()
+    // Try database first
+    const services = await prisma.service.findMany({
+      orderBy: { category: "asc" },
+    })
 
-      const { data: services, error } = await supabase
-        .from("services")
-        .select("*")
-        .order("category", { ascending: true })
-
-      if (!error && services && services.length > 0) {
-        return NextResponse.json({ services })
-      }
+    if (services && services.length > 0) {
+      return NextResponse.json({ services })
     }
 
     // Fallback to service catalog

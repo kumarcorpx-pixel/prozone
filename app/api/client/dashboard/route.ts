@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
+import { getUserFromToken } from "@/lib/auth"
+import prisma from "@/lib/prisma"
 
 const demoDashboard = {
   companies: [
@@ -22,71 +24,67 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const token = request.cookies.get("auth_token")?.value
+    const user = token ? await getUserFromToken(token) : null
+
+    if (!user) {
       return NextResponse.json({ ...demoDashboard, demo: true })
     }
 
-    const { createClient } = await import("@/lib/supabase/server")
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
     // Fetch client data in parallel
-    const [companiesRes, activeReqRes, completedReqRes, documentsRes] =
+    const [companies, activeCount, completedCount, documentsCount] =
       await Promise.all([
-        supabase
-          .from("companies")
-          .select("*")
-          .eq("owner_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("service_requests")
-          .select("id", { count: "exact", head: true })
-          .eq("client_id", user.id)
-          .in("status", ["pending", "in_progress", "under_review"]),
-        supabase
-          .from("service_requests")
-          .select("id", { count: "exact", head: true })
-          .eq("client_id", user.id)
-          .eq("status", "completed"),
-        supabase
-          .from("documents")
-          .select("id", { count: "exact", head: true })
-          .eq("owner_id", user.id),
+        prisma.company.findMany({
+          where: { ownerId: user.id },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.serviceRequest.count({
+          where: {
+            clientId: user.id,
+            status: { in: ["pending", "in_progress", "under_review"] },
+          },
+        }),
+        prisma.serviceRequest.count({
+          where: {
+            clientId: user.id,
+            status: "completed",
+          },
+        }),
+        prisma.document.count({
+          where: { ownerId: user.id },
+        }),
       ])
 
-    // Get expiry alerts (documents/visas expiring within 60 days)
-    const sixtyDaysFromNow = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: expiryAlerts } = await supabase
-      .from("documents")
-      .select("id, document_type, company:companies(name), employee:employees(full_name), expires_at")
-      .eq("owner_id", user.id)
-      .not("expires_at", "is", null)
-      .lte("expires_at", sixtyDaysFromNow)
-      .gte("expires_at", new Date().toISOString())
-      .order("expires_at", { ascending: true })
+    // Get expiry alerts (documents expiring within 60 days)
+    const sixtyDaysFromNow = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
+    const expiryAlerts = await prisma.document.findMany({
+      where: {
+        ownerId: user.id,
+        expiryDate: {
+          not: null,
+          lte: sixtyDaysFromNow,
+          gte: new Date(),
+        },
+      },
+      include: {
+        company: { select: { name: true } },
+      },
+      orderBy: { expiryDate: "asc" },
+    })
 
     return NextResponse.json({
-      companies: companiesRes.data || [],
-      activeRequests: activeReqRes.count || 0,
-      completedRequests: completedReqRes.count || 0,
-      documents: documentsRes.count || 0,
-      expiryAlerts: (expiryAlerts || []).map((alert: any) => ({
+      companies: companies || [],
+      activeRequests: activeCount,
+      completedRequests: completedCount,
+      documents: documentsCount,
+      expiryAlerts: expiryAlerts.map((alert: any) => ({
         id: alert.id,
-        type: alert.document_type,
+        type: alert.documentType,
         companyName: alert.company?.name,
-        employeeName: alert.employee?.full_name,
-        expiresAt: alert.expires_at,
-        daysLeft: Math.ceil(
-          (new Date(alert.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-        ),
+        expiresAt: alert.expiryDate?.toISOString(),
+        daysLeft: alert.expiryDate
+          ? Math.ceil((new Date(alert.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          : null,
       })),
     })
   } catch (err: any) {

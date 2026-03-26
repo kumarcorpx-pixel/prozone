@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { serviceRequestSchema } from "@/lib/validation/schemas"
+import { getUserFromToken } from "@/lib/auth"
+import prisma from "@/lib/prisma"
 
 const demoRequests = [
   {
@@ -41,34 +43,19 @@ const demoRequests = [
   },
 ]
 
-async function checkAdminAuth() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    return { authorized: false, noSupabase: true, user: null, supabase: null }
+async function checkAdminAuth(request: NextRequest) {
+  const token = request.cookies.get("auth_token")?.value
+  const user = token ? await getUserFromToken(token) : null
+
+  if (!user) {
+    return { authorized: false, user: null }
   }
 
-  const { createClient } = await import("@/lib/supabase/server")
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return { authorized: false, noSupabase: false, user: null, supabase }
+  if (user.role !== "admin") {
+    return { authorized: false, user }
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
-
-  if (!profile || profile.role !== "admin") {
-    return { authorized: false, noSupabase: false, user, supabase }
-  }
-
-  return { authorized: true, noSupabase: false, user, supabase }
+  return { authorized: true, user }
 }
 
 export async function GET(request: NextRequest) {
@@ -79,51 +66,45 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const auth = await checkAdminAuth()
+    const auth = await checkAdminAuth(request)
 
-    if (auth.noSupabase) {
+    if (!auth.user) {
       return NextResponse.json({ requests: demoRequests, demo: true })
     }
 
     if (!auth.authorized) {
       return NextResponse.json(
-        { error: auth.user ? "Forbidden" : "Not authenticated" },
-        { status: auth.user ? 403 : 401 }
+        { error: "Forbidden" },
+        { status: 403 }
       )
     }
 
-    const supabase = auth.supabase!
     const url = new URL(request.url)
     const status = url.searchParams.get("status")
     const priority = url.searchParams.get("priority")
     const assignedTo = url.searchParams.get("assignedTo")
 
-    let query = supabase
-      .from("service_requests")
-      .select(
-        `
-        *,
-        client:profiles!client_id(full_name),
-        company:companies!company_id(name),
-        assignee:profiles!assigned_to(full_name)
-      `
-      )
-      .order("created_at", { ascending: false })
+    const where: any = {}
+    if (status) where.status = status
+    if (priority) where.priority = priority
+    if (assignedTo) where.assignedTo = assignedTo
 
-    if (status) query = query.eq("status", status)
-    if (priority) query = query.eq("priority", priority)
-    if (assignedTo) query = query.eq("assigned_to", assignedTo)
-
-    const { data: requests, error } = await query
-
-    if (error) throw error
+    const requests = await prisma.serviceRequest.findMany({
+      where,
+      include: {
+        client: { select: { fullName: true } },
+        company: { select: { name: true } },
+        assignee: { select: { fullName: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    })
 
     return NextResponse.json({
-      requests: (requests || []).map((r: any) => ({
+      requests: requests.map((r: any) => ({
         ...r,
-        clientName: r.client?.full_name,
+        clientName: r.client?.fullName,
         companyName: r.company?.name,
-        assignedToName: r.assignee?.full_name,
+        assignedToName: r.assignee?.fullName,
       })),
     })
   } catch (err: any) {
@@ -142,16 +123,19 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const auth = await checkAdminAuth()
+    const auth = await checkAdminAuth(request)
 
-    if (auth.noSupabase) {
-      return NextResponse.json({ error: "Supabase not configured" }, { status: 503 })
+    if (!auth.user) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      )
     }
 
     if (!auth.authorized) {
       return NextResponse.json(
-        { error: auth.user ? "Forbidden" : "Not authenticated" },
-        { status: auth.user ? 403 : 401 }
+        { error: "Forbidden" },
+        { status: 403 }
       )
     }
 
@@ -164,20 +148,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = auth.supabase!
-    const { data: newRequest, error } = await supabase
-      .from("service_requests")
-      .insert({
-        ...result.data,
-        service_type: result.data.serviceType,
-        company_id: result.data.companyId,
-        created_by: auth.user!.id,
+    const newRequest = await prisma.serviceRequest.create({
+      data: {
+        serviceType: result.data.serviceType,
+        companyId: result.data.companyId,
+        createdBy: auth.user.id,
         status: "pending",
-      })
-      .select()
-      .single()
-
-    if (error) throw error
+      },
+    })
 
     return NextResponse.json({ request: newRequest }, { status: 201 })
   } catch (err: any) {

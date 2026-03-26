@@ -46,7 +46,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     })
 
-    const mapped = requests.map((r) => ({
+    const mapped = requests.map((r: any) => ({
       id: r.id,
       client_id: r.clientId,
       company_id: r.companyId,

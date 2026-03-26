@@ -60,7 +60,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     })
 
-    const mapped = companies.map((c) => ({
+    const mapped = companies.map((c: any) => ({
       id: c.id,
       name: c.name,
       trade_name: c.tradeName,
