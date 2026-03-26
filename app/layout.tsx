@@ -21,8 +21,31 @@ const geistMono = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "YABS | PRO Services in UAE",
+  title: {
+    default: "YABS | PRO Services in UAE",
+    template: "%s | YABS PRO Services",
+  },
   description: "Cloud-based PRO services platform for Abu Dhabi, Dubai & Sharjah. Track, monitor and manage all your government transactions.",
+  keywords: ["PRO services UAE", "business setup Dubai", "visa services UAE", "trade license renewal", "YABS", "government transactions UAE"],
+  authors: [{ name: "YABS Public Relations Management LLC" }],
+  openGraph: {
+    type: "website",
+    locale: "en_AE",
+    url: "https://corporatepro.cloud",
+    siteName: "YABS PRO Services",
+    title: "YABS | PRO Services in UAE",
+    description: "Track, monitor and manage all your government transactions in Abu Dhabi, Dubai & Sharjah.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "YABS | PRO Services in UAE",
+    description: "Cloud-based PRO services platform for UAE government transactions.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  metadataBase: new URL("https://corporatepro.cloud"),
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
