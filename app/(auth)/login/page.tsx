@@ -31,22 +31,6 @@ export default function LoginPage() {
     }
   }
 
-  const demoLogin = async (demoEmail: string) => {
-    setLoading(true)
-    try {
-      await login(demoEmail, "demo123")
-      if (demoEmail.includes("admin")) {
-        router.push("/admin")
-      } else {
-        router.push("/dashboard")
-      }
-      toast.success("Welcome to demo mode!")
-    } catch {
-      toast.error("Demo login failed")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4 py-12">
@@ -117,33 +101,6 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-4 text-gray-400">Or try demo mode</span>
-            </div>
-          </div>
-
-          {/* Demo Buttons */}
-          <div className="space-y-3">
-            <button
-              onClick={() => demoLogin("ahmed@company.ae")}
-              disabled={loading}
-              className="w-full border border-gray-300 text-gray-700 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Demo as Client
-            </button>
-            <button
-              onClick={() => demoLogin("admin@yabs.ae")}
-              disabled={loading}
-              className="w-full border border-gray-300 text-gray-700 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Demo as Admin
-            </button>
-          </div>
         </div>
       </div>
     </div>
