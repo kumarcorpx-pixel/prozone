@@ -1,13 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { demoRequests, demoTimeline, demoRequestDocuments, demoProfiles } from "@/lib/demo-data"
+import { demoRequestDocuments } from "@/lib/demo-data"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { isChecklistItemCompleted, toggleChecklistItem, addNote, getNotes, getTimelineEntries, setRequestStatus, getRequestStatus } from "@/lib/demo-store"
+import { fetchRequests } from "@/lib/data-fetcher"
+import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/supabase/api"
+import type { ServiceRequest, RequestTimeline } from "@/lib/types"
+import { toast } from "sonner"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { ArrowLeft, FileText, CheckSquare, Clock, Upload, Plus, ChevronDown, MessageSquare, User } from "lucide-react"
+import { ArrowLeft, FileText, CheckSquare, Clock, Upload, Plus, ChevronDown, MessageSquare, User, Loader2 } from "lucide-react"
 import { AedIcon } from "@/components/ui/aed-icon"
 
 const statusOptions = ["pending", "in_progress", "under_review", "completed", "rejected"]
@@ -30,29 +34,124 @@ const feeStatusColors: Record<string, string> = {
 export default function AdminRequestDetailPage() {
   const params = useParams()
   const requestId = params.id as string
-  const request = demoRequests.find(r => r.id === requestId) || demoRequests[0]
 
+  const [request, setRequest] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
-  const [status, setStatus] = useState(getRequestStatus(request.id, request.status))
+  const [status, setStatus] = useState("")
   const [noteInput, setNoteInput] = useState("")
   const [newChecklistItem, setNewChecklistItem] = useState("")
   const [extraItems, setExtraItems] = useState<string[]>([])
+  const [realTimeline, setRealTimeline] = useState<any[]>([])
+
+  useEffect(() => {
+    async function load() {
+      const requests = await fetchRequests()
+      const found = requests.find((r: any) => r.id === requestId)
+      const req = found || requests[0]
+      setRequest(req)
+      if (req) {
+        setStatus(getRequestStatus(req.id, req.status))
+      }
+      // Try to load real timeline
+      try {
+        const timeline = await getRequestTimeline(requestId)
+        setRealTimeline(timeline)
+      } catch {
+        // Fallback: no real timeline available
+      }
+      setLoading(false)
+    }
+    load()
+  }, [requestId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1a3a6b]" />
+      </div>
+    )
+  }
+
+  if (!request) {
+    return (
+      <div className="space-y-6">
+        <Link href="/admin/requests" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Requests
+        </Link>
+        <div className="text-center py-12">
+          <p className="text-lg font-medium text-gray-900">Request not found</p>
+        </div>
+      </div>
+    )
+  }
 
   const checklistItems = [...getChecklistForServiceType(request.service_type), ...extraItems]
   const reqDocs = demoRequestDocuments.filter(d => d.request_id === request.id)
-  const timeline = [...demoTimeline.filter(t => t.request_id === request.id), ...getTimelineEntries(request.id)]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  const demoTimelineEntries = getTimelineEntries(request.id)
   const notes = getNotes(request.id)
   const completedCount = checklistItems.filter(item => isChecklistItemCompleted(request.id, item) === true).length
 
-  const handleStatusUpdate = () => {
-    setRequestStatus(request.id, status, "Sarah Admin")
+  // Merge real timeline + demo timeline + notes
+  const allTimeline = [
+    ...realTimeline.map(t => ({
+      id: t.id,
+      request_id: t.request_id,
+      message: t.message,
+      created_by: t.creator?.full_name || t.created_by || "System",
+      created_at: t.created_at,
+      status: t.status,
+    })),
+    ...demoTimelineEntries,
+    ...notes.map(n => ({ id: n.id, request_id: n.request_id, message: `Note: ${n.content}`, created_by: n.user_name, created_at: n.created_at, status: undefined })),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  const handleStatusUpdate = async () => {
+    try {
+      await updateServiceRequest(request.id, { status: status as ServiceRequest["status"] })
+      await addTimelineEntry({
+        request_id: request.id,
+        status,
+        message: `Status changed to ${status}`,
+        created_by: "admin",
+      } as Omit<RequestTimeline, "id" | "created_at" | "creator">)
+      toast.success("Status updated")
+      // Refresh
+      const requests = await fetchRequests()
+      setRequest(requests.find((r: any) => r.id === requestId))
+      const timeline = await getRequestTimeline(requestId)
+      setRealTimeline(timeline)
+    } catch (err: any) {
+      // Fallback to demo store
+      setRequestStatus(request.id, status, "Sarah Admin")
+      toast.error(err?.message || "Failed to update via Supabase, saved locally")
+    }
   }
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!noteInput.trim()) return
-    addNote(request.id, "Sarah Admin", "admin", noteInput)
-    setNoteInput("")
+    try {
+      await addTimelineEntry({
+        request_id: request.id,
+        status: "",
+        message: noteInput,
+        created_by: "admin",
+      })
+      // Also save to demo store for immediate UI update
+      addNote(request.id, "Sarah Admin", "admin", noteInput)
+      setNoteInput("")
+      toast.success("Note added")
+      // Refresh real timeline
+      try {
+        const timeline = await getRequestTimeline(requestId)
+        setRealTimeline(timeline)
+      } catch {}
+    } catch {
+      // Fallback to demo store only
+      addNote(request.id, "Sarah Admin", "admin", noteInput)
+      setNoteInput("")
+    }
   }
 
   const handleAddChecklistItem = () => {
@@ -227,7 +326,7 @@ export default function AdminRequestDetailPage() {
 
         {activeTab === "timeline" && (
           <div className="space-y-4">
-            {[...timeline, ...notes.map(n => ({ id: n.id, request_id: n.request_id, message: `Note: ${n.content}`, created_by: n.user_name, created_at: n.created_at, status: undefined }))].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(entry => (
+            {allTimeline.map(entry => (
               <div key={entry.id} className="flex gap-3">
                 <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
                   <MessageSquare className="h-4 w-4 text-purple-600" />
@@ -240,6 +339,9 @@ export default function AdminRequestDetailPage() {
                 </div>
               </div>
             ))}
+            {allTimeline.length === 0 && (
+              <p className="text-center text-gray-500 py-8">No timeline entries yet.</p>
+            )}
             <div className="flex gap-2 pt-4 border-t">
               <input
                 value={noteInput}

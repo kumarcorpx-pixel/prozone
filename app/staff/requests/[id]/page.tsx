@@ -1,14 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import {
-  demoRequests,
-  demoTimeline,
   demoChecklist,
   demoRequestDocuments,
 } from "@/lib/demo-data"
+import { fetchRequests } from "@/lib/data-fetcher"
+import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/supabase/api"
+import type { ServiceRequest, RequestTimeline } from "@/lib/types"
+import { toast } from "sonner"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import {
   ArrowLeft,
@@ -19,6 +21,7 @@ import {
   Plus,
   MessageSquare,
   ChevronDown,
+  Loader2,
 } from "lucide-react"
 import type { RequestChecklist } from "@/lib/types"
 
@@ -57,15 +60,45 @@ export default function StaffRequestDetailPage() {
   const params = useParams()
   const requestId = params.id as string
 
-  const request = demoRequests.find((r) => r.id === requestId)
+  const [request, setRequest] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabKey>("overview")
-  const [selectedStatus, setSelectedStatus] = useState<string>(request?.status || "pending")
+  const [selectedStatus, setSelectedStatus] = useState<string>("pending")
   const [noteText, setNoteText] = useState("")
   const [timelineNote, setTimelineNote] = useState("")
-  const [checklistItems, setChecklistItems] = useState<RequestChecklist[]>(
-    demoChecklist.filter((c) => c.request_id === requestId)
-  )
+  const [checklistItems, setChecklistItems] = useState<RequestChecklist[]>([])
   const [uploadDocType, setUploadDocType] = useState<string>("submitted")
+  const [realTimeline, setRealTimeline] = useState<any[]>([])
+
+  useEffect(() => {
+    async function load() {
+      const requests = await fetchRequests()
+      const found = requests.find((r: any) => r.id === requestId)
+      const req = found || null
+      setRequest(req)
+      if (req) {
+        setSelectedStatus(req.status || "pending")
+        setChecklistItems(demoChecklist.filter((c) => c.request_id === requestId))
+      }
+      // Try to load real timeline
+      try {
+        const timeline = await getRequestTimeline(requestId)
+        setRealTimeline(timeline)
+      } catch {
+        // Fallback: no real timeline
+      }
+      setLoading(false)
+    }
+    load()
+  }, [requestId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1a3a6b]" />
+      </div>
+    )
+  }
 
   if (!request) {
     return (
@@ -88,11 +121,23 @@ export default function StaffRequestDetailPage() {
   }
 
   const requestDocs = demoRequestDocuments.filter((d) => d.request_id === requestId)
-  const requestTimeline = demoTimeline.filter((t) => t.request_id === requestId)
   const completedItems = checklistItems.filter((c) => c.is_completed).length
   const totalItems = checklistItems.length
 
-  function toggleChecklistItem(itemId: string) {
+  // Merge real timeline with demo timeline entries
+  const mergedTimeline = [
+    ...realTimeline.map(t => ({
+      id: t.id,
+      request_id: t.request_id,
+      message: t.message,
+      status: t.status,
+      created_at: t.created_at,
+      creator: t.creator || null,
+      created_by: t.created_by,
+    })),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  function handleToggleChecklistItem(itemId: string) {
     setChecklistItems((prev) =>
       prev.map((item) => {
         if (item.id === itemId) {
@@ -106,6 +151,49 @@ export default function StaffRequestDetailPage() {
         return item
       })
     )
+  }
+
+  const handleStatusUpdate = async () => {
+    try {
+      await updateServiceRequest(request.id, { status: selectedStatus as ServiceRequest["status"] })
+      await addTimelineEntry({
+        request_id: request.id,
+        status: selectedStatus,
+        message: `Status changed to ${selectedStatus}`,
+        created_by: "staff",
+      } as Omit<RequestTimeline, "id" | "created_at" | "creator">)
+      toast.success("Status updated")
+      // Refresh
+      const requests = await fetchRequests()
+      const updated = requests.find((r: any) => r.id === requestId)
+      if (updated) setRequest(updated)
+      const timeline = await getRequestTimeline(requestId)
+      setRealTimeline(timeline)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update status")
+    }
+  }
+
+  const handleAddNote = async () => {
+    if (!timelineNote.trim()) return
+    try {
+      await addTimelineEntry({
+        request_id: request.id,
+        status: "",
+        message: timelineNote,
+        created_by: "staff",
+      })
+      setTimelineNote("")
+      toast.success("Note added")
+      // Refresh real timeline
+      try {
+        const timeline = await getRequestTimeline(requestId)
+        setRealTimeline(timeline)
+      } catch {}
+    } catch {
+      toast.error("Failed to add note")
+      setTimelineNote("")
+    }
   }
 
   return (
@@ -167,7 +255,7 @@ export default function StaffRequestDetailPage() {
 
       {/* Tab Content */}
       <div>
-        {/* ─── Overview Tab ──────────────────────────────────────────── */}
+        {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="space-y-6">
             {/* Request info grid */}
@@ -249,7 +337,10 @@ export default function StaffRequestDetailPage() {
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 </div>
-                <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
+                <button
+                  onClick={handleStatusUpdate}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+                >
                   Update Status
                 </button>
               </div>
@@ -274,7 +365,7 @@ export default function StaffRequestDetailPage() {
           </div>
         )}
 
-        {/* ─── Documents Tab ─────────────────────────────────────────── */}
+        {/* Documents Tab */}
         {activeTab === "documents" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
@@ -353,7 +444,7 @@ export default function StaffRequestDetailPage() {
           </div>
         )}
 
-        {/* ─── Checklist Tab ─────────────────────────────────────────── */}
+        {/* Checklist Tab */}
         {activeTab === "checklist" && (
           <div className="space-y-6">
             {/* Progress bar */}
@@ -386,7 +477,7 @@ export default function StaffRequestDetailPage() {
                         className="flex items-start gap-3 px-6 py-4 hover:bg-gray-50 transition-colors"
                       >
                         <button
-                          onClick={() => toggleChecklistItem(item.id)}
+                          onClick={() => handleToggleChecklistItem(item.id)}
                           className={`mt-0.5 flex-shrink-0 h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
                             item.is_completed
                               ? "bg-[#1a3a6b] border-[#1a3a6b]"
@@ -440,7 +531,7 @@ export default function StaffRequestDetailPage() {
           </div>
         )}
 
-        {/* ─── Timeline Tab ──────────────────────────────────────────── */}
+        {/* Timeline Tab */}
         {activeTab === "timeline" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
@@ -448,24 +539,19 @@ export default function StaffRequestDetailPage() {
                 <h2 className="text-lg font-semibold text-gray-900">Activity Timeline</h2>
               </div>
               <div className="px-6 py-4">
-                {requestTimeline.length > 0 ? (
+                {mergedTimeline.length > 0 ? (
                   <div className="relative">
                     {/* Timeline line */}
                     <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
                     <div className="space-y-6">
-                      {requestTimeline
-                        .sort(
-                          (a, b) =>
-                            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                        )
-                        .map((entry) => (
+                      {mergedTimeline.map((entry) => (
                           <div key={entry.id} className="relative flex gap-4 pl-10">
                             <div className="absolute left-2 top-1 h-5 w-5 rounded-full bg-white ring-2 ring-gray-200 flex items-center justify-center">
                               <Clock className="h-3 w-3 text-gray-400" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <StatusBadge status={entry.status} />
+                                {entry.status && <StatusBadge status={entry.status} />}
                                 <span className="text-xs text-gray-400">
                                   {new Date(entry.created_at).toLocaleDateString("en-GB", {
                                     day: "numeric",
@@ -507,9 +593,13 @@ export default function StaffRequestDetailPage() {
                     onChange={(e) => setTimelineNote(e.target.value)}
                     placeholder="Add a note to the timeline..."
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent"
+                    onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
                   />
                 </div>
-                <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
+                <button
+                  onClick={handleAddNote}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+                >
                   <MessageSquare className="h-4 w-4" />
                   Submit
                 </button>

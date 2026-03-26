@@ -1,13 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { demoRequests, demoTimeline, demoRequestDocuments } from "@/lib/demo-data"
+import { demoRequestDocuments } from "@/lib/demo-data"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { getNotes, addNote } from "@/lib/demo-store"
+import { fetchRequests } from "@/lib/data-fetcher"
+import { addTimelineEntry } from "@/lib/supabase/api"
+import { toast } from "sonner"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { ArrowLeft, FileText, MessageSquare, CheckCircle2, Circle, Clock, Download } from "lucide-react"
+import { ArrowLeft, FileText, MessageSquare, CheckCircle2, Circle, Clock, Download, Loader2 } from "lucide-react"
 import { AedIcon } from "@/components/ui/aed-icon"
 
 const demoFees = [
@@ -27,19 +30,67 @@ const demoMessages = [
 export default function ClientRequestDetailPage() {
   const params = useParams()
   const requestId = params.id as string
-  const request = demoRequests.find(r => r.id === requestId) || demoRequests[0]
+
+  const [request, setRequest] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("progress")
   const [messageInput, setMessageInput] = useState("")
+
+  useEffect(() => {
+    async function load() {
+      const requests = await fetchRequests()
+      const found = requests.find((r: any) => r.id === requestId)
+      setRequest(found || requests[0])
+      setLoading(false)
+    }
+    load()
+  }, [requestId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1a3a6b]" />
+      </div>
+    )
+  }
+
+  if (!request) {
+    return (
+      <div className="space-y-6">
+        <Link href="/dashboard/requests" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Requests
+        </Link>
+        <div className="text-center py-12">
+          <p className="text-lg font-medium text-gray-900">Request not found</p>
+        </div>
+      </div>
+    )
+  }
 
   const steps = getChecklistForServiceType(request.service_type)
   const completedSteps = Math.min(Math.floor(steps.length * 0.4), steps.length)
   const reqDocs = demoRequestDocuments.filter(d => d.request_id === request.id)
   const savedNotes = getNotes(request.id)
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!messageInput.trim()) return
-    addNote(request.id, "Ahmed Al Mansoori", "client", messageInput)
-    setMessageInput("")
+    try {
+      await addTimelineEntry({
+        request_id: request.id,
+        status: "",
+        message: messageInput,
+        created_by: "client",
+      })
+      // Also save to demo store for immediate UI update
+      addNote(request.id, "Ahmed Al Mansoori", "client", messageInput)
+      setMessageInput("")
+      toast.success("Message sent")
+    } catch {
+      // Fallback to demo store only
+      addNote(request.id, "Ahmed Al Mansoori", "client", messageInput)
+      setMessageInput("")
+    }
   }
 
   const tabs = [
