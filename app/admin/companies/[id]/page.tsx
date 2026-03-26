@@ -1,11 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
+import { fetchCompany, fetchEmployees, fetchDocuments } from "@/lib/data-fetcher"
 import {
-  demoCompanies,
-  demoEmployees,
-  companyDocuments,
   documentCategories,
   statusColors,
   demoWPSData,
@@ -123,13 +121,33 @@ export default function CompanyDetailPage() {
   const params = useParams()
   const companyId = params.id as string
   const [activeTab, setActiveTab] = useState("overview")
+  const [company, setCompany] = useState<any>(null)
+  const [employees, setEmployees] = useState<any[]>([])
+  const [documents, setDocuments] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const company = demoCompanies.find((c) => c.id === companyId)
-  const employees = demoEmployees.filter((e) => e.company_id === companyId)
-  const documents = companyDocuments.filter((d) => d.company_id === companyId)
+  useEffect(() => {
+    async function load() {
+      const [c, e, d] = await Promise.all([
+        fetchCompany(companyId),
+        fetchEmployees(companyId),
+        fetchDocuments(companyId),
+      ])
+      setCompany(c)
+      setEmployees(e)
+      setDocuments(d)
+      setLoading(false)
+    }
+    load()
+  }, [companyId])
+
   const wpsData = demoWPSData[companyId]
   const monthlyUploads = demoMonthlyUploads[companyId]
   const personExpiry = demoPersonExpiry[companyId]
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+  }
 
   if (!company) {
     return (
@@ -259,7 +277,7 @@ export default function CompanyDetailPage() {
               <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
                 <h3 className="font-semibold text-[#1a3a6b] mb-4">Business Activities</h3>
                 <div className="flex flex-wrap gap-2">
-                  {company.activities.map((activity, i) => (
+                  {(company.activities || []).map((activity: string, i: number) => (
                     <span key={i} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                       {activity}
                     </span>
