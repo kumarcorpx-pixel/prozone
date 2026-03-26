@@ -13,6 +13,7 @@ import {
   demoPersonExpiry,
 } from "@/lib/company-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
+import { ComplianceScore } from "@/components/dashboard/compliance-score"
 import {
   Building2,
   Users,
@@ -27,6 +28,10 @@ import {
   Plus,
   Check,
   X,
+  ChevronDown,
+  ChevronRight,
+  DollarSign,
+  ClipboardCheck,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -45,14 +50,74 @@ function formatDate(dateStr: string | null): string {
   return new Date(dateStr).toLocaleDateString()
 }
 
+const visaTypeBadge: Record<string, string> = {
+  valid: "bg-green-100 text-green-800",
+  expired: "bg-red-100 text-red-800",
+  expiring_soon: "bg-yellow-100 text-yellow-800",
+  processing: "bg-blue-100 text-blue-800",
+  cancelled: "bg-gray-100 text-gray-600",
+}
+
+function CollapsibleSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="bg-white rounded-xl ring-1 ring-gray-200">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-5 text-left"
+      >
+        <h3 className="font-semibold text-[#1a3a6b]">{title}</h3>
+        <ChevronRight
+          className={`h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-90" : ""}`}
+        />
+      </button>
+      {open && <div className="px-5 pb-5 pt-0">{children}</div>}
+    </div>
+  )
+}
+
+function LabelValue({ label, value, className }: { label: string; value: React.ReactNode; className?: string }) {
+  return (
+    <div>
+      <p className="text-gray-500 text-sm">{label}</p>
+      <div className={`font-medium text-gray-900 text-sm ${className || ""}`}>{value || "-"}</div>
+    </div>
+  )
+}
+
 const tabs = [
   { id: "overview", label: "Overview", icon: Building2 },
   { id: "employees", label: "Employees", icon: Users },
   { id: "documents", label: "Documents", icon: FileText },
+  { id: "compliance", label: "Compliance", icon: ClipboardCheck },
+  { id: "fees", label: "Fees", icon: DollarSign },
   { id: "wps", label: "WPS", icon: Shield },
   { id: "uploads", label: "Monthly Uploads", icon: Upload },
   { id: "shareholders", label: "Shareholders", icon: UserCheck },
 ]
+
+const demoFees = [
+  { id: "fee-1", service: "New Employment Visa", fee_type: "MOHRE Work Permit", amount: 2310, status: "paid", date: "2025-03-13" },
+  { id: "fee-2", service: "New Employment Visa", fee_type: "GDRFA Entry Permit", amount: 1170, status: "paid", date: "2025-03-16" },
+  { id: "fee-3", service: "New Employment Visa", fee_type: "Medical Fitness Test", amount: 320, status: "pending", date: null },
+  { id: "fee-4", service: "New Employment Visa", fee_type: "Emirates ID Typing", amount: 370, status: "pending", date: null },
+  { id: "fee-5", service: "Trade License Renewal", fee_type: "DED Renewal Fee", amount: 3500, status: "paid", date: "2025-02-28" },
+  { id: "fee-6", service: "Ejari Registration", fee_type: "Ejari Typing Fee", amount: 220, status: "paid", date: "2025-01-15" },
+]
+
+const feeStatusColors: Record<string, string> = {
+  paid: "bg-green-100 text-green-800",
+  pending: "bg-yellow-100 text-yellow-800",
+  overdue: "bg-red-100 text-red-800",
+}
 
 export default function CompanyDetailPage() {
   const params = useParams()
@@ -79,6 +144,32 @@ export default function CompanyDetailPage() {
     )
   }
 
+  const extendedCompany = {
+    ...company,
+    establishment_card_number: "2/1/1052492",
+    establishment_card_expiry: "2026-08-21",
+    immigration_file_number: "601/2023/1222123",
+    computer_card_number: "CC-2023-789012",
+    mohre_company_number: "49301980",
+    chamber_commerce_number: "CHM-2023-456789",
+    chamber_commerce_expiry: "2026-12-31",
+    ejari_tawtheeq_number: "0120250181000",
+    ejari_tawtheeq_type: "ejari" as const,
+    ejari_tawtheeq_expiry: "2026-08-17",
+    lease_expiry: "2026-08-17",
+    vat_trn: "100234567890003",
+    corporate_tax_number: "CT-2024-123456",
+    sponsor_name: "Ahmed Al Mansoori",
+    sponsor_eid: "784-1989-4259296-9",
+    local_service_agent: null as string | null,
+    poa_status: "active",
+    visa_quota_total: 6,
+    visa_quota_used: 4,
+    free_zone_authority: null as string | null,
+  }
+
+  const ec = extendedCompany
+
   const companyDocs = documents.filter((d) => !d.employee_id)
   const employeeDocs = documents.filter((d) => d.employee_id)
   const employeeDocGroups: Record<string, typeof documents> = {}
@@ -88,6 +179,8 @@ export default function CompanyDetailPage() {
     if (!employeeDocGroups[name]) employeeDocGroups[name] = []
     employeeDocGroups[name].push(doc)
   })
+
+  const feesTotal = demoFees.reduce((sum, f) => sum + f.amount, 0)
 
   return (
     <div className="space-y-6">
@@ -142,101 +235,153 @@ export default function CompanyDetailPage() {
       <div>
         {/* ──── Overview Tab ──── */}
         {activeTab === "overview" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Company Info */}
+          <div className="space-y-4">
+            {/* Contact & Activities row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
-                <h3 className="font-semibold text-[#1a3a6b] mb-4">Company Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Legal Name</p>
-                    <p className="font-medium text-gray-900">{company.name}</p>
+                <h3 className="font-semibold text-[#1a3a6b] mb-4">Contact Information</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-700">{company.phone || "No phone"}</span>
                   </div>
-                  <div>
-                    <p className="text-gray-500">Trade Name</p>
-                    <p className="font-medium text-gray-900">{company.trade_name || "-"}</p>
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-700">{company.email || "No email"}</span>
                   </div>
-                  <div>
-                    <p className="text-gray-500">License Number</p>
-                    <p className="font-medium text-gray-900 font-mono">{company.license_number || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">License Type</p>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${company.license_type === "freezone" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
-                      {company.license_type === "freezone" ? "Free Zone" : "Mainland"}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">License Expiry</p>
-                    <p className={getExpiryColor(company.license_expiry)}>{formatDate(company.license_expiry)}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Legal Form</p>
-                    <p className="font-medium text-gray-900">{company.legal_form || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Emirate</p>
-                    <p className="font-medium text-gray-900">{company.emirate || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Jurisdiction</p>
-                    <p className="font-medium text-gray-900">{company.jurisdiction || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Status</p>
-                    <StatusBadge status={company.status} />
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Capital</p>
-                    <p className="font-medium text-gray-900">{company.capital ? `AED ${company.capital.toLocaleString()}` : "-"}</p>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                    <span className="text-gray-700">{company.address || "No address"}{company.po_box ? `, P.O. Box ${company.po_box}` : ""}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Contact Info */}
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
-                  <h3 className="font-semibold text-[#1a3a6b] mb-4">Contact Information</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-center gap-3">
-                      <Phone className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-700">{company.phone || "No phone"}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Mail className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-700">{company.email || "No email"}</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                      <span className="text-gray-700">{company.address || "No address"}{company.po_box ? `, P.O. Box ${company.po_box}` : ""}</span>
-                    </div>
-                  </div>
+              <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+                <h3 className="font-semibold text-[#1a3a6b] mb-4">Business Activities</h3>
+                <div className="flex flex-wrap gap-2">
+                  {company.activities.map((activity, i) => (
+                    <span key={i} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                      {activity}
+                    </span>
+                  ))}
+                  {company.activities.length === 0 && (
+                    <p className="text-sm text-gray-500">No activities listed</p>
+                  )}
                 </div>
-
-                {/* Business Activities */}
-                <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
-                  <h3 className="font-semibold text-[#1a3a6b] mb-4">Business Activities</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {company.activities.map((activity, i) => (
-                      <span key={i} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                        {activity}
-                      </span>
-                    ))}
-                    {company.activities.length === 0 && (
-                      <p className="text-sm text-gray-500">No activities listed</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {company.notes && (
-                  <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
-                    <h3 className="font-semibold text-[#1a3a6b] mb-2">Notes</h3>
-                    <p className="text-sm text-gray-700">{company.notes}</p>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* Collapsible sections */}
+            <CollapsibleSection title="License & Registration" defaultOpen>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <LabelValue label="Trade License #" value={ec.license_number} className="font-mono" />
+                <LabelValue label="License Expiry" value={<span className={getExpiryColor(ec.license_expiry)}>{formatDate(ec.license_expiry)}</span>} />
+                <LabelValue label="License Type" value={
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${ec.license_type === "freezone" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
+                    {ec.license_type === "freezone" ? "Free Zone" : "Mainland"}
+                  </span>
+                } />
+                <LabelValue label="Legal Form" value={ec.legal_form} />
+                <LabelValue label="DED/Free Zone Authority" value={ec.free_zone_authority || ec.jurisdiction} />
+                <LabelValue label="Status" value={<StatusBadge status={ec.status} />} />
+                <LabelValue label="Capital" value={ec.capital ? `AED ${ec.capital.toLocaleString()}` : "-"} />
+                <LabelValue label="Emirate" value={ec.emirate} />
+                <LabelValue label="Jurisdiction" value={ec.jurisdiction} />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Immigration & Labor">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <LabelValue label="Establishment Card #" value={ec.establishment_card_number} className="font-mono" />
+                <LabelValue label="Establishment Card Expiry" value={<span className={getExpiryColor(ec.establishment_card_expiry)}>{formatDate(ec.establishment_card_expiry)}</span>} />
+                <LabelValue label="Immigration File #" value={ec.immigration_file_number} className="font-mono" />
+                <LabelValue label="Computer Card #" value={ec.computer_card_number} className="font-mono" />
+                <LabelValue label="MOHRE Company #" value={ec.mohre_company_number} className="font-mono" />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Office & Lease">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <LabelValue label="Ejari/Tawtheeq #" value={ec.ejari_tawtheeq_number} className="font-mono" />
+                <LabelValue label="Ejari/Tawtheeq Type" value={
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 capitalize">
+                    {ec.ejari_tawtheeq_type}
+                  </span>
+                } />
+                <LabelValue label="Ejari/Tawtheeq Expiry" value={<span className={getExpiryColor(ec.ejari_tawtheeq_expiry)}>{formatDate(ec.ejari_tawtheeq_expiry)}</span>} />
+                <LabelValue label="Lease Expiry" value={<span className={getExpiryColor(ec.lease_expiry)}>{formatDate(ec.lease_expiry)}</span>} />
+                <LabelValue label="Address" value={ec.address} />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Tax & Finance">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <LabelValue label="VAT TRN" value={ec.vat_trn} className="font-mono" />
+                <LabelValue label="Corporate Tax #" value={ec.corporate_tax_number} className="font-mono" />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Sponsor & Owner">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <LabelValue label="Sponsor Name" value={ec.sponsor_name} />
+                <LabelValue label="Sponsor EID" value={ec.sponsor_eid} className="font-mono" />
+                <LabelValue label="Local Service Agent" value={ec.local_service_agent || "N/A"} />
+                <LabelValue label="POA Status" value={
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${
+                    ec.poa_status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {ec.poa_status}
+                  </span>
+                } />
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Visa Quota">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">
+                    Used {ec.visa_quota_used} of {ec.visa_quota_total} ({ec.visa_quota_total - ec.visa_quota_used} remaining)
+                  </span>
+                  <span className="font-medium text-gray-900">
+                    {ec.visa_quota_total > 0 ? Math.round((ec.visa_quota_used / ec.visa_quota_total) * 100) : 0}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full transition-all ${
+                      ec.visa_quota_total > 0 && ec.visa_quota_used / ec.visa_quota_total > 0.9
+                        ? "bg-red-500"
+                        : ec.visa_quota_total > 0 && ec.visa_quota_used / ec.visa_quota_total > 0.7
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                    style={{ width: `${ec.visa_quota_total > 0 ? (ec.visa_quota_used / ec.visa_quota_total) * 100 : 0}%` }}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500">Total</p>
+                    <p className="text-lg font-bold text-[#1a3a6b]">{ec.visa_quota_total}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500">Used</p>
+                    <p className="text-lg font-bold text-orange-600">{ec.visa_quota_used}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500">Available</p>
+                    <p className="text-lg font-bold text-green-600">{ec.visa_quota_total - ec.visa_quota_used}</p>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* Notes */}
+            {company.notes && (
+              <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+                <h3 className="font-semibold text-[#1a3a6b] mb-2">Notes</h3>
+                <p className="text-sm text-gray-700">{company.notes}</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -258,29 +403,59 @@ export default function CompanyDetailPage() {
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Name</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Designation</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Nationality</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Visa Type</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Visa Status</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Visa Expiry</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">EID Expiry</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Passport Expiry</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Medical</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Insurance</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-medium">WPS</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {employees.map((emp) => (
-                      <tr key={emp.id} className="border-b border-gray-50 hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{emp.full_name}</td>
-                        <td className="px-4 py-3 text-gray-600">{emp.designation || "-"}</td>
-                        <td className="px-4 py-3 text-gray-600">{emp.nationality || "-"}</td>
-                        <td className="px-4 py-3"><StatusBadge status={emp.visa_status} /></td>
-                        <td className={`px-4 py-3 ${getExpiryColor(emp.visa_expiry)}`}>{formatDate(emp.visa_expiry)}</td>
-                        <td className={`px-4 py-3 ${getExpiryColor(emp.emirates_id_expiry)}`}>{formatDate(emp.emirates_id_expiry)}</td>
-                        <td className={`px-4 py-3 ${getExpiryColor(emp.passport_expiry)}`}>{formatDate(emp.passport_expiry)}</td>
-                        <td className="px-4 py-3"><StatusBadge status={emp.status} /></td>
-                      </tr>
-                    ))}
+                    {employees.map((emp) => {
+                      // Placeholder demo logic for extra columns
+                      const medicalOk = emp.status === "active" && emp.visa_status !== "processing"
+                      const insured = emp.status === "active" && emp.full_name !== "Ravi Patel"
+                      const wpsOk = emp.status === "active" && emp.visa_status === "valid"
+                      return (
+                        <tr key={emp.id} className="border-b border-gray-50 hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium text-gray-900">{emp.full_name}</td>
+                          <td className="px-4 py-3 text-gray-600">{emp.designation || "-"}</td>
+                          <td className="px-4 py-3 text-gray-600">{emp.nationality || "-"}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${visaTypeBadge[emp.visa_status] || "bg-gray-100 text-gray-600"}`}>
+                              {emp.visa_status === "valid" ? "Employment" : emp.visa_status === "processing" ? "New Visa" : emp.visa_status === "expiring_soon" ? "Employment" : "Employment"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3"><StatusBadge status={emp.visa_status} /></td>
+                          <td className={`px-4 py-3 ${getExpiryColor(emp.visa_expiry)}`}>{formatDate(emp.visa_expiry)}</td>
+                          <td className={`px-4 py-3 ${getExpiryColor(emp.emirates_id_expiry)}`}>{formatDate(emp.emirates_id_expiry)}</td>
+                          <td className={`px-4 py-3 ${getExpiryColor(emp.passport_expiry)}`}>{formatDate(emp.passport_expiry)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${medicalOk ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                              {medicalOk ? "Fit" : "Pending"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${insured ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                              {insured ? "Active" : "Missing"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${wpsOk ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                              {wpsOk ? "Covered" : "Pending"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3"><StatusBadge status={emp.status} /></td>
+                        </tr>
+                      )
+                    })}
                     {employees.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                        <td colSpan={12} className="px-4 py-12 text-center text-gray-500">
                           <Users className="h-8 w-8 mx-auto text-gray-300 mb-2" />
                           No employees found for this company.
                         </td>
@@ -366,6 +541,57 @@ export default function CompanyDetailPage() {
                 <p className="text-gray-500">No documents uploaded yet.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ──── Compliance Tab ──── */}
+        {activeTab === "compliance" && (
+          <ComplianceScore company={extendedCompany} employees={employees} documents={documents} />
+        )}
+
+        {/* ──── Fees Tab ──── */}
+        {activeTab === "fees" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">{demoFees.length} fee record(s)</p>
+            </div>
+            <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Service</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Fee Type</th>
+                      <th className="text-right px-4 py-3 text-gray-500 font-medium">Amount (AED)</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {demoFees.map((fee) => (
+                      <tr key={fee.id} className="border-b border-gray-50 hover:bg-gray-50">
+                        <td className="px-4 py-3 text-gray-900">{fee.service}</td>
+                        <td className="px-4 py-3 text-gray-600">{fee.fee_type}</td>
+                        <td className="px-4 py-3 text-right font-medium text-gray-900 font-mono">{fee.amount.toLocaleString()}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${feeStatusColors[fee.status] || "bg-gray-100 text-gray-600"}`}>
+                            {fee.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{fee.date ? formatDate(fee.date) : "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-50 border-t border-gray-200">
+                      <td colSpan={2} className="px-4 py-3 font-semibold text-gray-900">Total</td>
+                      <td className="px-4 py-3 text-right font-bold text-[#1a3a6b] font-mono">{feesTotal.toLocaleString()}</td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 
