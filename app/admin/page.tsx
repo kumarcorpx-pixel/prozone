@@ -1,7 +1,7 @@
 "use client"
 
-import { demoCompanies, demoEmployees, companyDocuments } from "@/lib/company-data"
-import { demoRequests, demoNotifications } from "@/lib/demo-data"
+import { useState, useEffect } from "react"
+import { fetchCompanies, fetchEmployees, fetchDocuments, fetchRequests, fetchAdminStats } from "@/lib/data-fetcher"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import {
@@ -12,6 +12,7 @@ import {
   Activity,
   TrendingUp,
   Clock,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 import { AedIcon } from "@/components/ui/aed-icon"
@@ -23,14 +24,51 @@ function getDaysUntil(dateStr: string): number {
 }
 
 export default function AdminDashboard() {
-  const activeCompanies = demoCompanies.filter((c) => c.status === "active")
-  const expiredCompanies = demoCompanies.filter((c) => c.status === "expired")
-  const totalEmployees = demoEmployees.length
+  const [companies, setCompanies] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [documents, setDocuments] = useState<any[]>([])
+  const [requests, setRequests] = useState<any[]>([])
+  const [stats, setStats] = useState({ companies: 0, employees: 0, requests: 0, documents: 0, isReal: false })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [comps, emps, docs, reqs, st] = await Promise.all([
+        fetchCompanies(),
+        fetchEmployees(),
+        fetchDocuments(),
+        fetchRequests(),
+        fetchAdminStats(),
+      ])
+      setCompanies(comps)
+      setEmployees(emps)
+      setDocuments(docs)
+      setRequests(reqs)
+      setStats(st)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1a3a6b]" />
+          <p className="text-sm text-gray-500">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const activeCompanies = companies.filter((c) => c.status === "active")
+  const expiredCompanies = companies.filter((c) => c.status === "expired")
+  const totalEmployees = employees.length
 
   // Expiry alerts: docs/visas expiring within 30 days
   const expiringItems: { name: string; type: string; expiryDate: string; daysLeft: number }[] = []
 
-  companyDocuments.forEach((doc) => {
+  documents.forEach((doc) => {
     if (doc.expiry_date) {
       const daysLeft = getDaysUntil(doc.expiry_date)
       if (daysLeft <= 30 && daysLeft >= -30) {
@@ -44,7 +82,7 @@ export default function AdminDashboard() {
     }
   })
 
-  demoEmployees.forEach((emp) => {
+  employees.forEach((emp) => {
     if (emp.visa_expiry) {
       const daysLeft = getDaysUntil(emp.visa_expiry)
       if (daysLeft <= 30 && daysLeft >= -30) {
@@ -60,10 +98,10 @@ export default function AdminDashboard() {
 
   expiringItems.sort((a, b) => a.daysLeft - b.daysLeft)
 
-  const activeRequests = demoRequests.filter(
+  const activeRequests = requests.filter(
     (r) => r.status !== "completed" && r.status !== "rejected"
   )
-  const pendingDocs = companyDocuments.filter(
+  const pendingDocs = documents.filter(
     (d) => d.status === "expiring_soon" || d.status === "expired"
   )
   const complianceRate = 85
@@ -119,7 +157,7 @@ export default function AdminDashboard() {
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Company Portfolio</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Companies" value={demoCompanies.length} icon={Building2} description="Managed companies" />
+          <StatCard title="Total Companies" value={stats.companies} icon={Building2} description="Managed companies" />
           <div className="bg-white rounded-xl p-6 ring-1 ring-gray-200">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">Active</p>
@@ -136,7 +174,7 @@ export default function AdminDashboard() {
             <p className="text-2xl font-bold mt-2 text-red-600">{expiredCompanies.length}</p>
             <p className="text-xs text-gray-500 mt-1">Needs renewal</p>
           </div>
-          <StatCard title="Total Employees" value={totalEmployees} icon={Users} description="Across all companies" />
+          <StatCard title="Total Employees" value={stats.employees} icon={Users} description="Across all companies" />
         </div>
       </div>
 
@@ -191,7 +229,7 @@ export default function AdminDashboard() {
             <div className="bg-orange-50 rounded-lg p-4">
               <p className="text-sm text-gray-600">Active Requests</p>
               <p className="text-2xl font-bold text-orange-700 mt-1">{activeRequests.length}</p>
-              <p className="text-xs text-gray-500 mt-2">{demoRequests.filter((r) => r.status === "pending").length} pending assignment</p>
+              <p className="text-xs text-gray-500 mt-2">{requests.filter((r) => r.status === "pending").length} pending assignment</p>
             </div>
             <div className="bg-red-50 rounded-lg p-4">
               <p className="text-sm text-gray-600">Pending Documents</p>
@@ -223,7 +261,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {demoRequests.slice(0, 5).map((req) => (
+                {requests.slice(0, 5).map((req) => (
                   <tr key={req.id} className="border-b border-gray-50">
                     <td className="py-2.5 text-gray-900">{req.company?.name || "N/A"}</td>
                     <td className="py-2.5 text-gray-600">{req.service_type}</td>

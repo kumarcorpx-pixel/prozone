@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { demoCompanies, demoEmployees } from "@/lib/company-data"
+import { useState, useEffect } from "react"
+import { fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, Plus, Building2, MapPin, Calendar } from "lucide-react"
+import { Search, Plus, Building2, MapPin, Calendar, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 function getExpiryLabel(dateStr: string | null): { text: string; color: string } {
@@ -18,8 +18,35 @@ function getExpiryLabel(dateStr: string | null): { text: string; color: string }
 
 export default function CompaniesPage() {
   const [search, setSearch] = useState("")
+  const [companies, setCompanies] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const filtered = demoCompanies.filter(
+  useEffect(() => {
+    async function load() {
+      const [comps, emps] = await Promise.all([
+        fetchCompanies(),
+        fetchEmployees(),
+      ])
+      setCompanies(comps)
+      setEmployees(emps)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1a3a6b]" />
+          <p className="text-sm text-gray-500">Loading companies...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const filtered = companies.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       (c.trade_name && c.trade_name.toLowerCase().includes(search.toLowerCase())) ||
@@ -52,7 +79,7 @@ export default function CompaniesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map((company) => {
-          const employeeCount = demoEmployees.filter((e) => e.company_id === company.id).length
+          const employeeCount = employees.filter((e) => e.company_id === company.id).length
           const expiry = getExpiryLabel(company.license_expiry)
 
           return (
