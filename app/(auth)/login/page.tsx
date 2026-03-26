@@ -20,8 +20,10 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await login(email, password)
-      if (email.includes("admin") || email.includes("ceo")) {
+      if (email.includes("admin")) {
         router.push("/admin")
+      } else if (email.includes("staff") || email.includes("pro")) {
+        router.push("/staff")
       } else {
         router.push("/dashboard")
       }

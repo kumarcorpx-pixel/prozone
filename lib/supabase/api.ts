@@ -11,6 +11,8 @@ import type {
   Company,
   Employee,
   CompanyDocument,
+  RequestDocument,
+  RequestChecklist,
 } from "../types"
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -377,6 +379,78 @@ export function getFileUrl(bucket: string, path: string): string {
   const supabase = createClient()
   const { data } = supabase.storage.from(bucket).getPublicUrl(path)
   return data.publicUrl
+}
+
+// ============ REQUEST DOCUMENTS ============
+export async function getRequestDocuments(requestId: string): Promise<RequestDocument[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from("request_documents")
+    .select("*")
+    .eq("request_id", requestId)
+    .order("created_at", { ascending: false })
+  return (data || []) as RequestDocument[]
+}
+
+export async function addRequestDocument(doc: Partial<RequestDocument>) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("request_documents")
+    .insert(doc)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+// ============ REQUEST CHECKLIST ============
+export async function getRequestChecklist(requestId: string): Promise<RequestChecklist[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from("request_checklist")
+    .select("*")
+    .eq("request_id", requestId)
+    .order("sort_order")
+  return (data || []) as RequestChecklist[]
+}
+
+export async function addChecklistItem(item: { request_id: string; item: string; sort_order?: number }) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("request_checklist")
+    .insert(item)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function toggleChecklistItem(id: string, isCompleted: boolean, completedBy?: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("request_checklist")
+    .update({
+      is_completed: isCompleted,
+      completed_by: isCompleted ? completedBy : null,
+      completed_at: isCompleted ? new Date().toISOString() : null,
+    })
+    .eq("id", id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+// ============ STAFF QUERIES ============
+export async function getMyAssignedRequests(staffId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("service_requests")
+    .select("*, client:profiles!client_id(full_name, email), company:companies!company_id(name)")
+    .eq("assigned_to", staffId)
+    .order("created_at", { ascending: false })
+  if (error) throw error
+  return data || []
 }
 
 // ─── Realtime ────────────────────────────────────────────────────────────────
