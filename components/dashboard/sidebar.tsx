@@ -18,6 +18,10 @@ import {
   ChevronLeft,
   CalendarDays,
   UserCheck,
+  UserCog,
+  CalendarCheck,
+  Activity,
+  Bell,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { YabsLogo } from "@/components/marketing/yabs-logo"
@@ -43,13 +47,19 @@ const adminLinks: NavItem[] = [
   { label: "Requests", href: "/admin/requests", icon: FileText },
   { label: "Documents", href: "/admin/documents", icon: FolderOpen },
   { label: "Expiry Calendar", href: "/admin/expiry-calendar", icon: CalendarDays },
+  { label: "Staff", href: "/admin/staff", icon: UserCog },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
 const staffLinks: NavItem[] = [
   { label: "Dashboard", href: "/staff", icon: LayoutDashboard },
+  { label: "My Schedule", href: "/staff/schedule", icon: CalendarCheck },
   { label: "My Requests", href: "/staff/requests", icon: FileText },
+  { label: "Companies", href: "/staff/companies", icon: Building2 },
   { label: "Documents", href: "/staff/documents", icon: FolderOpen },
+  { label: "Activity Log", href: "/staff/activity", icon: Activity },
+  { label: "Notifications", href: "/staff/notifications", icon: Bell },
+  { label: "Settings", href: "/staff/settings", icon: Settings },
 ]
 
 interface SidebarProps {
