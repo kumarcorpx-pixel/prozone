@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /staff/
+Disallow: /dashboard/
+Disallow: /api/
+Sitemap: https://corporatepro.cloud/sitemap.xml

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next"
+import { securityHeaders } from "./lib/security-headers"
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["194.238.19.203"],
@@ -6,6 +7,14 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "**" },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: securityHeaders,
+      },
+    ]
   },
 }
 
