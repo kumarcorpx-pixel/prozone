@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 
 export async function GET() {
@@ -6,18 +6,24 @@ export async function GET() {
     const users = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },
     })
-    return NextResponse.json(users.map(u => ({
+
+    const mapped = users.map((u) => ({
       id: u.id,
       email: u.email,
       full_name: u.fullName,
       phone: u.phone,
       role: u.role,
-      avatar_url: u.avatarUrl,
       is_active: u.isActive,
       created_at: u.createdAt,
       updated_at: u.updatedAt,
-    })))
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    }))
+
+    return NextResponse.json(mapped)
+  } catch (error) {
+    console.error("Failed to fetch users:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch users" },
+      { status: 500 }
+    )
   }
 }
