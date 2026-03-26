@@ -42,8 +42,14 @@ const adminLinks: NavItem[] = [
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
+const staffLinks: NavItem[] = [
+  { label: "Dashboard", href: "/staff", icon: LayoutDashboard },
+  { label: "My Requests", href: "/staff/requests", icon: FileText },
+  { label: "Documents", href: "/staff/documents", icon: FolderOpen },
+]
+
 interface SidebarProps {
-  role: "client" | "admin"
+  role: "client" | "admin" | "pro_staff"
   onClose?: () => void
   mobile?: boolean
 }
@@ -51,7 +57,7 @@ interface SidebarProps {
 export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  const links = role === "admin" ? adminLinks : clientLinks
+  const links = role === "admin" ? adminLinks : role === "pro_staff" ? staffLinks : clientLinks
 
   function isActive(href: string): boolean {
     if (role === "admin" && href === "/admin") {
