@@ -111,9 +111,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       if (isDemo) {
-        const profile = DEMO_PROFILES[email]
-        if (!profile) throw new Error("Invalid demo credentials. Use ahmed@company.ae or admin@yabs.ae")
-        const role = profile.role
+        const role = email.includes("admin") ? "admin" : "client"
+        const profileKey = role === "admin" ? "admin@yabs.ae" : "ahmed@company.ae"
+        const profile = { ...DEMO_PROFILES[profileKey], email }
         localStorage.setItem("prozone_demo_role", role)
         document.cookie = `prozone_demo_role=${role}; path=/; max-age=86400`
         setUser(profile)
