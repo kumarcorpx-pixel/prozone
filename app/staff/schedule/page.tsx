@@ -1,0 +1,127 @@
+"use client"
+
+import { useState } from "react"
+import { demoRequests } from "@/lib/demo-data"
+import { getChecklistForServiceType } from "@/lib/checklist-templates"
+import { CalendarCheck, MapPin, X, Clock } from "lucide-react"
+
+const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
+const priorityColors: Record<string, string> = {
+  urgent: "bg-red-100 text-red-700",
+  high: "bg-orange-100 text-orange-700",
+  medium: "bg-yellow-100 text-yellow-700",
+  low: "bg-gray-100 text-gray-600",
+}
+
+export default function SchedulePage() {
+  const [locations, setLocations] = useState<string[]>([])
+  const [locationInput, setLocationInput] = useState("")
+  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set())
+
+  const todaysTasks = demoRequests
+    .flatMap(req => {
+      const items = getChecklistForServiceType(req.service_type)
+      return items.slice(0, 3).map((item, i) => ({
+        id: `${req.id}-${i}`,
+        request: req.service_type,
+        company: req.company?.name || "N/A",
+        item,
+        priority: req.priority,
+      }))
+    })
+    .sort((a, b) => (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3))
+    .slice(0, 12)
+
+  const addLocation = () => {
+    if (!locationInput.trim()) return
+    setLocations(prev => [...prev, locationInput.trim()])
+    setLocationInput("")
+  }
+
+  const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <CalendarCheck className="h-6 w-6 text-[#1a3a6b]" />
+          Today&apos;s Schedule
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">{today}</p>
+      </div>
+
+      {/* Where I'm going */}
+      <div className="bg-white rounded-xl ring-1 ring-gray-200 p-5">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+          <MapPin className="h-4 w-4 text-[#1a3a6b]" />
+          Where I&apos;m going today
+        </h3>
+        <div className="flex gap-2 mb-3">
+          <input
+            value={locationInput}
+            onChange={e => setLocationInput(e.target.value)}
+            placeholder="e.g., MOHRE Tasheel - Al Quoz"
+            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            onKeyDown={e => e.key === "Enter" && addLocation()}
+          />
+          <button onClick={addLocation} className="px-4 py-2 bg-[#1a3a6b] text-white text-sm rounded-lg hover:bg-[#15305a]">
+            Add
+          </button>
+        </div>
+        {locations.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {locations.map((loc, i) => (
+              <span key={i} className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 text-sm rounded-full">
+                <MapPin className="h-3 w-3" />
+                {loc}
+                <button onClick={() => setLocations(prev => prev.filter((_, j) => j !== i))}>
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Tasks */}
+      <div className="bg-white rounded-xl ring-1 ring-gray-200 p-5">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
+          <Clock className="h-4 w-4 text-[#1a3a6b]" />
+          Priority Tasks ({todaysTasks.length - completedTasks.size} remaining)
+        </h3>
+        <div className="space-y-2">
+          {todaysTasks.map(task => {
+            const done = completedTasks.has(task.id)
+            return (
+              <label key={task.id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${done ? "bg-green-50" : "bg-gray-50 hover:bg-gray-100"}`}>
+                <input
+                  type="checkbox"
+                  checked={done}
+                  onChange={() => {
+                    setCompletedTasks(prev => {
+                      const next = new Set(prev)
+                      done ? next.delete(task.id) : next.add(task.id)
+                      return next
+                    })
+                  }}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm ${done ? "line-through text-gray-400" : "text-gray-700"}`}>{task.item}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-gray-500">{task.request}</span>
+                    <span className="text-xs text-gray-400">&middot;</span>
+                    <span className="text-xs text-gray-500">{task.company}</span>
+                  </div>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${priorityColors[task.priority] || "bg-gray-100"}`}>
+                  {task.priority}
+                </span>
+              </label>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
