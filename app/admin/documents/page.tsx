@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { companyDocuments, demoCompanies, demoEmployees, documentCategories } from "@/lib/company-data"
+import { useState, useEffect, useMemo } from "react"
+import { fetchDocuments, fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
+import { documentCategories } from "@/lib/company-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, FileText, Filter } from "lucide-react"
+import { Search, FileText, Loader2 } from "lucide-react"
 
 const statusOptions = ["all", "valid", "expiring_soon", "expired"]
 const categoryKeys = ["all", ...Object.keys(documentCategories)]
@@ -22,9 +23,28 @@ export default function DocumentsPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
+  const [documents, setDocuments] = useState<any[]>([])
+  const [companies, setCompanies] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [docs, comps, emps] = await Promise.all([
+        fetchDocuments(),
+        fetchCompanies(),
+        fetchEmployees(),
+      ])
+      setDocuments(docs)
+      setCompanies(comps)
+      setEmployees(emps)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const sorted = useMemo(() => {
-    const filtered = companyDocuments.filter((doc) => {
+    const filtered = documents.filter((doc) => {
       const matchesSearch = doc.name.toLowerCase().includes(search.toLowerCase())
       const matchesStatus = statusFilter === "all" || doc.status === statusFilter
       const matchesCategory = categoryFilter === "all" || doc.document_type === categoryFilter
@@ -37,7 +57,18 @@ export default function DocumentsPage() {
       const bExpiry = b.expiry_date ? new Date(b.expiry_date).getTime() : Infinity
       return aExpiry - bExpiry
     })
-  }, [search, statusFilter, categoryFilter])
+  }, [search, statusFilter, categoryFilter, documents])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1a3a6b]" />
+          <p className="text-sm text-gray-500">Loading documents...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -98,8 +129,8 @@ export default function DocumentsPage() {
             </thead>
             <tbody>
               {sorted.map((doc) => {
-                const company = demoCompanies.find((c) => c.id === doc.company_id)
-                const employee = doc.employee_id ? demoEmployees.find((e) => e.id === doc.employee_id) : null
+                const company = companies.find((c) => c.id === doc.company_id)
+                const employee = doc.employee_id ? employees.find((e) => e.id === doc.employee_id) : null
                 const cat = documentCategories[doc.document_type] || documentCategories.other
 
                 return (
@@ -113,8 +144,8 @@ export default function DocumentsPage() {
                     <td className="px-6 py-4 text-gray-600">{company?.name || "Unknown"}</td>
                     <td className="px-6 py-4 text-gray-600">{employee?.full_name || "-"}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cat.color}`}>
-                        {cat.label}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cat?.color || "bg-gray-100 text-gray-700"}`}>
+                        {cat?.label || doc.document_type || "Other"}
                       </span>
                     </td>
                     <td className={`px-6 py-4 ${getExpiryColor(doc.expiry_date)}`}>

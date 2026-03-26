@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { demoEmployees, demoCompanies } from "@/lib/company-data"
+import { useState, useEffect, useMemo } from "react"
+import { fetchEmployees, fetchCompanies } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye } from "lucide-react"
+import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye, Loader2 } from "lucide-react"
 
 function getExpiryLabel(dateStr: string | null): { text: string; color: string } {
   if (!dateStr) return { text: "N/A", color: "text-gray-400" }
@@ -15,25 +15,41 @@ function getExpiryLabel(dateStr: string | null): { text: string; color: string }
   return { text: new Date(dateStr).toLocaleDateString(), color: "text-green-600" }
 }
 
-function getCompanyName(companyId: string): string {
-  return demoCompanies.find((c) => c.id === companyId)?.name || "Unknown"
-}
-
 export default function EmployeesPage() {
   const [search, setSearch] = useState("")
   const [companyFilter, setCompanyFilter] = useState("all")
   const [nationalityFilter, setNationalityFilter] = useState("all")
   const [visaStatusFilter, setVisaStatusFilter] = useState("all")
   const [expiryFilter, setExpiryFilter] = useState("all")
+  const [allEmployees, setAllEmployees] = useState<any[]>([])
+  const [companies, setCompanies] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [emps, comps] = await Promise.all([
+        fetchEmployees(),
+        fetchCompanies(),
+      ])
+      setAllEmployees(emps)
+      setCompanies(comps)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  function getCompanyName(companyId: string): string {
+    return companies.find((c) => c.id === companyId)?.name || "Unknown"
+  }
 
   const nationalities = useMemo(
-    () => [...new Set(demoEmployees.map((e) => e.nationality).filter(Boolean))].sort(),
-    []
+    () => [...new Set(allEmployees.map((e) => e.nationality).filter(Boolean))].sort(),
+    [allEmployees]
   )
 
   const filtered = useMemo(() => {
     const now = new Date()
-    return demoEmployees.filter((emp) => {
+    return allEmployees.filter((emp) => {
       // Search
       if (search) {
         const q = search.toLowerCase()
@@ -65,13 +81,24 @@ export default function EmployeesPage() {
       if (expiryFilter !== "all" && !emp.visa_expiry) return false
       return true
     })
-  }, [search, companyFilter, nationalityFilter, visaStatusFilter, expiryFilter])
+  }, [search, companyFilter, nationalityFilter, visaStatusFilter, expiryFilter, allEmployees, companies])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1a3a6b]" />
+          <p className="text-sm text-gray-500">Loading employees...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Summary stats
-  const totalEmployees = demoEmployees.length
-  const activeVisas = demoEmployees.filter((e) => e.visa_status === "valid").length
-  const expiringSoon = demoEmployees.filter((e) => e.visa_status === "expiring_soon").length
-  const expired = demoEmployees.filter((e) => e.visa_status === "expired").length
+  const totalEmployees = allEmployees.length
+  const activeVisas = allEmployees.filter((e) => e.visa_status === "valid").length
+  const expiringSoon = allEmployees.filter((e) => e.visa_status === "expiring_soon").length
+  const expired = allEmployees.filter((e) => e.visa_status === "expired").length
 
   return (
     <div className="space-y-6">
@@ -139,7 +166,7 @@ export default function EmployeesPage() {
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
         >
           <option value="all">All Companies</option>
-          {demoCompanies.map((c) => (
+          {companies.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
