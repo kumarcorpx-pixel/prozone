@@ -1,0 +1,372 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  pro_staff
+  client
+}
+
+enum CompanyStatus {
+  active
+  expired
+  pending
+  closed
+  on_hold
+}
+
+enum RequestStatus {
+  pending
+  assigned
+  in_progress
+  under_review
+  completed
+  rejected
+  cancelled
+}
+
+enum RequestPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  partial
+  overdue
+  cancelled
+}
+
+enum VisaStatus {
+  valid
+  expired
+  expiring_soon
+  processing
+  cancelled
+}
+
+enum EmployeeStatus {
+  active
+  resigned
+  terminated
+}
+
+enum NotificationType {
+  info
+  warning
+  success
+  error
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  fullName        String    @map("full_name")
+  phone           String?
+  role            UserRole  @default(client)
+  avatarUrl       String?   @map("avatar_url")
+  isActive        Boolean   @default(true) @map("is_active")
+  lastLoginAt     DateTime? @map("last_login_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  companies         Company[]
+  assignedRequests  ServiceRequest[] @relation("AssignedStaff")
+  clientRequests    ServiceRequest[] @relation("ClientRequests")
+  uploadedDocuments Document[]       @relation("Uploader")
+  notifications     Notification[]
+  activityLogs      ActivityLog[]
+  sentMessages      Message[]        @relation("Sender")
+  receivedMessages  Message[]        @relation("Receiver")
+  timelineEntries   RequestTimeline[]
+
+  @@map("users")
+}
+
+model Company {
+  id                      String        @id @default(uuid())
+  name                    String
+  tradeName               String?       @map("trade_name")
+  licenseNumber           String?       @map("license_number")
+  licenseType             String?       @map("license_type")
+  licenseExpiry           DateTime?     @map("license_expiry")
+  legalForm               String?       @map("legal_form")
+  status                  CompanyStatus @default(active)
+  emirate                 String?
+  jurisdiction            String?
+  freeZone                String?       @map("free_zone")
+  address                 String?
+  poBox                   String?       @map("po_box")
+  phone                   String?
+  email                   String?
+  website                 String?
+  industry                String?
+  activities              String[]      @default([])
+  capital                 Decimal?      @db.Decimal(12, 2)
+  incorporationDate       DateTime?     @map("incorporation_date")
+  notes                   String?
+
+  // UAE-specific fields
+  establishmentCardNumber String?       @map("establishment_card_number")
+  establishmentCardExpiry DateTime?     @map("establishment_card_expiry")
+  immigrationFileNumber   String?       @map("immigration_file_number")
+  computerCardNumber      String?       @map("computer_card_number")
+  mohreCompanyNumber      String?       @map("mohre_company_number")
+  chamberCommerceNumber   String?       @map("chamber_commerce_number")
+  chamberCommerceExpiry   DateTime?     @map("chamber_commerce_expiry")
+  ejariTawtheeqNumber     String?       @map("ejari_tawtheeq_number")
+  ejariTawtheeqExpiry     DateTime?     @map("ejari_tawtheeq_expiry")
+  leaseExpiry             DateTime?     @map("lease_expiry")
+  vatTrn                  String?       @map("vat_trn")
+  corporateTaxNumber      String?       @map("corporate_tax_number")
+  sponsorName             String?       @map("sponsor_name")
+  sponsorEid              String?       @map("sponsor_eid")
+  localServiceAgent       String?       @map("local_service_agent")
+  poaStatus               String?       @map("poa_status")
+  visaQuotaTotal          Int?          @map("visa_quota_total")
+  visaQuotaUsed           Int?          @map("visa_quota_used")
+
+  createdById             String?       @map("created_by")
+  createdBy               User?         @relation(fields: [createdById], references: [id])
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  employees       Employee[]
+  documents       Document[]
+  serviceRequests ServiceRequest[]
+  governmentFees  GovernmentFee[]
+
+  @@map("companies")
+}
+
+model Employee {
+  id                  String         @id @default(uuid())
+  companyId           String         @map("company_id")
+  company             Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fullName            String         @map("full_name")
+  email               String?
+  phone               String?
+  designation         String?
+  department          String?
+  nationality         String?
+  dateOfBirth         DateTime?      @map("date_of_birth")
+  gender              String?
+  visaStatus          VisaStatus?    @map("visa_status")
+  visaType            String?        @map("visa_type")
+  visaExpiry          DateTime?      @map("visa_expiry")
+  visaUid             String?        @map("visa_uid")
+  emiratesId          String?        @map("emirates_id")
+  emiratesIdExpiry    DateTime?      @map("emirates_id_expiry")
+  passportNumber      String?        @map("passport_number")
+  passportExpiry      DateTime?      @map("passport_expiry")
+  laborCardNumber     String?        @map("labor_card_number")
+  laborCardExpiry     DateTime?      @map("labor_card_expiry")
+  mohreWorkPermit     String?        @map("mohre_work_permit")
+  workPermitExpiry    DateTime?      @map("work_permit_expiry")
+  medicalFitnessDate  DateTime?      @map("medical_fitness_date")
+  medicalFitnessResult String?       @map("medical_fitness_result")
+  healthInsuranceProvider String?     @map("health_insurance_provider")
+  healthInsuranceNumber   String?     @map("health_insurance_number")
+  healthInsuranceExpiry   DateTime?   @map("health_insurance_expiry")
+  wpsStatus           String?        @map("wps_status")
+  salary              Decimal?       @db.Decimal(10, 2)
+  basicSalary         Decimal?       @map("basic_salary") @db.Decimal(10, 2)
+  housingAllowance    Decimal?       @map("housing_allowance") @db.Decimal(10, 2)
+  transportAllowance  Decimal?       @map("transport_allowance") @db.Decimal(10, 2)
+  joinDate            DateTime?      @map("join_date")
+  status              EmployeeStatus @default(active)
+  notes               String?
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  documents           Document[]
+
+  @@map("employees")
+}
+
+model Document {
+  id              String    @id @default(uuid())
+  companyId       String?   @map("company_id")
+  company         Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId      String?   @map("employee_id")
+  employee        Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  name            String
+  documentType    String?   @map("document_type")
+  fileUrl         String?   @map("file_url")
+  fileName        String?   @map("file_name")
+  fileSize        Int?      @map("file_size")
+  mimeType        String?   @map("mime_type")
+  expiryDate      DateTime? @map("expiry_date")
+  issueDate       DateTime? @map("issue_date")
+  issuingAuthority String?  @map("issuing_authority")
+  referenceNumber String?   @map("reference_number")
+  reminderDays    Int?      @map("reminder_days") @default(30)
+  status          String?   @default("valid")
+  notes           String?
+  uploadedById    String?   @map("uploaded_by")
+  uploadedBy      User?     @relation("Uploader", fields: [uploadedById], references: [id])
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("documents")
+}
+
+model Service {
+  id             String   @id @default(uuid())
+  name           String
+  category       String
+  description    String?
+  price          Decimal? @db.Decimal(10, 2)
+  estimatedDays  Int?     @map("estimated_days")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("services")
+}
+
+model ServiceRequest {
+  id              String          @id @default(uuid())
+  clientId        String?         @map("client_id")
+  client          User?           @relation("ClientRequests", fields: [clientId], references: [id])
+  companyId       String?         @map("company_id")
+  company         Company?        @relation(fields: [companyId], references: [id])
+  serviceType     String?         @map("service_type")
+  description     String?
+  status          RequestStatus   @default(pending)
+  priority        RequestPriority @default(medium)
+  assignedToId    String?         @map("assigned_to")
+  assignedTo      User?           @relation("AssignedStaff", fields: [assignedToId], references: [id])
+  notes           String?
+  dueDate         DateTime?       @map("due_date")
+  completedDate   DateTime?       @map("completed_date")
+  amendedById     String?         @map("amended_by")
+  amendedAt       DateTime?       @map("amended_at")
+  amendmentNotes  String?         @map("amendment_notes")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  timeline        RequestTimeline[]
+  governmentFees  GovernmentFee[]
+  invoices        Invoice[]
+
+  @@map("service_requests")
+}
+
+model RequestTimeline {
+  id          String   @id @default(uuid())
+  requestId   String   @map("request_id")
+  request     ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  status      String?
+  message     String
+  createdById String?  @map("created_by")
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("request_timeline")
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  requestId       String?       @map("request_id")
+  request         ServiceRequest? @relation(fields: [requestId], references: [id])
+  clientId        String?       @map("client_id")
+  invoiceNumber   String        @unique @map("invoice_number")
+  items           Json?
+  subtotal        Decimal       @db.Decimal(10, 2)
+  vatPercentage   Decimal       @default(5) @map("vat_percentage") @db.Decimal(5, 2)
+  vatAmount       Decimal       @map("vat_amount") @db.Decimal(10, 2)
+  discount        Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount     Decimal       @map("total_amount") @db.Decimal(10, 2)
+  status          PaymentStatus @default(pending)
+  dueDate         DateTime?     @map("due_date")
+  paidDate        DateTime?     @map("paid_date")
+  paymentMethod   String?       @map("payment_method")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@map("invoices")
+}
+
+model GovernmentFee {
+  id              String    @id @default(uuid())
+  requestId       String?   @map("request_id")
+  request         ServiceRequest? @relation(fields: [requestId], references: [id])
+  companyId       String?   @map("company_id")
+  company         Company?  @relation(fields: [companyId], references: [id])
+  feeType         String    @map("fee_type")
+  description     String?
+  amount          Decimal   @db.Decimal(10, 2)
+  paymentMethod   String?   @map("payment_method")
+  paymentStatus   String?   @map("payment_status") @default("pending")
+  receiptNumber   String?   @map("receipt_number")
+  paidDate        DateTime? @map("paid_date")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@map("government_fees")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(info)
+  isRead    Boolean          @default(false) @map("is_read")
+  link      String?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  details    Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("activity_log")
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String   @map("sender_id")
+  sender     User     @relation("Sender", fields: [senderId], references: [id])
+  receiverId String   @map("receiver_id")
+  receiver   User     @relation("Receiver", fields: [receiverId], references: [id])
+  requestId  String?  @map("request_id")
+  subject    String?
+  body       String
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("messages")
+}
+
+model ChecklistTemplate {
+  id          String   @id @default(uuid())
+  serviceType String   @unique @map("service_type")
+  items       Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("checklist_templates")
+}
