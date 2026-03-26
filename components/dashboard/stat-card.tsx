@@ -1,9 +1,10 @@
 import { type LucideIcon } from "lucide-react"
+import { type ComponentType } from "react"
 
 interface StatCardProps {
   title: string
   value: string | number
-  icon: LucideIcon
+  icon: LucideIcon | ComponentType<{ className?: string }>
   description?: string
   trend?: { value: number; positive: boolean }
   className?: string
