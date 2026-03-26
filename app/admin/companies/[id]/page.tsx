@@ -30,7 +30,7 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  DollarSign,
+  Banknote,
   ClipboardCheck,
 } from "lucide-react"
 import Link from "next/link"
@@ -98,7 +98,7 @@ const tabs = [
   { id: "employees", label: "Employees", icon: Users },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "compliance", label: "Compliance", icon: ClipboardCheck },
-  { id: "fees", label: "Fees", icon: DollarSign },
+  { id: "fees", label: "Fees", icon: Banknote },
   { id: "wps", label: "WPS", icon: Shield },
   { id: "uploads", label: "Monthly Uploads", icon: Upload },
   { id: "shareholders", label: "Shareholders", icon: UserCheck },

@@ -7,7 +7,7 @@ import { demoRequests, demoTimeline, demoRequestDocuments, demoProfiles } from "
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { isChecklistItemCompleted, toggleChecklistItem, addNote, getNotes, getTimelineEntries, setRequestStatus, getRequestStatus } from "@/lib/demo-store"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { ArrowLeft, FileText, CheckSquare, Clock, DollarSign, Upload, Plus, ChevronDown, MessageSquare, User } from "lucide-react"
+import { ArrowLeft, FileText, CheckSquare, Clock, Banknote, Upload, Plus, ChevronDown, MessageSquare, User } from "lucide-react"
 
 const statusOptions = ["pending", "in_progress", "under_review", "completed", "rejected"]
 
@@ -65,7 +65,7 @@ export default function AdminRequestDetailPage() {
     { id: "documents", label: "Documents", icon: Upload },
     { id: "checklist", label: `Checklist (${completedCount}/${checklistItems.length})`, icon: CheckSquare },
     { id: "timeline", label: "Timeline", icon: Clock },
-    { id: "fees", label: "Fees", icon: DollarSign },
+    { id: "fees", label: "Fees", icon: Banknote },
   ]
 
   const docTypeBadge: Record<string, string> = {

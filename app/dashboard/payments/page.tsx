@@ -1,6 +1,6 @@
 "use client"
 
-import { DollarSign, Download, CreditCard, Clock, CheckCircle2 } from "lucide-react"
+import { Banknote, Download, CreditCard, Clock, CheckCircle2 } from "lucide-react"
 
 const demoInvoices = [
   { id: "INV-2026-001", date: "2026-03-15", service: "Trade License Renewal", company: "Gulf Trading LLC", govFees: 10000, serviceFee: 2000, vat: 600, total: 12600, status: "pending" },
@@ -29,7 +29,7 @@ export default function PaymentsPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Invoiced", value: `AED ${totalInvoiced.toLocaleString()}`, icon: DollarSign, color: "text-[#1a3a6b]" },
+          { label: "Total Invoiced", value: `AED ${totalInvoiced.toLocaleString()}`, icon: Banknote, color: "text-[#1a3a6b]" },
           { label: "Total Paid", value: `AED ${totalPaid.toLocaleString()}`, icon: CheckCircle2, color: "text-green-600" },
           { label: "Outstanding", value: `AED ${outstanding.toLocaleString()}`, icon: Clock, color: "text-yellow-600" },
           { label: "Next Due", value: "31 Mar 2026", icon: CreditCard, color: "text-orange-600" },

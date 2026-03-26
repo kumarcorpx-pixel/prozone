@@ -8,7 +8,7 @@ import {
   Building2,
   Users,
   FileText,
-  DollarSign,
+  Banknote,
   AlertTriangle,
   Activity,
   TrendingUp,
@@ -87,11 +87,11 @@ export default function AdminDashboard() {
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Revenue Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Revenue" value="AED 245,000" icon={DollarSign} description="All time revenue" trend={{ value: 12, positive: true }} />
+          <StatCard title="Total Revenue" value="AED 245,000" icon={Banknote} description="All time revenue" trend={{ value: 12, positive: true }} />
           <div className="bg-white rounded-xl p-6 ring-1 ring-gray-200">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">Paid</p>
-              <DollarSign className="h-5 w-5 text-green-500" />
+              <Banknote className="h-5 w-5 text-green-500" />
             </div>
             <p className="text-2xl font-bold mt-2 text-green-600">AED 198,000</p>
             <p className="text-xs text-gray-500 mt-1">80.8% collection rate</p>
