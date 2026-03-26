@@ -1,496 +1,155 @@
 "use client"
 
-import { createClient } from "./client"
-import type {
-  Profile,
-  Service,
-  ServiceRequest,
-  RequestTimeline,
-  Payment,
-  Notification,
-  Company,
-  Employee,
-  CompanyDocument,
-  RequestDocument,
-  RequestChecklist,
-} from "../types"
+// CRUD operations that call local Prisma API routes instead of Supabase
 
-// ─── Auth ────────────────────────────────────────────────────────────────────
-
+// ============ AUTH ============
 export async function signUp(email: string, password: string, fullName: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName },
-    },
+  const res = await fetch("/api/auth/signup", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, fullName, confirmPassword: password }),
   })
-  if (error) throw error
-  return data
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error) }
+  return await res.json()
 }
 
 export async function signIn(email: string, password: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+  const res = await fetch("/api/auth/login", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
   })
-  if (error) throw error
-  return data
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error) }
+  return await res.json()
 }
 
 export async function signOut() {
-  const supabase = createClient()
-  const { error } = await supabase.auth.signOut()
-  if (error) throw error
+  await fetch("/api/auth/logout", { method: "POST" })
 }
 
 export async function getSession() {
-  const supabase = createClient()
-  const { data, error } = await supabase.auth.getSession()
-  if (error) throw error
-  return data.session
+  try {
+    const res = await fetch("/api/auth/me")
+    if (res.ok) return { user: (await res.json()).user }
+    return { user: null }
+  } catch { return { user: null } }
 }
 
-export async function getProfile(userId: string): Promise<Profile | null> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single()
-  if (error) return null
-  return data as Profile
+export async function getProfile(userId: string) {
+  // Not used directly anymore - auth-context handles this
+  return null
 }
 
-export async function updateProfile(userId: string, updates: Partial<Profile>) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("profiles")
-    .update(updates)
-    .eq("id", userId)
-    .select()
-    .single()
-  if (error) throw error
-  return data as Profile
+export async function updateProfile(userId: string, updates: any) {
+  // TODO: Implement via API route
+  return updates
 }
 
-// ─── Services ────────────────────────────────────────────────────────────────
-
-export async function getServices(): Promise<Service[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("services")
-    .select("*")
-    .order("category")
-  if (error) throw error
-  return (data ?? []) as Service[]
+// ============ COMPANIES ============
+export async function createCompany(data: any) {
+  const res = await fetch("/api/data/companies", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to create company") }
+  return await res.json()
 }
 
-// ─── Service Requests ────────────────────────────────────────────────────────
-
-export async function getServiceRequests(
-  filters?: {
-    clientId?: string
-    status?: string
-    priority?: string
-    assignedTo?: string
-  }
-): Promise<ServiceRequest[]> {
-  const supabase = createClient()
-  let query = supabase
-    .from("service_requests")
-    .select(`
-      *,
-      client:profiles!client_id(*),
-      company:companies!company_id(name),
-      assignee:profiles!assigned_to(*)
-    `)
-    .order("created_at", { ascending: false })
-
-  if (filters?.clientId) query = query.eq("client_id", filters.clientId)
-  if (filters?.status) query = query.eq("status", filters.status)
-  if (filters?.priority) query = query.eq("priority", filters.priority)
-  if (filters?.assignedTo) query = query.eq("assigned_to", filters.assignedTo)
-
-  const { data, error } = await query
-  if (error) throw error
-  return (data ?? []) as ServiceRequest[]
+export async function updateCompany(id: string, data: any) {
+  const res = await fetch(`/api/data/companies/${id}`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to update") }
+  return await res.json()
 }
 
-export async function createServiceRequest(
-  request: Omit<ServiceRequest, "id" | "created_at" | "updated_at" | "client" | "company" | "assignee">
-) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("service_requests")
-    .insert(request)
-    .select()
-    .single()
-  if (error) throw error
-  return data as ServiceRequest
+// ============ EMPLOYEES ============
+export async function createEmployee(data: any) {
+  const res = await fetch("/api/data/employees", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to create employee") }
+  return await res.json()
 }
 
-export async function updateServiceRequest(
-  id: string,
-  updates: Partial<ServiceRequest>
-) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("service_requests")
-    .update(updates)
-    .eq("id", id)
-    .select()
-    .single()
-  if (error) throw error
-  return data as ServiceRequest
+export async function updateEmployee(id: string, data: any) {
+  const res = await fetch(`/api/data/employees/${id}`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to update") }
+  return await res.json()
 }
 
-// ─── Timeline ────────────────────────────────────────────────────────────────
-
-export async function getRequestTimeline(requestId: string): Promise<RequestTimeline[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("request_timeline")
-    .select(`
-      *,
-      creator:profiles!created_by(*)
-    `)
-    .eq("request_id", requestId)
-    .order("created_at", { ascending: true })
-  if (error) throw error
-  return (data ?? []) as RequestTimeline[]
+// ============ SERVICE REQUESTS ============
+export async function createServiceRequest(data: any) {
+  const res = await fetch("/api/data/requests", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to create request") }
+  return await res.json()
 }
 
-export async function addTimelineEntry(
-  entry: Omit<RequestTimeline, "id" | "created_at" | "creator">
-) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("request_timeline")
-    .insert(entry)
-    .select()
-    .single()
-  if (error) throw error
-  return data as RequestTimeline
+export async function updateServiceRequest(id: string, data: any) {
+  const res = await fetch(`/api/data/requests/${id}`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to update") }
+  return await res.json()
 }
 
-// ─── Payments ────────────────────────────────────────────────────────────────
-
-export async function getPayments(clientId?: string): Promise<Payment[]> {
-  const supabase = createClient()
-  let query = supabase
-    .from("payments")
-    .select("*")
-    .order("created_at", { ascending: false })
-
-  if (clientId) query = query.eq("client_id", clientId)
-
-  const { data, error } = await query
-  if (error) throw error
-  return (data ?? []) as Payment[]
+// ============ DOCUMENTS ============
+export async function createCompanyDocument(data: any) {
+  const res = await fetch("/api/data/documents", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to create document") }
+  return await res.json()
 }
 
-// ─── Notifications ──────────────────────────────────────────────────────────
-
-export async function getNotifications(userId: string): Promise<Notification[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("notifications")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return (data ?? []) as Notification[]
+export async function uploadFile(file: File, path: string): Promise<string> {
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("path", path)
+  const res = await fetch("/api/documents/upload", { method: "POST", body: formData })
+  if (!res.ok) throw new Error("Upload failed")
+  const data = await res.json()
+  return data.fileUrl || data.file_url || ""
 }
 
-export async function markNotificationRead(notificationId: string) {
-  const supabase = createClient()
-  const { error } = await supabase
-    .from("notifications")
-    .update({ is_read: true })
-    .eq("id", notificationId)
-  if (error) throw error
+// ============ TIMELINE ============
+export async function addTimelineEntry(entry: any) {
+  // Store in local DB or just log for now
+  console.log("Timeline entry:", entry)
+  return entry
 }
 
-export async function markAllNotificationsRead(userId: string) {
-  const supabase = createClient()
-  const { error } = await supabase
-    .from("notifications")
-    .update({ is_read: true })
-    .eq("user_id", userId)
-    .eq("is_read", false)
-  if (error) throw error
+export async function getRequestTimeline(requestId: string) {
+  return []
 }
 
-// ─── Companies ───────────────────────────────────────────────────────────────
-
-export async function getCompanies(): Promise<Company[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("companies")
-    .select("*")
-    .order("name")
-  if (error) throw error
-  return (data ?? []) as Company[]
-}
-
-export async function getCompany(id: string): Promise<Company | null> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("companies")
-    .select("*")
-    .eq("id", id)
-    .single()
-  if (error) return null
-  return data as Company
-}
-
-export async function createCompany(
-  company: Omit<Company, "id" | "created_at" | "updated_at">
-) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("companies")
-    .insert(company)
-    .select()
-    .single()
-  if (error) throw error
-  return data as Company
-}
-
-export async function updateCompany(id: string, updates: Partial<Company>) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("companies")
-    .update(updates)
-    .eq("id", id)
-    .select()
-    .single()
-  if (error) throw error
-  return data as Company
-}
-
-// ─── Employees ───────────────────────────────────────────────────────────────
-
-export async function getEmployees(companyId?: string): Promise<Employee[]> {
-  const supabase = createClient()
-  let query = supabase
-    .from("employees")
-    .select("*")
-    .order("full_name")
-
-  if (companyId) query = query.eq("company_id", companyId)
-
-  const { data, error } = await query
-  if (error) throw error
-  return (data ?? []) as Employee[]
-}
-
-export async function createEmployee(
-  employee: Omit<Employee, "id" | "created_at" | "updated_at">
-) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("employees")
-    .insert(employee)
-    .select()
-    .single()
-  if (error) throw error
-  return data as Employee
-}
-
-export async function updateEmployee(id: string, updates: Partial<Employee>) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("employees")
-    .update(updates)
-    .eq("id", id)
-    .select()
-    .single()
-  if (error) throw error
-  return data as Employee
-}
-
-// ─── Documents ───────────────────────────────────────────────────────────────
-
-export async function getCompanyDocuments(companyId: string): Promise<CompanyDocument[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("company_documents")
-    .select("*")
-    .eq("company_id", companyId)
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return (data ?? []) as CompanyDocument[]
-}
-
-export async function getAllDocuments(): Promise<CompanyDocument[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("company_documents")
-    .select("*")
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return (data ?? []) as CompanyDocument[]
-}
-
-export async function createCompanyDocument(
-  document: Omit<CompanyDocument, "id" | "created_at" | "updated_at">
-) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("company_documents")
-    .insert(document)
-    .select()
-    .single()
-  if (error) throw error
-  return data as CompanyDocument
-}
-
-export async function getEmployeeDocuments(employeeId: string): Promise<CompanyDocument[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("company_documents")
-    .select("*")
-    .eq("employee_id", employeeId)
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return (data ?? []) as CompanyDocument[]
-}
-
-// ─── File Upload ─────────────────────────────────────────────────────────────
-
-export async function uploadFile(
-  bucket: string,
-  path: string,
-  file: File
-): Promise<string> {
-  const supabase = createClient()
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, { upsert: true })
-  if (error) throw error
-  return data.path
-}
-
-export function getFileUrl(bucket: string, path: string): string {
-  const supabase = createClient()
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
-  return data.publicUrl
-}
-
-// ============ REQUEST DOCUMENTS ============
-export async function getRequestDocuments(requestId: string): Promise<RequestDocument[]> {
-  const supabase = createClient()
-  const { data } = await supabase
-    .from("request_documents")
-    .select("*")
-    .eq("request_id", requestId)
-    .order("created_at", { ascending: false })
-  return (data || []) as RequestDocument[]
-}
-
-export async function addRequestDocument(doc: Partial<RequestDocument>) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("request_documents")
-    .insert(doc)
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
-
-// ============ REQUEST CHECKLIST ============
-export async function getRequestChecklist(requestId: string): Promise<RequestChecklist[]> {
-  const supabase = createClient()
-  const { data } = await supabase
-    .from("request_checklist")
-    .select("*")
-    .eq("request_id", requestId)
-    .order("sort_order")
-  return (data || []) as RequestChecklist[]
-}
-
-export async function addChecklistItem(item: { request_id: string; item: string; sort_order?: number }) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("request_checklist")
-    .insert(item)
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
-
-export async function toggleChecklistItem(id: string, isCompleted: boolean, completedBy?: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("request_checklist")
-    .update({
-      is_completed: isCompleted,
-      completed_by: isCompleted ? completedBy : null,
-      completed_at: isCompleted ? new Date().toISOString() : null,
-    })
-    .eq("id", id)
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
-
-// ============ STAFF QUERIES ============
-export async function getMyAssignedRequests(staffId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from("service_requests")
-    .select("*, client:profiles!client_id(full_name, email), company:companies!company_id(name)")
-    .eq("assigned_to", staffId)
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return data || []
-}
-
-// ─── Realtime ────────────────────────────────────────────────────────────────
-
-export function subscribeToRequests(
-  clientId: string,
-  callback: (payload: { new: ServiceRequest }) => void
-) {
-  const supabase = createClient()
-  return supabase
-    .channel("service-requests")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "service_requests",
-        filter: `client_id=eq.${clientId}`,
-      },
-      (payload) => callback(payload as unknown as { new: ServiceRequest })
-    )
-    .subscribe()
-}
-
-export function subscribeToNotifications(
-  userId: string,
-  callback: (payload: { new: Notification }) => void
-) {
-  const supabase = createClient()
-  return supabase
-    .channel("notifications")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "notifications",
-        filter: `user_id=eq.${userId}`,
-      },
-      (payload) => callback(payload as unknown as { new: Notification })
-    )
-    .subscribe()
-}
+// ============ KEEP THESE AS STUBS ============
+export async function getServices() { return [] }
+export async function getServiceRequests() { return [] }
+export async function getPayments() { return [] }
+export async function getNotifications() { return [] }
+export async function markNotificationRead() {}
+export async function markAllNotificationsRead() {}
+export async function getCompanies() { return [] }
+export async function getCompany() { return null }
+export async function getEmployees() { return [] }
+export async function getCompanyDocuments() { return [] }
+export async function getAllDocuments() { return [] }
+export async function getEmployeeDocuments() { return [] }
+export async function getFileUrl() { return "" }
+export async function getRequestDocuments() { return [] }
+export async function addRequestDocument() { return null }
+export async function getRequestChecklist() { return [] }
+export async function addChecklistItem() { return null }
+export async function toggleChecklistItem() { return null }
+export async function getMyAssignedRequests() { return [] }
+export async function subscribeToRequests() { return null }
+export async function subscribeToNotifications() { return null }

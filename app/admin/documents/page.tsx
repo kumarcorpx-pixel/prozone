@@ -73,8 +73,7 @@ export default function DocumentsPage() {
       let fileUrl: string | null = null
       if (selectedFile) {
         const path = `documents/${Date.now()}-${selectedFile.name}`
-        const uploadedPath = await uploadFile("documents", path, selectedFile)
-        fileUrl = getFileUrl("documents", uploadedPath)
+        fileUrl = await uploadFile(selectedFile, path)
       }
 
       await createCompanyDocument({

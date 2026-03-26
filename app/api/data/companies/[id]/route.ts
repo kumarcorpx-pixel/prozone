@@ -51,3 +51,68 @@ export async function GET(
     )
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+
+    const data: any = {}
+    if (body.name !== undefined) data.name = body.name
+    if (body.trade_name !== undefined || body.tradeName !== undefined) data.tradeName = body.trade_name || body.tradeName
+    if (body.license_number !== undefined || body.licenseNumber !== undefined) data.licenseNumber = body.license_number || body.licenseNumber
+    if (body.license_type !== undefined || body.licenseType !== undefined) data.licenseType = body.license_type || body.licenseType
+    if (body.license_expiry !== undefined || body.licenseExpiry !== undefined) data.licenseExpiry = body.license_expiry || body.licenseExpiry
+    if (body.legal_form !== undefined || body.legalForm !== undefined) data.legalForm = body.legal_form || body.legalForm
+    if (body.status !== undefined) data.status = body.status
+    if (body.emirate !== undefined) data.emirate = body.emirate
+    if (body.jurisdiction !== undefined) data.jurisdiction = body.jurisdiction
+    if (body.free_zone !== undefined || body.freeZone !== undefined) data.freeZone = body.free_zone || body.freeZone
+    if (body.address !== undefined) data.address = body.address
+    if (body.phone !== undefined) data.phone = body.phone
+    if (body.email !== undefined) data.email = body.email
+    if (body.industry !== undefined) data.industry = body.industry
+    if (body.notes !== undefined) data.notes = body.notes
+    if (body.visa_quota_total !== undefined) data.visaQuotaTotal = body.visa_quota_total
+    if (body.visa_quota_used !== undefined) data.visaQuotaUsed = body.visa_quota_used
+
+    const c = await prisma.company.update({
+      where: { id },
+      data,
+    })
+
+    const mapped = {
+      id: c.id,
+      name: c.name,
+      trade_name: c.tradeName,
+      license_number: c.licenseNumber,
+      license_type: c.licenseType,
+      license_expiry: c.licenseExpiry,
+      legal_form: c.legalForm,
+      status: c.status,
+      emirate: c.emirate,
+      jurisdiction: c.jurisdiction,
+      free_zone: c.freeZone,
+      address: c.address,
+      phone: c.phone,
+      email: c.email,
+      industry: c.industry,
+      activities: c.activities,
+      notes: c.notes,
+      visa_quota_total: c.visaQuotaTotal,
+      visa_quota_used: c.visaQuotaUsed,
+      created_at: c.createdAt,
+    }
+
+    return NextResponse.json(mapped)
+  } catch (error: any) {
+    console.error("Failed to update company:", error)
+    return NextResponse.json(
+      { error: error.message || "Failed to update company" },
+      { status: 500 }
+    )
+  }
+}
