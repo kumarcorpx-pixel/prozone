@@ -30,10 +30,10 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  Banknote,
   ClipboardCheck,
 } from "lucide-react"
 import Link from "next/link"
+import { AedIcon } from "@/components/ui/aed-icon"
 
 function getExpiryColor(dateStr: string | null): string {
   if (!dateStr) return "text-gray-400"
@@ -98,7 +98,7 @@ const tabs = [
   { id: "employees", label: "Employees", icon: Users },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "compliance", label: "Compliance", icon: ClipboardCheck },
-  { id: "fees", label: "Fees", icon: Banknote },
+  { id: "fees", label: "Fees", icon: AedIcon },
   { id: "wps", label: "WPS", icon: Shield },
   { id: "uploads", label: "Monthly Uploads", icon: Upload },
   { id: "shareholders", label: "Shareholders", icon: UserCheck },

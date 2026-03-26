@@ -7,7 +7,8 @@ import { demoRequests, demoTimeline, demoRequestDocuments } from "@/lib/demo-dat
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { getNotes, addNote } from "@/lib/demo-store"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { ArrowLeft, FileText, Banknote, MessageSquare, CheckCircle2, Circle, Clock, Download } from "lucide-react"
+import { ArrowLeft, FileText, MessageSquare, CheckCircle2, Circle, Clock, Download } from "lucide-react"
+import { AedIcon } from "@/components/ui/aed-icon"
 
 const demoFees = [
   { type: "MOHRE Work Permit", amount: 3500, status: "Paid", receipt: "MOHRE-2025-789" },
@@ -44,7 +45,7 @@ export default function ClientRequestDetailPage() {
   const tabs = [
     { id: "progress", label: "Progress", icon: CheckCircle2 },
     { id: "documents", label: "Documents", icon: FileText },
-    { id: "fees", label: "Fees", icon: Banknote },
+    { id: "fees", label: "Fees", icon: AedIcon },
     { id: "messages", label: "Messages", icon: MessageSquare },
   ]
 
