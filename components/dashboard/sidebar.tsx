@@ -23,6 +23,10 @@ import {
   Activity,
   Bell,
   CreditCard,
+  Receipt,
+  BarChart3,
+  ScrollText,
+  MessageSquare,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { YabsLogo } from "@/components/marketing/yabs-logo"
@@ -53,6 +57,10 @@ const adminLinks: NavItem[] = [
   { label: "Documents", href: "/admin/documents", icon: FolderOpen },
   { label: "Expiry Calendar", href: "/admin/expiry-calendar", icon: CalendarDays },
   { label: "Staff", href: "/admin/staff", icon: UserCog },
+  { label: "Invoicing", href: "/admin/invoices", icon: Receipt },
+  { label: "Reports", href: "/admin/reports", icon: BarChart3 },
+  { label: "Audit Log", href: "/admin/audit-log", icon: ScrollText },
+  { label: "Messages", href: "/admin/messages", icon: MessageSquare },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
