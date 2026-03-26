@@ -10,8 +10,7 @@ export default function SettingsPage() {
   const [emailNotifs, setEmailNotifs] = useState(true)
   const [smsNotifs, setSmsNotifs] = useState(false)
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const isConfigured = supabaseUrl && supabaseUrl !== "your_supabase_url_here"
+  const isConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== "your_supabase_url_here"
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -103,8 +102,8 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">Supabase Connection</p>
-              <p className="text-xs text-gray-500 font-mono">{supabaseUrl || "Not configured"}</p>
+              <p className="text-sm font-medium text-gray-900">Database Connection</p>
+              <p className="text-xs text-gray-500">Backend database status</p>
             </div>
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isConfigured ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
               {isConfigured ? "Connected" : "Not Configured"}

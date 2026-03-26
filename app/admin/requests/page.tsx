@@ -4,6 +4,7 @@ import { useState } from "react"
 import { demoRequests } from "@/lib/demo-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, FileText, Filter } from "lucide-react"
+import Link from "next/link"
 
 const statusOptions = ["all", "pending", "in_progress", "under_review", "completed", "rejected"]
 const priorityOptions = ["all", "urgent", "high", "medium", "low"]
@@ -90,10 +91,10 @@ export default function RequestsPage() {
             </thead>
             <tbody>
               {filtered.map((req) => (
-                <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => window.location.href = `/admin/requests/${req.id}`}>
                   <td className="px-6 py-4 text-gray-900 font-medium">{req.client?.full_name || "N/A"}</td>
                   <td className="px-6 py-4 text-gray-600">{req.company?.name || "N/A"}</td>
-                  <td className="px-6 py-4 text-gray-700">{req.service_type}</td>
+                  <td className="px-6 py-4 text-[#1a3a6b] font-medium underline">{req.service_type}</td>
                   <td className="px-6 py-4"><StatusBadge status={req.status} /></td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityColors[req.priority] || "bg-gray-100 text-gray-600"}`}>

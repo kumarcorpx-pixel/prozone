@@ -1,15 +1,38 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "./sidebar"
 import { Menu, Bell } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
+
+  // Route protection: redirect users to their correct portal
+  useEffect(() => {
+    if (isLoading || !user) return
+    const role = user.role
+
+    // Staff trying to access admin routes → redirect to /staff
+    if (role === "pro_staff" && pathname.startsWith("/admin")) {
+      router.replace("/staff")
+      return
+    }
+    // Client trying to access admin or staff routes → redirect to /dashboard
+    if (role === "client" && (pathname.startsWith("/admin") || pathname.startsWith("/staff"))) {
+      router.replace("/dashboard")
+      return
+    }
+    // Admin trying to access staff or client routes → redirect to /admin
+    if (role === "admin" && (pathname.startsWith("/staff") || pathname.startsWith("/dashboard"))) {
+      router.replace("/admin")
+      return
+    }
+  }, [user, isLoading, pathname, router])
 
   if (isLoading) {
     return (
