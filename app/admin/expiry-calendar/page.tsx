@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { demoCompanies, demoEmployees, companyDocuments } from "@/lib/company-data"
+import { useState, useMemo, useEffect } from "react"
+import { fetchCompanies, fetchEmployees, fetchDocuments } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval, format, getDay, isSameDay } from "date-fns"
 import {
@@ -96,10 +96,6 @@ function getDotColor(status: ExpiryItem["status"]): string {
   }
 }
 
-function getCompanyName(companyId: string): string {
-  return demoCompanies.find((c) => c.id === companyId)?.name || "Unknown"
-}
-
 export default function ExpiryCalendarPage() {
   const [view, setView] = useState<"list" | "calendar">("list")
   const [typeFilter, setTypeFilter] = useState("all")
@@ -107,15 +103,38 @@ export default function ExpiryCalendarPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const [companies, setCompanies] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [documents, setDocuments] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [c, e, d] = await Promise.all([
+        fetchCompanies(),
+        fetchEmployees(),
+        fetchDocuments(),
+      ])
+      setCompanies(c)
+      setEmployees(e)
+      setDocuments(d)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const now = new Date()
+
+  function getCompanyName(companyId: string): string {
+    return companies.find((c) => c.id === companyId)?.name || "Unknown"
+  }
 
   // Collect all expiry items
   const allItems = useMemo(() => {
     const items: ExpiryItem[] = []
 
     // Company license expiries
-    demoCompanies.forEach((company) => {
+    companies.forEach((company) => {
       if (company.license_expiry) {
         const expDate = new Date(company.license_expiry)
         const days = differenceInDays(expDate, now)
@@ -132,7 +151,7 @@ export default function ExpiryCalendarPage() {
     })
 
     // Employee visa, EID, passport, labor card expiries
-    demoEmployees.forEach((emp) => {
+    employees.forEach((emp) => {
       const companyName = getCompanyName(emp.company_id)
 
       if (emp.visa_expiry) {
@@ -193,7 +212,7 @@ export default function ExpiryCalendarPage() {
     })
 
     // Document expiries
-    companyDocuments.forEach((doc) => {
+    documents.forEach((doc: any) => {
       if (doc.expiry_date) {
         const expDate = new Date(doc.expiry_date)
         const days = differenceInDays(expDate, now)
@@ -212,7 +231,9 @@ export default function ExpiryCalendarPage() {
     // Sort by urgency: expired first, then soonest expiry
     items.sort((a, b) => a.daysRemaining - b.daysRemaining)
     return items
-  }, [])
+  }, [companies, employees, documents])
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
   // Filtered items
   const filtered = useMemo(() => {
@@ -367,7 +388,7 @@ export default function ExpiryCalendarPage() {
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
         >
           <option value="all">All Companies</option>
-          {demoCompanies.map((c) => (
+          {companies.map((c: any) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
