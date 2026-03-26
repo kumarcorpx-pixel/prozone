@@ -16,6 +16,8 @@ import {
   Menu,
   X,
   ChevronLeft,
+  CalendarDays,
+  UserCheck,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { YabsLogo } from "@/components/marketing/yabs-logo"
@@ -37,8 +39,10 @@ const adminLinks: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Clients", href: "/admin/clients", icon: Users },
   { label: "Companies", href: "/admin/companies", icon: Building2 },
+  { label: "Employees", href: "/admin/employees", icon: UserCheck },
   { label: "Requests", href: "/admin/requests", icon: FileText },
   { label: "Documents", href: "/admin/documents", icon: FolderOpen },
+  { label: "Expiry Calendar", href: "/admin/expiry-calendar", icon: CalendarDays },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
 

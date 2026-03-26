@@ -37,6 +37,27 @@ export interface Company {
   notes: string | null
   created_at: string
   updated_at: string
+  // UAE PRO fields
+  establishment_card_number: string | null
+  establishment_card_expiry: string | null
+  immigration_file_number: string | null
+  computer_card_number: string | null
+  mohre_company_number: string | null
+  chamber_commerce_number: string | null
+  chamber_commerce_expiry: string | null
+  ejari_tawtheeq_number: string | null
+  ejari_tawtheeq_type: "ejari" | "tawtheeq" | "sharjah_municipality" | null
+  ejari_tawtheeq_expiry: string | null
+  lease_expiry: string | null
+  vat_trn: string | null
+  corporate_tax_number: string | null
+  sponsor_name: string | null
+  sponsor_eid: string | null
+  local_service_agent: string | null
+  poa_status: "active" | "expired" | "not_required"
+  visa_quota_total: number
+  visa_quota_used: number
+  free_zone_authority: string | null
 }
 
 export interface Employee {
@@ -62,6 +83,33 @@ export interface Employee {
   notes: string | null
   created_at: string
   updated_at: string
+  // UAE PRO fields
+  date_of_birth: string | null
+  gender: string | null
+  marital_status: string | null
+  religion: string | null
+  phone_uae: string | null
+  phone_home: string | null
+  photo_url: string | null
+  uae_address: string | null
+  employment_type: "full-time" | "part-time" | "freelance"
+  visa_type: "employment" | "investor" | "partner" | "dependent" | "mission" | "visit" | "golden" | "maid"
+  entry_permit_number: string | null
+  entry_permit_expiry: string | null
+  visa_uid: string | null
+  visa_file_number: string | null
+  mohre_work_permit_number: string | null
+  work_permit_expiry: string | null
+  medical_fitness_date: string | null
+  medical_fitness_result: "fit" | "unfit" | "pending" | null
+  health_insurance_provider: string | null
+  health_insurance_number: string | null
+  health_insurance_expiry: string | null
+  wps_status: "active" | "inactive"
+  basic_salary: number | null
+  housing_allowance: number | null
+  transport_allowance: number | null
+  other_allowance: number | null
 }
 
 export interface CompanyDocument {
@@ -78,6 +126,11 @@ export interface CompanyDocument {
   notes: string | null
   created_at: string
   updated_at: string
+  // UAE PRO fields
+  issue_date: string | null
+  issuing_authority: string | null
+  reference_number: string | null
+  reminder_days: number
 }
 
 export interface Service {
@@ -248,6 +301,37 @@ export interface RequestChecklist {
   completed_by: string | null
   completed_at: string | null
   sort_order: number
+  created_at: string
+}
+
+export interface VisaProcessStep {
+  id: string
+  request_id: string
+  step_number: number
+  step_name: string
+  step_label: string
+  status: "not_started" | "in_progress" | "completed" | "rejected" | "on_hold"
+  started_at: string | null
+  completed_at: string | null
+  notes: string | null
+  gov_reference_number: string | null
+  document_ids: string[] | null
+  created_at: string
+}
+
+export interface GovernmentFee {
+  id: string
+  request_id: string | null
+  company_id: string | null
+  employee_id: string | null
+  fee_type: string
+  description: string | null
+  amount: number
+  payment_method: string
+  payment_status: string
+  receipt_number: string | null
+  paid_date: string | null
+  created_by: string | null
   created_at: string
 }
 
