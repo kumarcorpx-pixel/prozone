@@ -1,4 +1,4 @@
-export type UserRole = "client" | "admin"
+export type UserRole = "client" | "admin" | "pro_staff"
 
 export interface Profile {
   id: string
@@ -226,6 +226,29 @@ export interface PersonExpiry {
   passport_expiry: string | null
   emirates_id_expiry: string | null
   visa_expiry: string | null
+}
+
+export interface RequestDocument {
+  id: string
+  request_id: string
+  document_id: string | null
+  file_name: string | null
+  file_url: string | null
+  doc_type: "required" | "submitted" | "processed" | "final" | "general"
+  notes: string | null
+  uploaded_by: string | null
+  created_at: string
+}
+
+export interface RequestChecklist {
+  id: string
+  request_id: string
+  item: string
+  is_completed: boolean
+  completed_by: string | null
+  completed_at: string | null
+  sort_order: number
+  created_at: string
 }
 
 export type RequestStatus = string

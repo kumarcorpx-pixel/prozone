@@ -40,6 +40,18 @@ const DEMO_PROFILES: Record<string, Profile> = {
     created_at: "2024-01-01T08:00:00Z",
     updated_at: "2024-06-01T10:30:00Z",
   },
+  "staff@yabs.ae": {
+    id: "demo-staff-001",
+    email: "staff@yabs.ae",
+    full_name: "Mohammed PRO",
+    phone: "+971 50 555 1234",
+    role: "pro_staff",
+    avatar_url: null,
+    company_id: null,
+    is_active: true,
+    created_at: "2024-03-01T08:00:00Z",
+    updated_at: "2024-06-01T10:30:00Z",
+  },
 }
 
 function isDemoMode(): boolean {
@@ -59,6 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(DEMO_PROFILES["ahmed@company.ae"])
       } else if (savedRole === "admin") {
         setUser(DEMO_PROFILES["admin@yabs.ae"])
+      } else if (savedRole === "pro_staff") {
+        setUser(DEMO_PROFILES["staff@yabs.ae"])
       }
       setIsLoading(false)
       return
@@ -111,8 +125,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       if (isDemo) {
-        const role = email.includes("admin") ? "admin" : "client"
-        const profileKey = role === "admin" ? "admin@yabs.ae" : "ahmed@company.ae"
+        let role: UserRole = "client"
+        let profileKey = "ahmed@company.ae"
+        if (email.includes("staff") || email.includes("pro")) {
+          role = "pro_staff"
+          profileKey = "staff@yabs.ae"
+        } else if (email.includes("admin")) {
+          role = "admin"
+          profileKey = "admin@yabs.ae"
+        }
         const profile = { ...DEMO_PROFILES[profileKey], email }
         localStorage.setItem("prozone_demo_role", role)
         document.cookie = `prozone_demo_role=${role}; path=/; max-age=86400`
@@ -158,7 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const switchRole = useCallback(
     (role: UserRole) => {
       if (!isDemo) return
-      const email = role === "admin" ? "admin@yabs.ae" : "ahmed@company.ae"
+      const email = role === "admin" ? "admin@yabs.ae" : role === "pro_staff" ? "staff@yabs.ae" : "ahmed@company.ae"
       const profile = DEMO_PROFILES[email]
       localStorage.setItem("prozone_demo_role", role)
       document.cookie = `prozone_demo_role=${role}; path=/; max-age=86400`
