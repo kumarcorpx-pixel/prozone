@@ -41,7 +41,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     async function load() {
       const [d, c, e] = await Promise.all([
-        fetchDocuments(user?.company_id),
+        fetchDocuments(user?.company_id || undefined),
         fetchCompanies(),
         fetchEmployees(),
       ])

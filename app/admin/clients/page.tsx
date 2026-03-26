@@ -2,13 +2,25 @@
 
 import { useState, useEffect } from "react"
 import { fetchProfiles } from "@/lib/data-fetcher"
+import { createClient as createSupabaseClient } from "@/lib/supabase/client"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, Users, Loader2 } from "lucide-react"
+import { Search, Users, Loader2, Plus, X } from "lucide-react"
+import { toast } from "sonner"
+
+const defaultClientForm = {
+  full_name: "",
+  email: "",
+  phone: "",
+}
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("")
   const [profiles, setProfiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [formData, setFormData] = useState(defaultClientForm)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -18,6 +30,40 @@ export default function ClientsPage() {
     }
     load()
   }, [])
+
+  const handleAddClient = async () => {
+    if (!formData.full_name.trim()) {
+      toast.error("Full name is required")
+      return
+    }
+    if (!formData.email.trim()) {
+      toast.error("Email is required")
+      return
+    }
+    setSaving(true)
+    try {
+      const supabase = createSupabaseClient()
+      const { error } = await supabase
+        .from("profiles")
+        .insert({
+          full_name: formData.full_name,
+          email: formData.email,
+          phone: formData.phone || null,
+          role: "client",
+          is_active: true,
+        })
+      if (error) throw error
+      toast.success("Client added successfully")
+      setShowAddForm(false)
+      setFormData(defaultClientForm)
+      const updated = await fetchProfiles()
+      setProfiles(updated)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add client")
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -44,7 +90,68 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-bold text-[#1a3a6b]">Client Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage all client profiles</p>
         </div>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+        >
+          {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {showAddForm ? "Cancel" : "Add Client"}
+        </button>
       </div>
+
+      {showAddForm && (
+        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900">Add New Client</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+              <input
+                type="text"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter full name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter email address"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter phone number"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => { setShowAddForm(false); setFormData(defaultClientForm) }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddClient}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+            >
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {saving ? "Saving..." : "Add Client"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />

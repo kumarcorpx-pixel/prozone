@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
+import { createCompany } from "@/lib/supabase/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, Plus, Building2, MapPin, Calendar, Loader2 } from "lucide-react"
+import { Search, Plus, Building2, MapPin, Calendar, Loader2, X } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
 
 function getExpiryLabel(dateStr: string | null): { text: string; color: string } {
   if (!dateStr) return { text: "N/A", color: "text-gray-400" }
@@ -16,11 +18,25 @@ function getExpiryLabel(dateStr: string | null): { text: string; color: string }
   return { text: new Date(dateStr).toLocaleDateString(), color: "text-green-600" }
 }
 
+const defaultCompanyForm = {
+  name: "",
+  license_number: "",
+  emirate: "Dubai",
+  license_type: "mainland",
+  phone: "",
+  email: "",
+  status: "active" as const,
+}
+
 export default function CompaniesPage() {
   const [search, setSearch] = useState("")
   const [companies, setCompanies] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [formData, setFormData] = useState(defaultCompanyForm)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -34,6 +50,67 @@ export default function CompaniesPage() {
     }
     load()
   }, [])
+
+  const handleAddCompany = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Company name is required")
+      return
+    }
+    setSaving(true)
+    try {
+      await createCompany({
+        name: formData.name,
+        trade_name: null,
+        license_number: formData.license_number || null,
+        license_type: formData.license_type || null,
+        license_expiry: null,
+        legal_form: null,
+        status: formData.status as any,
+        emirate: formData.emirate || null,
+        jurisdiction: null,
+        free_zone: null,
+        address: null,
+        po_box: null,
+        phone: formData.phone || null,
+        email: formData.email || null,
+        website: null,
+        industry: null,
+        activities: [],
+        capital: null,
+        incorporation_date: null,
+        notes: null,
+        establishment_card_number: null,
+        establishment_card_expiry: null,
+        immigration_file_number: null,
+        computer_card_number: null,
+        mohre_company_number: null,
+        chamber_commerce_number: null,
+        chamber_commerce_expiry: null,
+        ejari_tawtheeq_number: null,
+        ejari_tawtheeq_type: null,
+        ejari_tawtheeq_expiry: null,
+        lease_expiry: null,
+        vat_trn: null,
+        corporate_tax_number: null,
+        sponsor_name: null,
+        sponsor_eid: null,
+        local_service_agent: null,
+        poa_status: "not_required",
+        visa_quota_total: 0,
+        visa_quota_used: 0,
+        free_zone_authority: null,
+      })
+      toast.success("Company added successfully")
+      setShowAddForm(false)
+      setFormData(defaultCompanyForm)
+      const updated = await fetchCompanies()
+      setCompanies(updated)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add company")
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -60,11 +137,116 @@ export default function CompaniesPage() {
           <h1 className="text-2xl font-bold text-[#1a3a6b]">Companies</h1>
           <p className="text-sm text-gray-500 mt-1">Manage all companies and their documents</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
-          <Plus className="h-4 w-4" />
-          Add Company
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+        >
+          {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {showAddForm ? "Cancel" : "Add Company"}
         </button>
       </div>
+
+      {showAddForm && (
+        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900">Add New Company</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter company name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Trade License Number</label>
+              <input
+                type="text"
+                value={formData.license_number}
+                onChange={(e) => setFormData({ ...formData, license_number: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter license number"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Emirate</label>
+              <select
+                value={formData.emirate}
+                onChange={(e) => setFormData({ ...formData, emirate: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
+              >
+                <option value="Abu Dhabi">Abu Dhabi</option>
+                <option value="Dubai">Dubai</option>
+                <option value="Sharjah">Sharjah</option>
+                <option value="Ajman">Ajman</option>
+                <option value="RAK">RAK</option>
+                <option value="Fujairah">Fujairah</option>
+                <option value="UAQ">UAQ</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">License Type</label>
+              <select
+                value={formData.license_type}
+                onChange={(e) => setFormData({ ...formData, license_type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
+              >
+                <option value="mainland">Mainland</option>
+                <option value="freezone">Free Zone</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter phone number"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter email address"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
+              >
+                <option value="active">Active</option>
+                <option value="expired">Expired</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => { setShowAddForm(false); setFormData(defaultCompanyForm) }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddCompany}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+            >
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {saving ? "Saving..." : "Add Company"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />

@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { fetchRequests } from "@/lib/data-fetcher"
+import { fetchRequests, fetchCompanies } from "@/lib/data-fetcher"
+import { createServiceRequest, getSession } from "@/lib/supabase/api"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Plus, Calendar, User, ArrowRight } from "lucide-react"
+import { Plus, Calendar, User, ArrowRight, X, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 const tabs = ["all", "active", "completed", "cancelled"] as const
 const priorityColors: Record<string, string> = {
@@ -13,19 +15,90 @@ const priorityColors: Record<string, string> = {
   medium: "bg-yellow-100 text-yellow-700", low: "bg-gray-100 text-gray-600",
 }
 
+const commonServices = [
+  "New Visa Application",
+  "Visa Renewal",
+  "Visa Cancellation",
+  "Emirates ID New/Renewal",
+  "Trade License Renewal",
+  "License Amendment",
+  "Establishment Card Renewal",
+  "Labor Card New/Renewal",
+  "Medical Fitness Test",
+  "Entry Permit",
+  "Status Change",
+  "Document Attestation",
+  "PRO Typing Services",
+  "Other",
+]
+
+const defaultRequestForm = {
+  company_id: "",
+  service_type: "",
+  description: "",
+  priority: "medium" as const,
+}
+
 export default function ClientRequestsPage() {
   const [tab, setTab] = useState<string>("all")
   const [requests, setRequests] = useState<any[]>([])
+  const [companies, setCompanies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [formData, setFormData] = useState(defaultRequestForm)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const r = await fetchRequests()
+      const [r, c] = await Promise.all([
+        fetchRequests(),
+        fetchCompanies(),
+      ])
       setRequests(r)
+      setCompanies(c)
       setLoading(false)
     }
     load()
   }, [])
+
+  const handleAddRequest = async () => {
+    if (!formData.service_type) {
+      toast.error("Please select a service type")
+      return
+    }
+    setSaving(true)
+    try {
+      const session = await getSession()
+      const clientId = session?.user?.id
+      if (!clientId) {
+        toast.error("You must be logged in to create a request")
+        setSaving(false)
+        return
+      }
+      await createServiceRequest({
+        client_id: clientId,
+        company_id: formData.company_id || null,
+        service_type: formData.service_type,
+        description: formData.description || null,
+        status: "pending",
+        priority: formData.priority as any,
+        assigned_to: null,
+        notes: null,
+        due_date: null,
+        completed_date: null,
+      })
+      toast.success("Request submitted successfully")
+      setShowAddForm(false)
+      setFormData(defaultRequestForm)
+      const updated = await fetchRequests()
+      setRequests(updated)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to submit request")
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
@@ -43,10 +116,87 @@ export default function ClientRequestsPage() {
           <h1 className="text-2xl font-bold text-gray-900">My Service Requests</h1>
           <p className="text-sm text-gray-500 mt-1">Track all your PRO service requests</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]">
-          <Plus className="h-4 w-4" /> New Request
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]"
+        >
+          {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {showAddForm ? "Cancel" : "New Request"}
         </button>
       </div>
+
+      {showAddForm && (
+        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900">Submit New Request</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+              <select
+                value={formData.company_id}
+                onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
+              >
+                <option value="">Select a company</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Service Type *</label>
+              <select
+                value={formData.service_type}
+                onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
+              >
+                <option value="">Select a service</option>
+                {commonServices.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Describe what you need..."
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => { setShowAddForm(false); setFormData(defaultRequestForm) }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddRequest}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+            >
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {saving ? "Submitting..." : "Submit Request"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
         {tabs.map(t => (
