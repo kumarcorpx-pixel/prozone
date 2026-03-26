@@ -1,14 +1,11 @@
 "use client"
 
-// Data fetcher that queries the API routes (which use Prisma on the server side)
-// Falls back to demo data if API fails
-
 export async function fetchCompanies() {
   try {
     const res = await fetch("/api/data/companies")
     if (res.ok) {
       const data = await res.json()
-      if (data.length > 0) return data
+      if (Array.isArray(data) && data.length > 0) return data
     }
   } catch {}
   const { demoCompanies } = await import("./company-data")
@@ -21,7 +18,7 @@ export async function fetchEmployees(companyId?: string) {
     const res = await fetch(url)
     if (res.ok) {
       const data = await res.json()
-      if (data.length > 0) return data
+      if (Array.isArray(data) && data.length > 0) return data
     }
   } catch {}
   const { demoEmployees } = await import("./company-data")
@@ -34,7 +31,7 @@ export async function fetchDocuments(companyId?: string) {
     const res = await fetch(url)
     if (res.ok) {
       const data = await res.json()
-      if (data.length > 0) return data
+      if (Array.isArray(data) && data.length > 0) return data
     }
   } catch {}
   const { companyDocuments } = await import("./company-data")
@@ -47,7 +44,7 @@ export async function fetchRequests(filters?: Record<string, string>) {
     const res = await fetch(`/api/data/requests?${params}`)
     if (res.ok) {
       const data = await res.json()
-      if (data.length > 0) return data
+      if (Array.isArray(data) && data.length > 0) return data
     }
   } catch {}
   const { demoRequests } = await import("./demo-data")
@@ -68,7 +65,7 @@ export async function fetchProfiles() {
     const res = await fetch("/api/data/users")
     if (res.ok) {
       const data = await res.json()
-      if (data.length > 0) return data
+      if (Array.isArray(data) && data.length > 0) return data
     }
   } catch {}
   const { demoProfiles } = await import("./demo-data")
@@ -80,7 +77,7 @@ export async function fetchServices() {
     const res = await fetch("/api/data/services")
     if (res.ok) {
       const data = await res.json()
-      if (data.length > 0) return data
+      if (Array.isArray(data) && data.length > 0) return data
     }
   } catch {}
   return []

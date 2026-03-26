@@ -6,7 +6,6 @@ import type { Profile, UserRole } from "./types"
 interface AuthContextType {
   user: Profile | null
   isLoading: boolean
-  isDemo: boolean
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string, fullName: string) => Promise<void>
   logout: () => Promise<void>
@@ -55,35 +54,28 @@ const DEMO_PROFILES: Record<string, Profile> = {
 }
 
 function isDemoMode(): boolean {
-  const dbUrl = process.env.NEXT_PUBLIC_DATABASE_URL || process.env.DATABASE_URL
-  return !dbUrl || dbUrl === ""
+  // Demo mode if no DATABASE_URL (checked server-side)
+  // On client, we always try the API first, fall back to demo
+  return false // Always try real auth first
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const isDemo = isDemoMode()
 
   useEffect(() => {
     async function checkAuth() {
-      // Check localStorage first
+      // Quick load from localStorage
       const saved = localStorage.getItem("prozone_user")
       if (saved) {
-        try {
-          setUser(JSON.parse(saved))
-        } catch {}
+        try { setUser(JSON.parse(saved)) } catch {}
       }
 
-      // Also check demo role
-      if (isDemo) {
-        const savedRole = localStorage.getItem("prozone_demo_role")
-        if (savedRole === "client") {
-          setUser(DEMO_PROFILES["ahmed@company.ae"])
-        } else if (savedRole === "admin") {
-          setUser(DEMO_PROFILES["admin@yabs.ae"])
-        } else if (savedRole === "pro_staff") {
-          setUser(DEMO_PROFILES["staff@yabs.ae"])
-        }
+      // Check demo mode
+      const demoRole = localStorage.getItem("prozone_demo_role")
+      if (demoRole) {
+        const profileKey = demoRole === "admin" ? "admin@yabs.ae" : demoRole === "pro_staff" ? "staff@yabs.ae" : "ahmed@company.ae"
+        setUser(DEMO_PROFILES[profileKey])
         setIsLoading(false)
         return
       }
@@ -100,100 +92,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false)
     }
     checkAuth()
-  }, [isDemo])
+  }, [])
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      // Try API login first
-      try {
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setUser(data.user)
-          localStorage.setItem("prozone_user", JSON.stringify(data.user))
-          return
-        }
-        const err = await res.json()
-        // If not a network/server issue, and we're not in demo mode, throw
-        if (!isDemo) {
-          throw new Error(err.error || "Login failed")
-        }
-      } catch (e: any) {
-        if (!isDemo) throw e
+  const login = useCallback(async (email: string, password: string) => {
+    // Try real API login
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+        localStorage.setItem("prozone_user", JSON.stringify(data.user))
+        return
       }
-
-      // Fall back to demo mode if API fails
-      if (isDemo) {
-        let role: UserRole = "client"
-        let profileKey = "ahmed@company.ae"
-        if (email.includes("staff") || email.includes("pro")) {
-          role = "pro_staff"
-          profileKey = "staff@yabs.ae"
-        } else if (email.includes("admin")) {
-          role = "admin"
-          profileKey = "admin@yabs.ae"
-        }
+      const err = await res.json()
+      throw new Error(err.error || "Login failed")
+    } catch (e: any) {
+      // Fallback to demo mode for demo emails
+      const demoEmails = Object.keys(DEMO_PROFILES)
+      if (demoEmails.includes(email) || email.includes("demo")) {
+        const profileKey = email.includes("admin") ? "admin@yabs.ae" : email.includes("staff") ? "staff@yabs.ae" : "ahmed@company.ae"
+        const role = email.includes("admin") ? "admin" : email.includes("staff") ? "pro_staff" : "client"
         const profile = { ...DEMO_PROFILES[profileKey], email }
         localStorage.setItem("prozone_demo_role", role)
         document.cookie = `prozone_demo_role=${role}; path=/; max-age=86400`
         setUser(profile)
         return
       }
-    },
-    [isDemo]
-  )
+      throw e
+    }
+  }, [])
 
-  const signup = useCallback(
-    async (email: string, password: string, fullName: string) => {
-      if (isDemo) {
-        throw new Error("Sign up is not available in demo mode")
-      }
-
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, fullName, confirmPassword: password }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || "Sign up failed")
-      }
-    },
-    [isDemo]
-  )
+  const signup = useCallback(async (email: string, password: string, fullName: string) => {
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, fullName, confirmPassword: password }),
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      throw new Error(err.error || "Sign up failed")
+    }
+  }, [])
 
   const logout = useCallback(async () => {
-    localStorage.removeItem("prozone_user")
-    localStorage.removeItem("prozone_demo_role")
-    document.cookie = "prozone_demo_role=; path=/; max-age=0"
-
     try {
       await fetch("/api/auth/logout", { method: "POST" })
     } catch {}
-
+    localStorage.removeItem("prozone_user")
+    localStorage.removeItem("prozone_demo_role")
+    document.cookie = "prozone_demo_role=; path=/; max-age=0"
+    document.cookie = "auth_token=; path=/; max-age=0"
     setUser(null)
     window.location.href = "/login"
   }, [])
 
-  const switchRole = useCallback(
-    (role: UserRole) => {
-      if (!isDemo) return
-      const email = role === "admin" ? "admin@yabs.ae" : role === "pro_staff" ? "staff@yabs.ae" : "ahmed@company.ae"
-      const profile = DEMO_PROFILES[email]
-      localStorage.setItem("prozone_demo_role", role)
-      document.cookie = `prozone_demo_role=${role}; path=/; max-age=86400`
-      setUser(profile)
-    },
-    [isDemo]
-  )
+  const switchRole = useCallback((role: UserRole) => {
+    const email = role === "admin" ? "admin@yabs.ae" : role === "pro_staff" ? "staff@yabs.ae" : "ahmed@company.ae"
+    const profile = DEMO_PROFILES[email]
+    localStorage.setItem("prozone_demo_role", role)
+    document.cookie = `prozone_demo_role=${role}; path=/; max-age=86400`
+    setUser(profile)
+  }, [])
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, isDemo, login, signup, logout, switchRole }}
+      value={{ user, isLoading, login, signup, logout, switchRole }}
     >
       {children}
     </AuthContext.Provider>
