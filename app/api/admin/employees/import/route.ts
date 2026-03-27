@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { handleApiError } from "@/lib/api-error-handler"
 
 function parseCSV(text: string): Record<string, string>[] {
   const lines = text.trim().split("\n")
@@ -139,8 +140,7 @@ export async function POST(request: NextRequest) {
         errors,
       },
     })
-  } catch (err: any) {
-    console.error("[Employee Import] Error:", err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

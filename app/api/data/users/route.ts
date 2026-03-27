@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-middleware"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(request: NextRequest) {
   const auth = await withAuth(request, ["admin"])
@@ -26,10 +27,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch users:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

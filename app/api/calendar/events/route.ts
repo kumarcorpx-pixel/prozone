@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCalendarEvents, createCalendarEvent } from "@/lib/google-calendar"
 import { getUserFromToken } from "@/lib/auth"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,8 +20,8 @@ export async function GET(request: NextRequest) {
 
     const events = await getCalendarEvents(refreshToken, startDate, endDate)
     return NextResponse.json({ events, connected: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const eventId = await createCalendarEvent(refreshToken, body)
     return NextResponse.json({ success: true, eventId })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

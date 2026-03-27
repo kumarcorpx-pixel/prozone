@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-middleware"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(
   request: NextRequest,
@@ -32,8 +33,8 @@ export async function GET(
       notes: doc.notes,
       created_at: doc.createdAt,
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -62,7 +63,7 @@ export async function DELETE(
     // Delete from DB
     await prisma.document.delete({ where: { id } })
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

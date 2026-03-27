@@ -50,11 +50,7 @@ export async function GET(
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch employee:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch employee" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -120,11 +116,7 @@ export async function PATCH(
     }
 
     return NextResponse.json(mapped)
-  } catch (error: any) {
-    console.error("Failed to update employee:", error)
-    return NextResponse.json(
-      { error: error.message || "Failed to update employee" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

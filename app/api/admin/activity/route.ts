@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { getUserFromToken } from "@/lib/auth"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,8 +25,8 @@ export async function GET(request: NextRequest) {
     }))
 
     return NextResponse.json({ activities: mapped })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 

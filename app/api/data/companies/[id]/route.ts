@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(
   request: NextRequest,
@@ -55,11 +56,7 @@ export async function GET(
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch company:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch company" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -122,11 +119,7 @@ export async function PATCH(
     }
 
     return NextResponse.json(mapped)
-  } catch (error: any) {
-    console.error("Failed to update company:", error)
-    return NextResponse.json(
-      { error: error.message || "Failed to update company" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

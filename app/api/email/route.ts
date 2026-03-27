@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sendEmail, emailTemplates } from "@/lib/email"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(result)
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

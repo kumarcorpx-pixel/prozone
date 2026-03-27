@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getInvoice, updateInvoice, deleteInvoice, sendInvoice, getInvoicePdf, recordPayment, voidInvoice, isZohoConfigured } from "@/lib/zoho"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -7,8 +8,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params
     const invoice = await getInvoice(id)
     return NextResponse.json({ invoice })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -56,8 +57,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Regular update
     const invoice = await updateInvoice(id, body)
     return NextResponse.json({ success: true, invoice })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -67,7 +68,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     await deleteInvoice(id)
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

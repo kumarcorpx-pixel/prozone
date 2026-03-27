@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { handleApiError } from "@/lib/api-error-handler"
 
 function toCSV(headers: string[], rows: Record<string, any>[]): string {
   const escapeField = (val: any): string => {
@@ -110,8 +111,7 @@ export async function GET(request: NextRequest) {
         "Content-Disposition": `attachment; filename="${type}_export_${timestamp}.csv"`,
       },
     })
-  } catch (err: any) {
-    console.error("[Export] Error:", err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

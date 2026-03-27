@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
+import { handleApiError } from "@/lib/api-error-handler"
+import { documentCreateSchema } from "@/lib/validation/schemas"
+import { validateBody } from "@/lib/validation/validate"
 
 export async function GET(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff", "client"])
@@ -36,11 +39,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch documents:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch documents" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -50,19 +49,29 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
+    const validation = validateBody(documentCreateSchema, {
+      name: body.name,
+      companyId: body.company_id || body.companyId,
+      employeeId: body.employee_id || body.employeeId,
+      documentType: body.document_type || body.documentType,
+      expiryDate: body.expiry_date || body.expiryDate,
+      notes: body.notes,
+    })
+    if (!validation.success) return validation.response
+
     const d = await prisma.document.create({
       data: {
-        companyId: body.company_id || body.companyId,
-        employeeId: body.employee_id || body.employeeId,
-        name: body.name,
-        documentType: body.document_type || body.documentType,
+        companyId: validation.data.companyId,
+        employeeId: validation.data.employeeId || null,
+        name: validation.data.name,
+        documentType: validation.data.documentType,
         fileUrl: body.file_url || body.fileUrl,
         fileName: body.file_name || body.fileName,
         fileSize: body.file_size != null ? body.file_size : body.fileSize,
         mimeType: body.mime_type || body.mimeType,
-        expiryDate: body.expiry_date || body.expiryDate,
+        expiryDate: validation.data.expiryDate || null,
         status: body.status || "valid",
-        notes: body.notes,
+        notes: validation.data.notes || null,
       },
     })
 
@@ -81,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(mapped)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

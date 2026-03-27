@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { processDocument } from "@/lib/ocr"
 import { rateLimit, uploadRateLimit } from "@/lib/rate-limit"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     const result = await processDocument(buffer, documentType)
     return NextResponse.json({ success: true, ...result })
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: "Could not read document." }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

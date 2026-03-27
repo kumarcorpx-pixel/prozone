@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { listInvoices, createInvoice, isZohoConfigured } from "@/lib/zoho"
 import type { ZohoInvoiceInput } from "@/types/zoho"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,8 +24,8 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(result)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     const invoice = await createInvoice(invoiceData)
     return NextResponse.json({ success: true, invoice })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

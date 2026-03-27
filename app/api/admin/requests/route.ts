@@ -3,6 +3,7 @@ import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { serviceRequestSchema } from "@/lib/validation/schemas"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { handleApiError } from "@/lib/api-error-handler"
 
 const demoRequests = [
   {
@@ -107,11 +108,8 @@ export async function GET(request: NextRequest) {
         assignedToName: r.assignee?.fullName,
       })),
     })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch requests" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -158,10 +156,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ request: newRequest }, { status: 201 })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to create request" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { notificationUpdateSchema } from "@/lib/validation/schemas"
+import { validateBody } from "@/lib/validation/validate"
+import { handleApiError } from "@/lib/api-error-handler"
 
 const demoNotifications = [
   {
@@ -52,11 +55,8 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({ notifications: notifications || [] })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch notifications" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -69,14 +69,10 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { id, isRead } = body
+    const validation = validateBody(notificationUpdateSchema, body)
+    if (!validation.success) return validation.response
 
-    if (!id || typeof isRead !== "boolean") {
-      return NextResponse.json(
-        { error: "Invalid request. Provide id and isRead." },
-        { status: 400 }
-      )
-    }
+    const { id, isRead } = validation.data
 
     const token = request.cookies.get("auth_token")?.value
     const user = token ? await getUserFromToken(token) : null
@@ -91,10 +87,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to update notification" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
