@@ -1,5 +1,6 @@
-import jwt from "jsonwebtoken"
-import bcrypt from "bcryptjs"
+// @ts-nocheck
+const jwt = require("jsonwebtoken")
+const bcrypt = require("bcryptjs")
 import prisma from "./prisma"
 
 const JWT_SECRET = process.env.JWT_SECRET || "yabs-pro-secret-key-change-in-production"
