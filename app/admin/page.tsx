@@ -30,6 +30,7 @@ export default function AdminDashboard() {
   const [requests, setRequests] = useState<any[]>([])
   const [stats, setStats] = useState({ companies: 0, employees: 0, requests: 0, documents: 0, isReal: false })
   const [revenue, setRevenue] = useState({ total: 0, paid: 0, pending: 0, overdue: 0 })
+  const [activityFeed, setActivityFeed] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -60,6 +61,15 @@ export default function AdminDashboard() {
               overdue: dashData.revenue.overdue || 0,
             })
           }
+        }
+      } catch {}
+
+      // Fetch recent activity
+      try {
+        const actRes = await fetch("/api/admin/activity")
+        if (actRes.ok) {
+          const actData = await actRes.json()
+          setActivityFeed(actData.activities || [])
         }
       } catch {}
 
@@ -123,14 +133,6 @@ export default function AdminDashboard() {
     (d) => d.status === "expiring_soon" || d.status === "expired"
   )
   const complianceRate = 85
-
-  const activityFeed = [
-    { id: 1, message: "Admin updated Gulf Trading LLC trade license renewal", time: "2 hours ago" },
-    { id: 2, message: "New visa request from Gulf Trading for Mohammad Khan", time: "5 hours ago" },
-    { id: 3, message: "VAT return filing submitted for Emirates Zone Group", time: "1 day ago" },
-    { id: 4, message: "Document attestation completed for Gulf Trading LLC", time: "2 days ago" },
-    { id: 5, message: "Tech Ventures FZCO initial approval received from DSO", time: "4 days ago" },
-  ]
 
   return (
     <div className="space-y-6">
@@ -308,6 +310,9 @@ export default function AdminDashboard() {
             Recent Activity
           </h3>
           <div className="space-y-4">
+            {activityFeed.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
+            )}
             {activityFeed.map((item) => (
               <div key={item.id} className="flex items-start gap-3">
                 <div className="mt-1 h-2 w-2 rounded-full bg-[#1a3a6b] flex-shrink-0" />

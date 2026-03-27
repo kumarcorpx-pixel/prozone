@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { fetchCompanies, fetchEmployees, fetchDocuments } from "@/lib/data-fetcher"
-import { CalendarDays, AlertTriangle, Clock, CheckCircle, XCircle } from "lucide-react"
+import { CalendarDays, AlertTriangle, Clock, CheckCircle, XCircle, Loader2, Calendar } from "lucide-react"
+import { toast } from "sonner"
 
 interface ExpiryItem {
   id: string
@@ -41,6 +42,45 @@ export default function ExpiryCalendarPage() {
   const [items, setItems] = useState<ExpiryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
+  const [syncing, setSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState(0)
+  const [syncTotal, setSyncTotal] = useState(0)
+
+  const handleSyncToCalendar = async () => {
+    const itemsToSync = items.filter(i => i.daysLeft > 0 && i.daysLeft <= 90)
+    if (itemsToSync.length === 0) {
+      toast.info("No items expiring in the next 90 days to sync")
+      return
+    }
+    setSyncing(true)
+    setSyncTotal(itemsToSync.length)
+    let synced = 0
+
+    for (const item of itemsToSync) {
+      try {
+        await fetch("/api/calendar/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            summary: `EXPIRY: ${item.name}`,
+            description: `${item.type} - ${item.entity}\nExpires: ${item.expiryDate}`,
+            start: { date: item.expiryDate },
+            end: { date: item.expiryDate },
+            reminders: { useDefault: false, overrides: [
+              { method: "popup", minutes: 30 * 24 * 60 },
+              { method: "popup", minutes: 14 * 24 * 60 },
+              { method: "popup", minutes: 7 * 24 * 60 },
+            ]},
+          }),
+        })
+        synced++
+      } catch {}
+      setSyncProgress(synced)
+    }
+
+    setSyncing(false)
+    toast.success(`Synced ${synced} expiry events to Google Calendar`)
+  }
 
   useEffect(() => {
     async function load() {
@@ -113,12 +153,22 @@ export default function ExpiryCalendarPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <CalendarDays className="h-6 w-6 text-[#1a3a6b]" />
-          Expiry Calendar
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">Track all expiring documents, visas, and licenses</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-[#1a3a6b]" />
+            Expiry Calendar
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Track all expiring documents, visas, and licenses</p>
+        </div>
+        <button
+          onClick={handleSyncToCalendar}
+          disabled={syncing}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] disabled:opacity-50"
+        >
+          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
+          {syncing ? `Syncing ${syncProgress}/${syncTotal}...` : "Sync to Calendar"}
+        </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

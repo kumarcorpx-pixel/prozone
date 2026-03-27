@@ -226,14 +226,27 @@ export default function DocumentsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">File</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">File *</label>
               <div className="relative">
                 <input
                   type="file"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null
+                    if (file && file.size > 10 * 1024 * 1024) {
+                      toast.error("File size must be less than 10MB")
+                      return
+                    }
+                    setSelectedFile(file)
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#1a3a6b]/10 file:text-[#1a3a6b]"
                 />
               </div>
+              {selectedFile && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedFile.name} ({(selectedFile.size / 1024).toFixed(0)} KB)
+                </p>
+              )}
               {selectedFile && ocrDocTypeMap[formData.document_type] && (
                 <button
                   type="button"
