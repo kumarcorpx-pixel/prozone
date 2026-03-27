@@ -120,7 +120,7 @@ export default function DashboardPage() {
         </h1>
         {myCompanies.length > 0 && (
           <p className="text-gray-300 mt-1">
-            {myCompanies[0].name} &middot; {myCompanies[0].emirate} &middot; License: {myCompanies[0].license_number}
+            {myCompanies[0].name}{myCompanies[0].emirate ? ` · ${myCompanies[0].emirate}` : ""}{myCompanies[0].license_number ? ` · License: ${myCompanies[0].license_number}` : ""}
           </p>
         )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
