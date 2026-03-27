@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, uploadRateLimit } from "@/lib/rate-limit"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-middleware"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff"])
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
       mimeType: file.type,
       storage: "local",
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Upload failed" }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

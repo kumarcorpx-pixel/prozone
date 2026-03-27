@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { chatWithAI } from "@/lib/ai-chat"
 import { rateLimit } from "@/lib/rate-limit"
+import { chatMessageSchema } from "@/lib/validation/schemas"
+import { validateBody } from "@/lib/validation/validate"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"
@@ -10,17 +13,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { question, userRole, userName } = await request.json()
-    if (!question) return NextResponse.json({ error: "Question required" }, { status: 400 })
+    const body = await request.json()
+    const validation = validateBody(chatMessageSchema, body)
+    if (!validation.success) return validation.response
 
     const response = await chatWithAI(
-      [{ role: "user", content: question.substring(0, 500) }],
-      userRole,
-      userName
+      [{ role: "user", content: validation.data.question.substring(0, 500) }],
+      validation.data.userRole,
+      validation.data.userName
     )
 
     return NextResponse.json({ response })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

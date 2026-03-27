@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
+import { employeeSchema } from "@/lib/validation/schemas"
+import { validateBody } from "@/lib/validation/validate"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff", "client"])
@@ -48,11 +51,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch employees:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch employees" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -62,20 +61,31 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
+    const validation = validateBody(employeeSchema, {
+      fullName: body.full_name || body.fullName,
+      companyId: body.company_id || body.companyId,
+      nationality: body.nationality,
+      passportNumber: body.passport_number || body.passportNumber,
+      designation: body.designation,
+      phone: body.phone,
+      email: body.email,
+    })
+    if (!validation.success) return validation.response
+
     const e = await prisma.employee.create({
       data: {
-        companyId: body.company_id || body.companyId,
-        fullName: body.full_name || body.fullName,
-        email: body.email,
-        phone: body.phone,
-        designation: body.designation,
+        companyId: validation.data.companyId,
+        fullName: validation.data.fullName,
+        email: validation.data.email,
+        phone: validation.data.phone,
+        designation: validation.data.designation,
         department: body.department,
-        nationality: body.nationality,
+        nationality: validation.data.nationality,
         visaStatus: body.visa_status || body.visaStatus,
         visaExpiry: body.visa_expiry || body.visaExpiry,
         emiratesId: body.emirates_id || body.emiratesId,
         emiratesIdExpiry: body.emirates_id_expiry || body.emiratesIdExpiry,
-        passportNumber: body.passport_number || body.passportNumber,
+        passportNumber: validation.data.passportNumber,
         passportExpiry: body.passport_expiry || body.passportExpiry,
         laborCardNumber: body.labor_card_number || body.laborCardNumber,
         laborCardExpiry: body.labor_card_expiry || body.laborCardExpiry,
@@ -111,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(mapped)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

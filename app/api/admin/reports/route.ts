@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { handleApiError } from "@/lib/api-error-handler"
 
 async function getRevenueReport() {
   // Monthly revenue grouped by month using raw SQL since Prisma groupBy doesn't support date_trunc
@@ -237,11 +238,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(result)
-  } catch (err: any) {
-    console.error("Reports API error:", err)
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch report data" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

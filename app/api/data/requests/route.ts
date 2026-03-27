@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { runNewRequestWorkflow } from "@/lib/workflow-engine"
 import { withAuth } from "@/lib/auth-middleware"
+import { serviceRequestSchema } from "@/lib/validation/schemas"
+import { validateBody } from "@/lib/validation/validate"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff", "client"])
@@ -9,14 +12,22 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
+    const validation = validateBody(serviceRequestSchema, {
+      companyId: body.company_id || body.companyId,
+      serviceType: body.service_type || body.serviceType,
+      description: body.description,
+      priority: body.priority,
+    })
+    if (!validation.success) return validation.response
+
     const r = await prisma.serviceRequest.create({
       data: {
         clientId: body.client_id || body.clientId,
-        companyId: body.company_id || body.companyId,
-        serviceType: body.service_type || body.serviceType,
-        description: body.description,
+        companyId: validation.data.companyId,
+        serviceType: validation.data.serviceType,
+        description: validation.data.description,
         status: body.status || "pending",
-        priority: body.priority || "medium",
+        priority: validation.data.priority,
         assignedToId: body.assigned_to || body.assignedToId,
         notes: body.notes,
         dueDate: body.due_date || body.dueDate,
@@ -45,8 +56,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json(mapped)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -81,10 +92,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch requests:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch requests" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

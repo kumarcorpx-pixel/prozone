@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { dispatchStatusUpdate, dispatchStaffAssignment } from "@/lib/notify-dispatch"
 import { withAuth } from "@/lib/auth-middleware"
+import { requestUpdateSchema } from "@/lib/validation/schemas"
+import { validateBody } from "@/lib/validation/validate"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(
   request: NextRequest,
@@ -48,11 +51,7 @@ export async function GET(
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch request:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch request" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -66,6 +65,13 @@ export async function PATCH(
   try {
     const { id } = await params
     const body = await request.json()
+
+    if (Object.keys(body).length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 })
+    }
+
+    const validation = validateBody(requestUpdateSchema, body)
+    if (!validation.success) return validation.response
 
     const data: any = {}
     if (body.client_id !== undefined || body.clientId !== undefined) data.clientId = body.client_id || body.clientId
@@ -126,11 +132,7 @@ export async function PATCH(
     }
 
     return NextResponse.json(mapped)
-  } catch (error: any) {
-    console.error("Failed to update request:", error)
-    return NextResponse.json(
-      { error: error.message || "Failed to update request" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

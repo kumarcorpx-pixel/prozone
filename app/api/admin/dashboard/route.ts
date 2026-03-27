@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { handleApiError } from "@/lib/api-error-handler"
 
 const demoStats = {
   companies: 24,
@@ -79,10 +80,7 @@ export async function GET(request: NextRequest) {
       },
       recentActivity: recentActivity || [],
     })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch dashboard stats" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
