@@ -133,10 +133,16 @@ export default function ExpiryCalendarPage() {
   const allItems = useMemo(() => {
     const items: ExpiryItem[] = []
 
+    function safeDate(d: any): Date | null {
+      if (!d) return null
+      const date = new Date(d)
+      return isNaN(date.getTime()) ? null : date
+    }
+
     // Company license expiries
-    companies.forEach((company) => {
-      if (company.license_expiry) {
-        const expDate = new Date(company.license_expiry)
+    companies.forEach((company: any) => {
+      const expDate = safeDate(company.license_expiry)
+      if (expDate) {
         const days = differenceInDays(expDate, now)
         items.push({
           id: `license-${company.id}`,
@@ -151,70 +157,34 @@ export default function ExpiryCalendarPage() {
     })
 
     // Employee visa, EID, passport, labor card expiries
-    employees.forEach((emp) => {
+    employees.forEach((emp: any) => {
       const companyName = getCompanyName(emp.company_id)
-
-      if (emp.visa_expiry) {
-        const expDate = new Date(emp.visa_expiry)
-        const days = differenceInDays(expDate, now)
-        items.push({
-          id: `visa-${emp.id}`,
-          name: `Visa - ${emp.full_name}`,
-          type: "Visa",
-          entityName: `${emp.full_name} (${companyName})`,
-          expiryDate: expDate,
-          daysRemaining: days,
-          status: getExpiryStatus(days),
-        })
-      }
-
-      if (emp.emirates_id_expiry) {
-        const expDate = new Date(emp.emirates_id_expiry)
-        const days = differenceInDays(expDate, now)
-        items.push({
-          id: `eid-${emp.id}`,
-          name: `Emirates ID - ${emp.full_name}`,
-          type: "EID",
-          entityName: `${emp.full_name} (${companyName})`,
-          expiryDate: expDate,
-          daysRemaining: days,
-          status: getExpiryStatus(days),
-        })
-      }
-
-      if (emp.passport_expiry) {
-        const expDate = new Date(emp.passport_expiry)
-        const days = differenceInDays(expDate, now)
-        items.push({
-          id: `passport-${emp.id}`,
-          name: `Passport - ${emp.full_name}`,
-          type: "Passport",
-          entityName: `${emp.full_name} (${companyName})`,
-          expiryDate: expDate,
-          daysRemaining: days,
-          status: getExpiryStatus(days),
-        })
-      }
-
-      if (emp.labor_card_expiry) {
-        const expDate = new Date(emp.labor_card_expiry)
-        const days = differenceInDays(expDate, now)
-        items.push({
-          id: `labor-${emp.id}`,
-          name: `Labor Card - ${emp.full_name}`,
-          type: "Labor Card",
-          entityName: `${emp.full_name} (${companyName})`,
-          expiryDate: expDate,
-          daysRemaining: days,
-          status: getExpiryStatus(days),
-        })
-      }
+      const fields = [
+        { key: "visa_expiry", type: "Visa" as const, prefix: "visa" },
+        { key: "emirates_id_expiry", type: "EID" as const, prefix: "eid" },
+        { key: "passport_expiry", type: "Passport" as const, prefix: "passport" },
+        { key: "labor_card_expiry", type: "Labor Card" as const, prefix: "labor" },
+      ]
+      for (const f of fields) {
+        const expDate = safeDate(emp[f.key])
+        if (expDate) {
+          const days = differenceInDays(expDate, now)
+          items.push({
+            id: `${f.prefix}-${emp.id}`,
+            name: `${f.type} - ${emp.full_name}`,
+            type: f.type,
+            entityName: `${emp.full_name} (${companyName})`,
+            expiryDate: expDate,
+            daysRemaining: days,
+            status: getExpiryStatus(days),
+          })
+        }
     })
 
     // Document expiries
     documents.forEach((doc: any) => {
-      if (doc.expiry_date) {
-        const expDate = new Date(doc.expiry_date)
+      const expDate = safeDate(doc.expiry_date || doc.expiryDate)
+      if (expDate) {
         const days = differenceInDays(expDate, now)
         items.push({
           id: `doc-${doc.id}`,
