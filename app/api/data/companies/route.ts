@@ -4,6 +4,7 @@ import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 import { companySchema } from "@/lib/validation/schemas"
 import { validateBody } from "@/lib/validation/validate"
 import { handleApiError } from "@/lib/api-error-handler"
+import { cached, CK, TTL, onCompanyChange } from "@/lib/cache"
 
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin"])
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
       created_at: company.createdAt,
     }
 
+    await onCompanyChange()
     return NextResponse.json(mapped)
   } catch (error) {
     return handleApiError(error)
@@ -71,13 +73,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const companyFilter = await getClientCompanyFilter(user)
+    const isAdminOrStaff = user.role === "admin" || user.role === "pro_staff"
 
-    const companies = await prisma.company.findMany({
-      where: companyFilter ? { id: { in: companyFilter } } : undefined,
-      orderBy: { createdAt: "desc" },
-    })
-
-    const mapped = companies.map((c: any) => ({
+    const mapCompany = (c: any) => ({
       id: c.id,
       name: c.name,
       trade_name: c.tradeName,
@@ -98,7 +96,23 @@ export async function GET(request: NextRequest) {
       visa_quota_total: c.visaQuotaTotal,
       visa_quota_used: c.visaQuotaUsed,
       created_at: c.createdAt,
-    }))
+    })
+
+    if (isAdminOrStaff) {
+      const mapped = await cached(CK.companies(), TTL.COMPANIES, async () => {
+        const companies = await prisma.company.findMany({
+          orderBy: { createdAt: "desc" },
+        })
+        return companies.map(mapCompany)
+      })
+      return NextResponse.json(mapped)
+    }
+
+    const companies = await prisma.company.findMany({
+      where: companyFilter ? { id: { in: companyFilter } } : undefined,
+      orderBy: { createdAt: "desc" },
+    })
+    const mapped = companies.map(mapCompany)
 
     return NextResponse.json(mapped)
   } catch (error) {

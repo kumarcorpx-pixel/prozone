@@ -4,6 +4,7 @@ import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
 import { documentCreateSchema } from "@/lib/validation/schemas"
 import { validateBody } from "@/lib/validation/validate"
+import { cached, CK, TTL, onDocumentChange } from "@/lib/cache"
 
 export async function GET(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff", "client"])
@@ -13,17 +14,9 @@ export async function GET(request: NextRequest) {
   try {
     const companyId = request.nextUrl.searchParams.get("companyId")
     const companyFilter = await getClientCompanyFilter(user)
+    const isAdminOrStaff = user.role === "admin" || user.role === "pro_staff"
 
-    const whereClause: any = {}
-    if (companyId) whereClause.companyId = companyId
-    if (companyFilter) whereClause.companyId = { in: companyFilter }
-
-    const documents = await prisma.document.findMany({
-      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
-      orderBy: { createdAt: "desc" },
-    })
-
-    const mapped = documents.map((d: any) => ({
+    const mapDocument = (d: any) => ({
       id: d.id,
       company_id: d.companyId,
       employee_id: d.employeeId,
@@ -35,7 +28,27 @@ export async function GET(request: NextRequest) {
       status: d.status,
       notes: d.notes,
       created_at: d.createdAt,
-    }))
+    })
+
+    if (isAdminOrStaff && !companyId) {
+      const mapped = await cached(CK.documents(), TTL.DOCUMENTS, async () => {
+        const documents = await prisma.document.findMany({
+          orderBy: { createdAt: "desc" },
+        })
+        return documents.map(mapDocument)
+      })
+      return NextResponse.json(mapped)
+    }
+
+    const whereClause: any = {}
+    if (companyId) whereClause.companyId = companyId
+    if (companyFilter) whereClause.companyId = { in: companyFilter }
+
+    const documents = await prisma.document.findMany({
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
+      orderBy: { createdAt: "desc" },
+    })
+    const mapped = documents.map(mapDocument)
 
     return NextResponse.json(mapped)
   } catch (error) {
@@ -89,6 +102,7 @@ export async function POST(request: NextRequest) {
       created_at: d.createdAt,
     }
 
+    await onDocumentChange()
     return NextResponse.json(mapped)
   } catch (error) {
     return handleApiError(error)

@@ -3,6 +3,7 @@ import { rateLimit, uploadRateLimit } from "@/lib/rate-limit"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
+import { onDocumentChange } from "@/lib/cache"
 
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff"])
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
         },
       })
 
+      await onDocumentChange()
       return NextResponse.json({
         success: true,
         id: doc.id,
@@ -107,6 +109,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    await onDocumentChange()
     return NextResponse.json({
       success: true,
       id: doc.id,

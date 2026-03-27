@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
+import { onEmployeeChange } from "@/lib/cache"
 
 export async function GET(
   request: NextRequest,
@@ -115,6 +116,7 @@ export async function PATCH(
       created_at: e.createdAt,
     }
 
+    await onEmployeeChange()
     return NextResponse.json(mapped)
   } catch (error) {
     return handleApiError(error)

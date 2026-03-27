@@ -5,6 +5,7 @@ import { withAuth } from "@/lib/auth-middleware"
 import { serviceRequestSchema } from "@/lib/validation/schemas"
 import { validateBody } from "@/lib/validation/validate"
 import { handleApiError } from "@/lib/api-error-handler"
+import { cached, CK, TTL, onRequestChange } from "@/lib/cache"
 
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff", "client"])
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
       console.error("[Workflow] Background error:", err.message)
     )
 
+    await onRequestChange()
     return NextResponse.json(mapped)
   } catch (error) {
     return handleApiError(error)
@@ -67,14 +69,9 @@ export async function GET(request: NextRequest) {
   const user = auth.user
 
   try {
-    const clientFilter = user.role === "client" ? { clientId: user.id } : undefined
+    const isAdminOrStaff = user.role === "admin" || user.role === "pro_staff"
 
-    const requests = await prisma.serviceRequest.findMany({
-      where: clientFilter,
-      orderBy: { createdAt: "desc" },
-    })
-
-    const mapped = requests.map((r: any) => ({
+    const mapRequest = (r: any) => ({
       id: r.id,
       client_id: r.clientId,
       company_id: r.companyId,
@@ -88,7 +85,24 @@ export async function GET(request: NextRequest) {
       completed_date: r.completedDate,
       created_at: r.createdAt,
       updated_at: r.updatedAt,
-    }))
+    })
+
+    if (isAdminOrStaff) {
+      const mapped = await cached(CK.requests(), TTL.REQUESTS, async () => {
+        const requests = await prisma.serviceRequest.findMany({
+          orderBy: { createdAt: "desc" },
+        })
+        return requests.map(mapRequest)
+      })
+      return NextResponse.json(mapped)
+    }
+
+    const clientFilter = user.role === "client" ? { clientId: user.id } : undefined
+    const requests = await prisma.serviceRequest.findMany({
+      where: clientFilter,
+      orderBy: { createdAt: "desc" },
+    })
+    const mapped = requests.map(mapRequest)
 
     return NextResponse.json(mapped)
   } catch (error) {

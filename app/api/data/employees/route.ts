@@ -4,6 +4,7 @@ import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 import { employeeSchema } from "@/lib/validation/schemas"
 import { validateBody } from "@/lib/validation/validate"
 import { handleApiError } from "@/lib/api-error-handler"
+import { cached, CK, TTL, onEmployeeChange } from "@/lib/cache"
 
 export async function GET(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff", "client"])
@@ -13,18 +14,9 @@ export async function GET(request: NextRequest) {
   try {
     const companyId = request.nextUrl.searchParams.get("companyId")
     const companyFilter = await getClientCompanyFilter(user)
+    const isAdminOrStaff = user.role === "admin" || user.role === "pro_staff"
 
-    const whereClause: any = {}
-    if (companyId) whereClause.companyId = companyId
-    if (companyFilter) whereClause.companyId = { in: companyFilter }
-
-    const employees = await prisma.employee.findMany({
-      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
-      include: { company: { select: { name: true } } },
-      orderBy: { createdAt: "desc" },
-    })
-
-    const mapped = employees.map((e: any) => ({
+    const mapEmployee = (e: any) => ({
       id: e.id,
       company_id: e.companyId,
       company_name: e.company?.name || "Unknown",
@@ -47,7 +39,29 @@ export async function GET(request: NextRequest) {
       status: e.status,
       notes: e.notes,
       created_at: e.createdAt,
-    }))
+    })
+
+    if (isAdminOrStaff && !companyId) {
+      const mapped = await cached(CK.employees(), TTL.EMPLOYEES, async () => {
+        const employees = await prisma.employee.findMany({
+          include: { company: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        })
+        return employees.map(mapEmployee)
+      })
+      return NextResponse.json(mapped)
+    }
+
+    const whereClause: any = {}
+    if (companyId) whereClause.companyId = companyId
+    if (companyFilter) whereClause.companyId = { in: companyFilter }
+
+    const employees = await prisma.employee.findMany({
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
+      include: { company: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    })
+    const mapped = employees.map(mapEmployee)
 
     return NextResponse.json(mapped)
   } catch (error) {
@@ -120,6 +134,7 @@ export async function POST(request: NextRequest) {
       created_at: e.createdAt,
     }
 
+    await onEmployeeChange(body.companyId || body.company_id)
     return NextResponse.json(mapped)
   } catch (error) {
     return handleApiError(error)

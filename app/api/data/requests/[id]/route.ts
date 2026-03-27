@@ -5,6 +5,7 @@ import { withAuth } from "@/lib/auth-middleware"
 import { requestUpdateSchema } from "@/lib/validation/schemas"
 import { validateBody } from "@/lib/validation/validate"
 import { handleApiError } from "@/lib/api-error-handler"
+import { onRequestChange } from "@/lib/cache"
 
 export async function GET(
   request: NextRequest,
@@ -131,6 +132,7 @@ export async function PATCH(
       updated_at: r.updatedAt,
     }
 
+    await onRequestChange()
     return NextResponse.json(mapped)
   } catch (error) {
     return handleApiError(error)

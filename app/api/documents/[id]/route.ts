@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
+import { onDocumentChange } from "@/lib/cache"
 
 export async function GET(
   request: NextRequest,
@@ -62,6 +63,7 @@ export async function DELETE(
 
     // Delete from DB
     await prisma.document.delete({ where: { id } })
+    await onDocumentChange()
     return NextResponse.json({ success: true })
   } catch (error) {
     return handleApiError(error)
