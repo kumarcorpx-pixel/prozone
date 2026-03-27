@@ -45,6 +45,7 @@ const clientLinks: NavItem[] = [
   { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
   { label: "My Company", href: "/dashboard/company", icon: Building2 },
   { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
+  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 

@@ -14,44 +14,45 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-interface Message {
+interface ChatMessage {
   id: string
-  sender: string
-  text: string
-  time: string
-  isAdmin: boolean
+  body: string
+  senderId: string
+  createdAt: string
+  isRead: boolean
 }
 
 interface Conversation {
-  id: string
-  name: string
-  role: string
+  partnerId: string
+  partnerName: string
+  partnerRole: string
+  partnerPhone: string | null
+  messages: ChatMessage[]
   lastMessage: string
-  time: string
+  lastTime: string
   unread: number
-  messages: Message[]
-  phone?: string | null
 }
 
-interface UserOption {
+interface StaffUser {
   id: string
   full_name: string
   phone: string | null
   role: string
 }
 
-export default function MessagesPage() {
+export default function ClientMessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedConversation, setSelectedConversation] = useState<string>("")
+  const [selectedPartner, setSelectedPartner] = useState<string>("")
   const [newMessage, setNewMessage] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [sending, setSending] = useState(false)
   const [showNewMessage, setShowNewMessage] = useState(false)
-  const [users, setUsers] = useState<UserOption[]>([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([])
+  const [loadingStaff, setLoadingStaff] = useState(false)
   const [selectedNewUser, setSelectedNewUser] = useState<string>("")
-  const [userSearch, setUserSearch] = useState("")
+  const [staffSearch, setStaffSearch] = useState("")
+  const [currentUserId, setCurrentUserId] = useState<string>("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = useCallback(() => {
@@ -64,18 +65,24 @@ export default function MessagesPage() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [selectedConversation, conversations, scrollToBottom])
+  }, [selectedPartner, conversations, scrollToBottom])
 
   async function loadConversations() {
     try {
-      const res = await fetch("/api/admin/messages")
+      const res = await fetch("/api/client/messages")
       if (res.ok) {
         const data = await res.json()
-        const convs = data.conversations || []
+        const convs: Conversation[] = data.conversations || []
         setConversations(convs)
-        if (convs.length > 0 && !selectedConversation) {
-          setSelectedConversation(convs[0].id)
+        if (convs.length > 0 && !selectedPartner) {
+          setSelectedPartner(convs[0].partnerId)
         }
+      }
+      // Fetch current user id for message alignment
+      const meRes = await fetch("/api/auth/me")
+      if (meRes.ok) {
+        const meData = await meRes.json()
+        setCurrentUserId(meData.user?.id || meData.id || "")
       }
     } catch {
       toast.error("Failed to load conversations")
@@ -83,29 +90,29 @@ export default function MessagesPage() {
     setLoading(false)
   }
 
-  async function loadUsers() {
-    setLoadingUsers(true)
+  async function loadStaffUsers() {
+    setLoadingStaff(true)
     try {
-      const res = await fetch("/api/data/users")
+      const res = await fetch("/api/client/messages/staff")
       if (res.ok) {
         const data = await res.json()
-        setUsers(data)
+        setStaffUsers(data)
       }
     } catch {
-      toast.error("Failed to load users")
+      toast.error("Failed to load staff")
     }
-    setLoadingUsers(false)
+    setLoadingStaff(false)
   }
 
   async function handleSendMessage() {
-    if (!newMessage.trim() || !selectedConversation) return
+    if (!newMessage.trim() || !selectedPartner) return
     setSending(true)
     try {
-      const res = await fetch("/api/admin/messages", {
+      const res = await fetch("/api/client/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          receiverId: selectedConversation,
+          receiverId: selectedPartner,
           body: newMessage.trim(),
         }),
       })
@@ -124,12 +131,12 @@ export default function MessagesPage() {
 
   async function handleStartNewConversation() {
     if (!selectedNewUser || !newMessage.trim()) {
-      toast.error("Select a user and type a message")
+      toast.error("Select a recipient and type a message")
       return
     }
     setSending(true)
     try {
-      const res = await fetch("/api/admin/messages", {
+      const res = await fetch("/api/client/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -141,8 +148,8 @@ export default function MessagesPage() {
         setNewMessage("")
         setShowNewMessage(false)
         setSelectedNewUser("")
-        setUserSearch("")
-        setSelectedConversation(selectedNewUser)
+        setStaffSearch("")
+        setSelectedPartner(selectedNewUser)
         await loadConversations()
         toast.success("Message sent")
       } else {
@@ -155,31 +162,47 @@ export default function MessagesPage() {
     setSending(false)
   }
 
-  const activeConversation = conversations.find((c) => c.id === selectedConversation)
+  const activeConversation = conversations.find((c) => c.partnerId === selectedPartner)
 
   const filteredConversations = conversations.filter(
     (c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.partnerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const filteredUsers = users.filter(
-    (u) =>
-      u.full_name.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.role.toLowerCase().includes(userSearch.toLowerCase())
+  const filteredStaff = staffUsers.filter((u) =>
+    u.full_name.toLowerCase().includes(staffSearch.toLowerCase())
   )
+
+  function formatTime(dateStr: string): string {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    if (hours < 24) {
+      return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })
+    }
+    const days = Math.floor(hours / 24)
+    if (days === 1) return "Yesterday"
+    if (days < 7) return `${days} days ago`
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#1a3a6b]">Messages</h1>
-          <p className="text-sm text-gray-500 mt-1">Internal messaging and client communication</p>
+          <p className="text-sm text-gray-500 mt-1">Contact our team directly</p>
         </div>
         <button
           onClick={() => {
             setShowNewMessage(true)
-            if (users.length === 0) loadUsers()
+            if (staffUsers.length === 0) loadStaffUsers()
           }}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors"
         >
@@ -215,21 +238,23 @@ export default function MessagesPage() {
             <div className="flex-1 overflow-y-auto">
               {filteredConversations.length === 0 ? (
                 <div className="p-6 text-center text-sm text-gray-400">
-                  {searchQuery ? "No conversations match your search" : "No conversations yet"}
+                  {searchQuery
+                    ? "No conversations match your search"
+                    : "No conversations yet. Start one!"}
                 </div>
               ) : (
                 filteredConversations.map((conv) => (
                   <button
-                    key={conv.id}
-                    onClick={() => setSelectedConversation(conv.id)}
+                    key={conv.partnerId}
+                    onClick={() => setSelectedPartner(conv.partnerId)}
                     className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
-                      selectedConversation === conv.id ? "bg-blue-50" : ""
+                      selectedPartner === conv.partnerId ? "bg-blue-50" : ""
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="h-10 w-10 rounded-full bg-[#1a3a6b] flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-sm font-medium">
-                          {conv.name
+                          {conv.partnerName
                             .split(" ")
                             .map((n) => n[0])
                             .join("")
@@ -240,20 +265,20 @@ export default function MessagesPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-gray-900 truncate">
-                            {conv.name}
+                            {conv.partnerName}
                           </span>
                           <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                            {conv.time}
+                            {formatTime(conv.lastTime)}
                           </span>
                         </div>
                         <span
                           className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide mt-0.5 ${
-                            conv.role === "Staff"
+                            conv.partnerRole === "pro_staff"
                               ? "bg-emerald-100 text-emerald-700"
-                              : "bg-blue-100 text-blue-700"
+                              : "bg-purple-100 text-purple-700"
                           }`}
                         >
-                          {conv.role}
+                          {conv.partnerRole === "pro_staff" ? "Staff" : "Admin"}
                         </span>
                         <p className="text-xs text-gray-500 truncate mt-1">{conv.lastMessage}</p>
                       </div>
@@ -278,7 +303,7 @@ export default function MessagesPage() {
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-full bg-[#1a3a6b] flex items-center justify-center">
                       <span className="text-white text-sm font-medium">
-                        {activeConversation.name
+                        {activeConversation.partnerName
                           .split(" ")
                           .map((n) => n[0])
                           .join("")
@@ -288,22 +313,24 @@ export default function MessagesPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        {activeConversation.name}
+                        {activeConversation.partnerName}
                       </p>
-                      <p className="text-xs text-gray-500">{activeConversation.role}</p>
+                      <p className="text-xs text-gray-500">
+                        {activeConversation.partnerRole === "pro_staff" ? "Staff" : "Admin"}
+                      </p>
                     </div>
                   </div>
-                  {activeConversation.phone && (
+                  {activeConversation.partnerPhone && (
                     <div className="flex items-center gap-2">
                       <a
-                        href={`tel:${activeConversation.phone}`}
+                        href={`tel:${activeConversation.partnerPhone}`}
                         className="p-2 rounded-lg hover:bg-gray-100"
                         title="Phone Call"
                       >
                         <Phone className="h-4 w-4 text-gray-600" />
                       </a>
                       <a
-                        href={`https://wa.me/${activeConversation.phone.replace(/[\s+\-()]/g, "")}`}
+                        href={`https://wa.me/${activeConversation.partnerPhone.replace(/[\s+\-()]/g, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 rounded-lg hover:bg-green-50"
@@ -326,29 +353,32 @@ export default function MessagesPage() {
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {activeConversation.messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.isAdmin ? "justify-end" : "justify-start"}`}
-                    >
+                  {activeConversation.messages.map((msg) => {
+                    const isMine = msg.senderId === currentUserId
+                    return (
                       <div
-                        className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
-                          msg.isAdmin
-                            ? "bg-[#1a3a6b] text-white rounded-br-md"
-                            : "bg-gray-100 text-gray-900 rounded-bl-md"
-                        }`}
+                        key={msg.id}
+                        className={`flex ${isMine ? "justify-end" : "justify-start"}`}
                       >
-                        <p className="text-sm">{msg.text}</p>
-                        <p
-                          className={`text-[10px] mt-1 ${
-                            msg.isAdmin ? "text-white/60" : "text-gray-400"
+                        <div
+                          className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
+                            isMine
+                              ? "bg-[#1a3a6b] text-white rounded-br-md"
+                              : "bg-gray-100 text-gray-900 rounded-bl-md"
                           }`}
                         >
-                          {msg.time}
-                        </p>
+                          <p className="text-sm">{msg.body}</p>
+                          <p
+                            className={`text-[10px] mt-1 ${
+                              isMine ? "text-white/60" : "text-gray-400"
+                            }`}
+                          >
+                            {formatTime(msg.createdAt)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                   <div ref={messagesEndRef} />
                 </div>
 
@@ -404,7 +434,7 @@ export default function MessagesPage() {
                 onClick={() => {
                   setShowNewMessage(false)
                   setSelectedNewUser("")
-                  setUserSearch("")
+                  setStaffSearch("")
                   setNewMessage("")
                 }}
                 className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
@@ -417,23 +447,23 @@ export default function MessagesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
                 <input
                   type="text"
-                  placeholder="Search users..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Search staff..."
+                  value={staffSearch}
+                  onChange={(e) => setStaffSearch(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
                 />
-                {loadingUsers ? (
+                {loadingStaff ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                   </div>
                 ) : (
                   <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg">
-                    {filteredUsers.map((u) => (
+                    {filteredStaff.map((u) => (
                       <button
                         key={u.id}
                         onClick={() => {
                           setSelectedNewUser(u.id)
-                          setUserSearch(u.full_name)
+                          setStaffSearch(u.full_name)
                         }}
                         className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 ${
                           selectedNewUser === u.id ? "bg-blue-50" : ""
@@ -444,17 +474,17 @@ export default function MessagesPage() {
                           className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
                             u.role === "pro_staff"
                               ? "bg-emerald-100 text-emerald-700"
-                              : u.role === "admin"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-blue-100 text-blue-700"
+                              : "bg-purple-100 text-purple-700"
                           }`}
                         >
-                          {u.role === "pro_staff" ? "Staff" : u.role}
+                          {u.role === "pro_staff" ? "Staff" : "Admin"}
                         </span>
                       </button>
                     ))}
-                    {filteredUsers.length === 0 && (
-                      <p className="px-4 py-3 text-sm text-gray-400 text-center">No users found</p>
+                    {filteredStaff.length === 0 && (
+                      <p className="px-4 py-3 text-sm text-gray-400 text-center">
+                        No staff found
+                      </p>
                     )}
                   </div>
                 )}
