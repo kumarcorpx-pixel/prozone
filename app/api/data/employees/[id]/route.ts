@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { withAuth } from "@/lib/auth-middleware"
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+
   try {
     const { id } = await params
 
@@ -57,6 +61,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await withAuth(request, ["admin", "pro_staff"])
+  if (!auth.success) return auth.response
+
   try {
     const { id } = await params
     const body = await request.json()

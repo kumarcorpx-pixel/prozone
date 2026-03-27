@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 
 export async function GET(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+  const user = auth.user
+
   try {
     const companyId = request.nextUrl.searchParams.get("companyId")
+    const companyFilter = await getClientCompanyFilter(user)
+
+    const whereClause: any = {}
+    if (companyId) whereClause.companyId = companyId
+    if (companyFilter) whereClause.companyId = { in: companyFilter }
 
     const employees = await prisma.employee.findMany({
-      where: companyId ? { companyId } : undefined,
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
       include: { company: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
     })
@@ -47,6 +57,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff"])
+  if (!auth.success) return auth.response
+
   try {
     const body = await request.json()
     const e = await prisma.employee.create({

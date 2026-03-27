@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createUser } from "@/lib/auth"
 import { signupSchema } from "@/lib/validation/schemas"
+import { rateLimit, loginRateLimit } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for") || "unknown"
+  const rl = rateLimit(`signup:${ip}`, loginRateLimit)
+  if (!rl.success) {
+    return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 })
+  }
+
   try {
     const body = await request.json()
     const result = signupSchema.safeParse(body)

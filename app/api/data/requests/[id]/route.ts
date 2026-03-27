@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { dispatchStatusUpdate, dispatchStaffAssignment } from "@/lib/notify-dispatch"
+import { withAuth } from "@/lib/auth-middleware"
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+  const user = auth.user
+
   try {
     const { id } = await params
 
@@ -18,6 +23,11 @@ export async function GET(
         { error: "Request not found" },
         { status: 404 }
       )
+    }
+
+    // Clients can only view their own requests
+    if (user.role === "client" && r.clientId !== user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const mapped = {
@@ -50,6 +60,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await withAuth(request, ["admin", "pro_staff"])
+  if (!auth.success) return auth.response
+
   try {
     const { id } = await params
     const body = await request.json()

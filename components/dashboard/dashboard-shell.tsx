@@ -118,13 +118,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     )
   }
 
-  const role = user.role === "admin" ? "admin" : user.role === "pro_staff" ? "pro_staff" : "client"
+  // Determine which portal we're in based on the current path
+  const portalType = pathname.startsWith("/admin") ? "admin"
+    : pathname.startsWith("/staff") ? "pro_staff"
+    : "client"
+
+  // Use portalType for sidebar and header, not user role
+  const sidebarRole = portalType
 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:flex-shrink-0">
-        <Sidebar role={role} />
+        <Sidebar role={sidebarRole} />
       </div>
 
       {/* Mobile sidebar overlay */}
@@ -138,7 +144,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Sidebar panel */}
           <div className="fixed inset-y-0 left-0 z-50 flex">
             <Sidebar
-              role={role}
+              role={sidebarRole}
               mobile
               onClose={() => setSidebarOpen(false)}
             />
@@ -161,7 +167,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {/* Breadcrumb area */}
             <div className="hidden sm:block">
               <h1 className="text-lg font-semibold text-gray-900">
-                {role === "admin" ? "Admin Portal" : role === "pro_staff" ? "PRO Staff Portal" : "Client Portal"}
+                {sidebarRole === "admin" ? "Admin Portal" : sidebarRole === "pro_staff" ? "PRO Staff Portal" : "Client Portal"}
               </h1>
             </div>
           </div>
@@ -239,7 +245,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
-                    <Link href={role === "admin" ? "/admin/settings" : role === "pro_staff" ? "/staff/settings" : "/dashboard/settings"} prefetch={false} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setAvatarOpen(false)}>
+                    <Link href={sidebarRole === "admin" ? "/admin/settings" : sidebarRole === "pro_staff" ? "/staff/settings" : "/dashboard/settings"} prefetch={false} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setAvatarOpen(false)}>
                       Settings
                     </Link>
                     <button onClick={logout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">

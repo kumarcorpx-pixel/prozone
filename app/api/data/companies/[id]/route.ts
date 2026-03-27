@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+  const user = auth.user
+
   try {
     const { id } = await params
+
+    // For clients, verify company belongs to them
+    const companyFilter = await getClientCompanyFilter(user)
+    if (companyFilter && !companyFilter.includes(id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
     const c = await prisma.company.findUnique({
       where: { id },
@@ -56,6 +67,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await withAuth(request, ["admin"])
+  if (!auth.success) return auth.response
+
   try {
     const { id } = await params
     const body = await request.json()

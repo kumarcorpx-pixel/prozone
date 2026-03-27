@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { runNewRequestWorkflow } from "@/lib/workflow-engine"
+import { withAuth } from "@/lib/auth-middleware"
 
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+
   try {
     const body = await request.json()
     const r = await prisma.serviceRequest.create({
@@ -46,9 +50,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+  const user = auth.user
+
   try {
+    const clientFilter = user.role === "client" ? { clientId: user.id } : undefined
+
     const requests = await prisma.serviceRequest.findMany({
+      where: clientFilter,
       orderBy: { createdAt: "desc" },
     })
 

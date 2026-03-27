@@ -99,6 +99,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth()
   }, [])
 
+  // Session heartbeat — keep session alive
+  useEffect(() => {
+    if (!user) return
+    const heartbeat = setInterval(async () => {
+      try {
+        const res = await fetch("/api/auth/me")
+        if (!res.ok) {
+          // Session expired
+          localStorage.removeItem("prozone_user")
+          setUser(null)
+          window.location.href = "/login?expired=true"
+        }
+      } catch {}
+    }, 180000) // 3 minutes
+    return () => clearInterval(heartbeat)
+  }, [user])
+
   const login = useCallback(async (email: string, password: string) => {
     // Try real API login
     try {

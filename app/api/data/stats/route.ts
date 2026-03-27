@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { withAuth } from "@/lib/auth-middleware"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await withAuth(request, ["admin"])
+  if (!auth.success) return auth.response
+
   try {
     const [companies, employees, requests, documents] = await Promise.all([
       prisma.company.count(),
