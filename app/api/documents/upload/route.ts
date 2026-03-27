@@ -86,24 +86,43 @@ export async function POST(request: NextRequest) {
       const { uploadToMinio } = await import("@/lib/minio")
       await uploadToMinio(uploadBuffer, fileName, uploadMime)
 
-      const doc = await prisma.document.create({
-        data: {
+      const docData: any = {
           name,
-          ...(companyId && companyId !== "general" ? { company: { connect: { id: companyId } } } : {}),
-          ...(employeeId ? { employee: { connect: { id: employeeId } } } : {}),
           documentType,
           fileUrl: fileName,
-          fileName: file.name,
           fileSize: finalSize,
-          mimeType: uploadMime,
           expiryDate: expiryDate ? new Date(expiryDate) : null,
           status: "valid",
           notes: [
             notes,
+            `file:${file.name}`,
+            `mime:${uploadMime}`,
             thumbnailPath ? `thumb:${thumbnailPath}` : null,
             compressionSaved > 0 ? `compressed:${compressionSaved}%` : null,
           ].filter(Boolean).join("\n") || null,
-        },
+      }
+      // Use connect for relations (works with both schema versions)
+      if (companyId && companyId !== "general") docData.companyId = companyId
+      if (employeeId) docData.employeeId = employeeId
+      // Try adding fileName/mimeType (may not exist in VPS schema)
+      try { docData.fileName = file.name; docData.mimeType = uploadMime } catch {}
+
+      const doc = await prisma.document.create({ data: docData }).catch(async (err: any) => {
+        // Retry without optional fields if they don't exist in schema
+        if (err.message?.includes("fileName") || err.message?.includes("mimeType")) {
+          delete docData.fileName
+          delete docData.mimeType
+          return prisma.document.create({ data: docData })
+        }
+        // Retry with connect syntax if direct ID fails
+        if (err.message?.includes("companyId") || err.message?.includes("employeeId")) {
+          delete docData.companyId
+          delete docData.employeeId
+          if (companyId && companyId !== "general") docData.company = { connect: { id: companyId } }
+          if (employeeId) docData.employee = { connect: { id: employeeId } }
+          return prisma.document.create({ data: docData })
+        }
+        throw err
       })
 
       await onDocumentChange()
@@ -146,24 +165,33 @@ export async function POST(request: NextRequest) {
 
     const localFileUrl = `/uploads/${companyId}/${localFileName}`
 
-    const doc = await prisma.document.create({
-      data: {
+    const localDocData: any = {
         name,
-        ...(companyId && companyId !== "general" ? { company: { connect: { id: companyId } } } : {}),
-        ...(employeeId ? { employee: { connect: { id: employeeId } } } : {}),
         documentType,
         fileUrl: localFileUrl,
-        fileName: file.name,
         fileSize: finalSize,
-        mimeType: uploadMime,
         expiryDate: expiryDate ? new Date(expiryDate) : null,
         status: "valid",
         notes: [
           notes,
+          `file:${file.name}`,
+          `mime:${uploadMime}`,
           thumbnailPath ? `thumb:${thumbnailPath}` : null,
           compressionSaved > 0 ? `compressed:${compressionSaved}%` : null,
         ].filter(Boolean).join("\n") || null,
-      },
+    }
+    if (companyId && companyId !== "general") localDocData.companyId = companyId
+    if (employeeId) localDocData.employeeId = employeeId
+
+    const doc = await prisma.document.create({ data: localDocData }).catch(async (err: any) => {
+      if (err.message?.includes("companyId") || err.message?.includes("employeeId")) {
+        delete localDocData.companyId
+        delete localDocData.employeeId
+        if (companyId && companyId !== "general") localDocData.company = { connect: { id: companyId } }
+        if (employeeId) localDocData.employee = { connect: { id: employeeId } }
+        return prisma.document.create({ data: localDocData })
+      }
+      throw err
     })
 
     await onDocumentChange()
