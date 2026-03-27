@@ -23,10 +23,14 @@ const defaultEmployeeForm = {
   company_id: "",
   nationality: "",
   designation: "",
+  department: "",
   passport_number: "",
   phone: "",
   email: "",
   visa_status: "valid" as const,
+  emirates_id: "",
+  labor_card_number: "",
+  mohre_work_permit: "",
 }
 
 export default function EmployeesPage() {

@@ -126,6 +126,10 @@ export default function CompanyDetailPage() {
         legal_form: c.legal_form || "", emirate: c.emirate || "", phone: c.phone || "",
         email: c.email || "", address: c.address || "", industry: c.industry || "",
         status: c.status || "active", visa_quota_total: c.visa_quota_total || 0,
+        mohre_company_number: c.mohre_company_number || "", establishment_card_number: c.establishment_card_number || "",
+        immigration_file_number: c.immigration_file_number || "", computer_card_number: c.computer_card_number || "",
+        chamber_commerce_number: c.chamber_commerce_number || "", ejari_tawtheeq_number: c.ejari_tawtheeq_number || "",
+        vat_trn: c.vat_trn || "", sponsor_name: c.sponsor_name || "",
       })
       setEmployees(e)
       setDocuments(d)
@@ -667,6 +671,14 @@ export default function CompanyDetailPage() {
                 { key: "address", label: "Address", type: "text" },
                 { key: "industry", label: "Industry", type: "text" },
                 { key: "visa_quota_total", label: "Visa Quota", type: "number" },
+                { key: "mohre_company_number", label: "MOHRE Company Number", type: "text" },
+                { key: "establishment_card_number", label: "Establishment Card Number", type: "text" },
+                { key: "immigration_file_number", label: "Immigration File Number (GDRFA)", type: "text" },
+                { key: "computer_card_number", label: "Computer Card Number", type: "text" },
+                { key: "chamber_commerce_number", label: "Chamber of Commerce Number", type: "text" },
+                { key: "ejari_tawtheeq_number", label: "Ejari/Tawtheeq Number", type: "text" },
+                { key: "vat_trn", label: "VAT TRN", type: "text" },
+                { key: "sponsor_name", label: "Sponsor Name", type: "text" },
               ].map(field => (
                 <div key={field.key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
