@@ -109,6 +109,8 @@ export default function CompanyDetailPage() {
   const [employees, setEmployees] = useState<any[]>([])
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [editData, setEditData] = useState<any>({})
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -118,6 +120,13 @@ export default function CompanyDetailPage() {
         fetchDocuments(companyId),
       ])
       setCompany(c)
+      if (c) setEditData({
+        name: c.name || "", trade_name: c.trade_name || "", license_number: c.license_number || "",
+        license_expiry: c.license_expiry?.split("T")[0] || "", license_type: c.license_type || "",
+        legal_form: c.legal_form || "", emirate: c.emirate || "", phone: c.phone || "",
+        email: c.email || "", address: c.address || "", industry: c.industry || "",
+        status: c.status || "active", visa_quota_total: c.visa_quota_total || 0,
+      })
       setEmployees(e)
       setDocuments(d)
       setLoading(false)
@@ -181,6 +190,19 @@ export default function CompanyDetailPage() {
           </div>
         </div>
         <StatusBadge status={company.status} />
+      </div>
+
+      {/* Edit Company Quick Actions */}
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => setActiveTab("edit")} className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
+          <FileText className="h-4 w-4" /> Edit Company Details
+        </button>
+        <Link href="/admin/documents" prefetch={false} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <Upload className="h-4 w-4" /> Upload Document
+        </Link>
+        <Link href="/admin/employees" prefetch={false} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <Users className="h-4 w-4" /> Add Employee
+        </Link>
       </div>
 
       {(!company.license_number || !company.license_expiry) && (
@@ -624,6 +646,73 @@ export default function CompanyDetailPage() {
               <Plus className="h-4 w-4" />
               Add Shareholder
             </button>
+          </div>
+        )}
+
+        {/* ──── Edit Tab ──── */}
+        {activeTab === "edit" && (
+          <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+            <h3 className="font-semibold text-[#1a3a6b] mb-4">Edit Company Details</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { key: "name", label: "Company Name *", type: "text" },
+                { key: "trade_name", label: "Trade Name", type: "text" },
+                { key: "license_number", label: "License Number", type: "text" },
+                { key: "license_expiry", label: "License Expiry", type: "date" },
+                { key: "license_type", label: "License Type", type: "select", options: ["Commercial", "Professional", "Industrial", "Tourism", "E-Commerce", "General Trading"] },
+                { key: "legal_form", label: "Legal Form", type: "select", options: ["LLC", "FZE", "FZCO", "Branch", "Sole Establishment", "Civil Company"] },
+                { key: "emirate", label: "Emirate", type: "select", options: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain"] },
+                { key: "phone", label: "Phone", type: "text" },
+                { key: "email", label: "Email", type: "email" },
+                { key: "address", label: "Address", type: "text" },
+                { key: "industry", label: "Industry", type: "text" },
+                { key: "visa_quota_total", label: "Visa Quota", type: "number" },
+              ].map(field => (
+                <div key={field.key}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+                  {field.type === "select" ? (
+                    <select value={editData[field.key] || ""} onChange={e => setEditData({ ...editData, [field.key]: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20">
+                      <option value="">Select...</option>
+                      {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : (
+                    <input type={field.type} value={editData[field.key] || ""} onChange={e => setEditData({ ...editData, [field.key]: field.type === "number" ? Number(e.target.value) : e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20" />
+                  )}
+                </div>
+              ))}
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select value={editData.status || "active"} onChange={e => setEditData({ ...editData, status: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20">
+                  <option value="active">Active</option>
+                  <option value="expired">Expired</option>
+                  <option value="pending">Pending</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setActiveTab("overview")} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+              <button disabled={saving} onClick={async () => {
+                setSaving(true)
+                try {
+                  const res = await fetch(`/api/data/companies/${companyId}`, {
+                    method: "PATCH", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(editData),
+                  })
+                  if (!res.ok) throw new Error("Save failed")
+                  const updated = await fetchCompany(companyId)
+                  setCompany(updated)
+                  toast.success("Company updated successfully")
+                  setActiveTab("overview")
+                } catch { toast.error("Failed to save") }
+                finally { setSaving(false) }
+              }} className="px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] disabled:opacity-50">
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
           </div>
         )}
       </div>
