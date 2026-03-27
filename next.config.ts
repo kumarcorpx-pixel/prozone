@@ -2,6 +2,7 @@ import type { NextConfig } from "next"
 import { securityHeaders } from "./lib/security-headers"
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   allowedDevOrigins: ["194.238.19.203"],
   images: {
     remotePatterns: [
