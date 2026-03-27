@@ -8,8 +8,10 @@ import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [avatarOpen, setAvatarOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -116,29 +118,71 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-3">
             {/* Notification bell */}
-            <Link
-              href={
-                pathname.startsWith("/admin")
-                  ? "/admin/messages"
-                  : pathname.startsWith("/staff")
-                  ? "/staff/notifications"
-                  : "/dashboard/notifications"
-              }
-              className="relative p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full" />
-            </Link>
+            <div className="relative">
+              <button
+                onClick={() => setNotifOpen(!notifOpen)}
+                className="relative p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full" />
+              </button>
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg ring-1 ring-gray-200 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                      {[
+                        { title: "Trade License Expiring", message: "Alba Cleaning Services - 147 days", type: "warning" },
+                        { title: "New Request Submitted", message: "Company formation request received", type: "info" },
+                        { title: "Document Uploaded", message: "Trade license copy uploaded", type: "success" },
+                      ].map((n, i) => (
+                        <div key={i} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                          <p className="text-sm font-medium text-gray-900">{n.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <Link
+                      href={pathname.startsWith("/admin") ? "/admin/messages" : pathname.startsWith("/staff") ? "/staff/notifications" : "/dashboard/notifications"}
+                      className="block px-4 py-3 text-center text-sm text-[#1a3a6b] font-medium border-t border-gray-100 hover:bg-gray-50 rounded-b-xl"
+                      onClick={() => setNotifOpen(false)}
+                    >
+                      View All Notifications
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
             {/* User avatar */}
-            <div className="h-8 w-8 rounded-full bg-[#1a3a6b] flex items-center justify-center cursor-pointer">
-              <span className="text-white text-xs font-medium">
-                {user.full_name
-                  ?.split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase() || "U"}
-              </span>
+            <div className="relative">
+              <button
+                onClick={() => setAvatarOpen(!avatarOpen)}
+                className="h-8 w-8 rounded-full bg-[#1a3a6b] flex items-center justify-center cursor-pointer"
+              >
+                <span className="text-white text-xs font-medium">
+                  {user.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "U"}
+                </span>
+              </button>
+              {avatarOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setAvatarOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg ring-1 ring-gray-200 z-50 py-1">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </div>
+                    <Link href={role === "admin" ? "/admin/settings" : role === "pro_staff" ? "/staff/settings" : "/dashboard/settings"} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setAvatarOpen(false)}>
+                      Settings
+                    </Link>
+                    <button onClick={logout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                      Sign Out
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>

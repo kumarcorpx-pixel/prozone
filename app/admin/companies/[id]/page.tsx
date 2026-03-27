@@ -31,6 +31,7 @@ import {
   ClipboardCheck,
 } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
 import { AedIcon } from "@/components/ui/aed-icon"
 
 function getExpiryColor(dateStr: string | null): string {
@@ -692,7 +693,8 @@ export default function CompanyDetailPage() {
             ) : (
               <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
                 <Shield className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                <p className="text-gray-500">No WPS data available for this company.</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">WPS Tracking</h3>
+                <p className="text-sm text-gray-500">WPS tracking coming soon</p>
               </div>
             )}
           </div>
@@ -739,7 +741,8 @@ export default function CompanyDetailPage() {
             ) : (
               <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
                 <Upload className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                <p className="text-gray-500">No monthly upload records for this company.</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Monthly Uploads</h3>
+                <p className="text-sm text-gray-500">Monthly uploads coming soon</p>
               </div>
             )}
           </div>
@@ -751,7 +754,10 @@ export default function CompanyDetailPage() {
             <UserCheck className="h-8 w-8 mx-auto text-gray-300 mb-2" />
             <h3 className="text-lg font-semibold text-gray-900 mb-1">No shareholders added yet</h3>
             <p className="text-sm text-gray-500 mb-4">Shareholder information will appear here once added.</p>
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
+            <button
+              onClick={() => toast.info("Coming soon")}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+            >
               <Plus className="h-4 w-4" />
               Add Shareholder
             </button>
