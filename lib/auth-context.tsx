@@ -88,6 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(data.user)
           localStorage.setItem("prozone_user", JSON.stringify(data.user))
         }
+        if (!res.ok) {
+          // Token expired or invalid — clear user state
+          localStorage.removeItem("prozone_user")
+          setUser(null)
+        }
       } catch {}
       setIsLoading(false)
     }

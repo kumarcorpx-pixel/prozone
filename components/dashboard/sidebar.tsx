@@ -107,7 +107,7 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-5 border-b border-gray-100">
-        <Link href={role === "admin" ? "/admin" : role === "pro_staff" ? "/staff" : "/dashboard"} className="flex items-center">
+        <Link href={role === "admin" ? "/admin" : role === "pro_staff" ? "/staff" : "/dashboard"} prefetch={false} className="flex items-center">
           <YabsLogo variant="compact" className="h-8 w-auto" />
         </Link>
         {mobile && onClose && (
@@ -128,6 +128,7 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               onClick={mobile ? onClose : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 active

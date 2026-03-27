@@ -7,12 +7,14 @@ export async function GET(request: NextRequest) {
 
     const employees = await prisma.employee.findMany({
       where: companyId ? { companyId } : undefined,
+      include: { company: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
     })
 
     const mapped = employees.map((e: any) => ({
       id: e.id,
       company_id: e.companyId,
+      company_name: e.company?.name || "Unknown",
       full_name: e.fullName,
       email: e.email,
       phone: e.phone,

@@ -9,6 +9,7 @@ export function NotificationSubscribe() {
   const { user } = useAuth()
   const [dismissed, setDismissed] = useState(false)
   const [enabled, setEnabled] = useState(false)
+  const [connected, setConnected] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export function NotificationSubscribe() {
   useEffect(() => {
     if (!enabled || !user) return
     const topic = user.role === "pro_staff" ? `yabs-staff-${user.id}` : `yabs-${user.id}`
-    const cleanup = startNotificationListener(topic)
+    const cleanup = startNotificationListener(topic, undefined, setConnected)
     return cleanup
   }, [enabled, user])
 
@@ -46,9 +47,13 @@ export function NotificationSubscribe() {
 
   if (enabled) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg text-xs text-green-700 font-medium">
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
+        connected
+          ? "bg-green-50 text-green-700"
+          : "bg-orange-50 text-orange-700"
+      }`}>
         <CheckCircle2 className="h-3.5 w-3.5" />
-        Notifications: ON
+        {connected ? "Notifications: ON" : "Notifications: Connecting..."}
       </div>
     )
   }

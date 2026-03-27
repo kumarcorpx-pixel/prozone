@@ -7,38 +7,36 @@ const cronPaths = ["/api/cron/"]
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public pages
   if (publicPaths.includes(pathname)) return NextResponse.next()
-
-  // Allow static assets
   if (pathname.startsWith("/_next") || pathname.startsWith("/icons") || pathname.includes(".")) return NextResponse.next()
-
-  // Allow public API routes
   if (publicApiPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
-
-  // Allow cron routes (they have their own auth)
   if (cronPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
 
-  // Check for auth token
   const token = request.cookies.get("auth_token")?.value
 
-  // Protected pages — redirect to login if no token
   if (!token && !pathname.startsWith("/api/")) {
     const loginUrl = new URL("/login", request.url)
     loginUrl.searchParams.set("redirect", pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // Protected API routes — return 401 if no token
   if (!token && pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Role-based route protection
-  // We can't decode JWT in edge middleware easily without jsonwebtoken
-  // So just ensure token exists — role checks happen in the dashboard-shell component
+  // Sliding session: refresh cookie expiry on every authenticated request
+  const response = NextResponse.next()
+  if (token) {
+    response.cookies.set("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24, // Reset to 24 hours on each request
+    })
+  }
 
-  return NextResponse.next()
+  return response
 }
 
 export const config = {

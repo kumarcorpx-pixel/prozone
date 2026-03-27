@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Fetch counts in parallel
-    const [companiesCount, employeesCount, activeReqCount, completedReqCount, documentsCount] =
+    // Fetch counts and revenue in parallel
+    const [companiesCount, employeesCount, activeReqCount, completedReqCount, documentsCount, totalRevenue, paidRevenue, pendingRevenue, overdueRevenue] =
       await Promise.all([
         prisma.company.count(),
         prisma.employee.count(),
@@ -52,6 +52,10 @@ export async function GET(request: NextRequest) {
           where: { status: "completed" },
         }),
         prisma.document.count(),
+        prisma.invoice.aggregate({ _sum: { totalAmount: true } }),
+        prisma.invoice.aggregate({ _sum: { totalAmount: true }, where: { status: "paid" } }),
+        prisma.invoice.aggregate({ _sum: { totalAmount: true }, where: { status: "pending" } }),
+        prisma.invoice.aggregate({ _sum: { totalAmount: true }, where: { status: "overdue" } }),
       ])
 
     // Recent activity
@@ -66,6 +70,13 @@ export async function GET(request: NextRequest) {
       activeRequests: activeReqCount,
       completedRequests: completedReqCount,
       documents: documentsCount,
+      revenue: {
+        total: Number(totalRevenue._sum.totalAmount || 0),
+        paid: Number(paidRevenue._sum.totalAmount || 0),
+        pending: Number(pendingRevenue._sum.totalAmount || 0),
+        overdue: Number(overdueRevenue._sum.totalAmount || 0),
+        currency: "AED",
+      },
       recentActivity: recentActivity || [],
     })
   } catch (err: any) {

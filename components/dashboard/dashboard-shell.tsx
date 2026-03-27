@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "./sidebar"
 import { NotificationSubscribe } from "@/components/NotificationSubscribe"
-import { Menu, Bell } from "lucide-react"
+import { Menu, Bell, AlertTriangle, Info, CheckCircle, FileText } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -13,8 +13,57 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([])
   const router = useRouter()
   const pathname = usePathname()
+
+  // Fetch notifications from API
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const res = await fetch("/api/notifications")
+        if (res.ok) {
+          const data = await res.json()
+          setNotifications((data.notifications || []).slice(0, 10))
+        }
+      } catch {}
+    }
+    loadNotifications()
+    const interval = setInterval(loadNotifications, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const markAsRead = async (id: string) => {
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, isRead: true }),
+      })
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+    } catch {}
+  }
+
+  function relativeTime(dateStr: string) {
+    const now = Date.now()
+    const diff = now - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return "just now"
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    const days = Math.floor(hrs / 24)
+    return `${days}d ago`
+  }
+
+  function notifIcon(type: string) {
+    switch (type) {
+      case "warning": return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+      case "success": return <CheckCircle className="h-4 w-4 text-green-500" />
+      case "info": return <Info className="h-4 w-4 text-blue-500" />
+      default: return <FileText className="h-4 w-4 text-gray-400" />
+    }
+  }
 
   // Route protection: redirect to login if not authenticated
   useEffect(() => {
@@ -126,7 +175,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 className="relative p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 <Bell className="h-5 w-5" />
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full" />
+                {notifications.some(n => !n.isRead) && (
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full" />
+                )}
               </button>
               {notifOpen && (
                 <>
@@ -136,19 +187,30 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
                     </div>
                     <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                      {[
-                        { title: "Trade License Expiring", message: "Alba Cleaning Services - 147 days", type: "warning" },
-                        { title: "New Request Submitted", message: "Company formation request received", type: "info" },
-                        { title: "Document Uploaded", message: "Trade license copy uploaded", type: "success" },
-                      ].map((n, i) => (
-                        <div key={i} role="menuitem" className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
-                          <p className="text-sm font-medium text-gray-900">{n.title}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
+                      {notifications.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-sm text-gray-500">No notifications</div>
+                      ) : notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          role="menuitem"
+                          className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${!n.isRead ? "bg-blue-50/50" : ""}`}
+                          onClick={() => markAsRead(n.id)}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <div className="mt-0.5 flex-shrink-0">{notifIcon(n.type)}</div>
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-sm font-medium ${!n.isRead ? "text-gray-900" : "text-gray-600"}`}>{n.title}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
+                              <p className="text-xs text-gray-400 mt-1">{relativeTime(n.createdAt)}</p>
+                            </div>
+                            {!n.isRead && <span className="mt-1.5 h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />}
+                          </div>
                         </div>
                       ))}
                     </div>
                     <Link
                       href={pathname.startsWith("/admin") ? "/admin/messages" : pathname.startsWith("/staff") ? "/staff/notifications" : "/dashboard/notifications"}
+                      prefetch={false}
                       className="block px-4 py-3 text-center text-sm text-[#1a3a6b] font-medium border-t border-gray-100 hover:bg-gray-50 rounded-b-xl"
                       onClick={() => setNotifOpen(false)}
                     >
@@ -177,7 +239,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
-                    <Link href={role === "admin" ? "/admin/settings" : role === "pro_staff" ? "/staff/settings" : "/dashboard/settings"} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setAvatarOpen(false)}>
+                    <Link href={role === "admin" ? "/admin/settings" : role === "pro_staff" ? "/staff/settings" : "/dashboard/settings"} prefetch={false} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setAvatarOpen(false)}>
                       Settings
                     </Link>
                     <button onClick={logout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">

@@ -29,6 +29,7 @@ export default function AdminDashboard() {
   const [documents, setDocuments] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
   const [stats, setStats] = useState({ companies: 0, employees: 0, requests: 0, documents: 0, isReal: false })
+  const [revenue, setRevenue] = useState({ total: 0, paid: 0, pending: 0, overdue: 0 })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -45,6 +46,23 @@ export default function AdminDashboard() {
       setDocuments(docs)
       setRequests(reqs)
       setStats(st)
+
+      // Fetch revenue from admin dashboard API (aggregated from invoices table)
+      try {
+        const dashRes = await fetch("/api/admin/dashboard")
+        if (dashRes.ok) {
+          const dashData = await dashRes.json()
+          if (dashData.revenue) {
+            setRevenue({
+              total: dashData.revenue.total || 0,
+              paid: dashData.revenue.paid || 0,
+              pending: dashData.revenue.pending || 0,
+              overdue: dashData.revenue.overdue || 0,
+            })
+          }
+        }
+      } catch {}
+
       setLoading(false)
     }
     load()
@@ -125,31 +143,33 @@ export default function AdminDashboard() {
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Revenue Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Revenue" value="AED 245,000" icon={AedIcon} description="All time revenue" trend={{ value: 12, positive: true }} />
-          <div className="bg-white rounded-xl p-6 ring-1 ring-gray-200">
+          <Link href="/admin/invoices" prefetch={false} className="block">
+            <StatCard title="Total Revenue" value={`AED ${revenue.total.toLocaleString()}`} icon={AedIcon} description="All time revenue" />
+          </Link>
+          <Link href="/admin/invoices?status=paid" prefetch={false} className="block bg-white rounded-xl p-6 ring-1 ring-gray-200 hover:ring-green-400 transition-colors">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">Paid</p>
               <AedIcon className="h-5 w-5 text-green-500" />
             </div>
-            <p className="text-2xl font-bold mt-2 text-green-600">AED 198,000</p>
-            <p className="text-xs text-gray-500 mt-1">80.8% collection rate</p>
-          </div>
-          <div className="bg-white rounded-xl p-6 ring-1 ring-gray-200">
+            <p className="text-2xl font-bold mt-2 text-green-600">AED {revenue.paid.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">{revenue.total > 0 ? Math.round(revenue.paid / revenue.total * 100) : 0}% collection rate</p>
+          </Link>
+          <Link href="/admin/invoices?status=sent" prefetch={false} className="block bg-white rounded-xl p-6 ring-1 ring-gray-200 hover:ring-yellow-400 transition-colors">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">Pending</p>
               <Clock className="h-5 w-5 text-yellow-500" />
             </div>
-            <p className="text-2xl font-bold mt-2 text-yellow-600">AED 35,000</p>
-            <p className="text-xs text-gray-500 mt-1">14.3% of total</p>
-          </div>
-          <div className="bg-white rounded-xl p-6 ring-1 ring-gray-200">
+            <p className="text-2xl font-bold mt-2 text-yellow-600">AED {revenue.pending.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">{revenue.total > 0 ? Math.round(revenue.pending / revenue.total * 100) : 0}% of total</p>
+          </Link>
+          <Link href="/admin/invoices?status=overdue" prefetch={false} className="block bg-white rounded-xl p-6 ring-1 ring-gray-200 hover:ring-red-400 transition-colors">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">Overdue</p>
               <AlertTriangle className="h-5 w-5 text-red-500" />
             </div>
-            <p className="text-2xl font-bold mt-2 text-red-600">AED 12,000</p>
-            <p className="text-xs text-gray-500 mt-1">4.9% of total</p>
-          </div>
+            <p className="text-2xl font-bold mt-2 text-red-600">AED {revenue.overdue.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">{revenue.total > 0 ? Math.round(revenue.overdue / revenue.total * 100) : 0}% of total</p>
+          </Link>
         </div>
       </div>
 
@@ -157,10 +177,10 @@ export default function AdminDashboard() {
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Company Portfolio</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/admin/companies" className="block">
+          <Link href="/admin/companies" prefetch={false} className="block">
             <StatCard title="Total Companies" value={stats.companies} icon={Building2} description="Managed companies" />
           </Link>
-          <Link href="/admin/companies" className="block bg-white rounded-xl p-6 ring-1 ring-gray-200 hover:ring-[#1a3a6b] transition-colors">
+          <Link href="/admin/companies" prefetch={false} className="block bg-white rounded-xl p-6 ring-1 ring-gray-200 hover:ring-[#1a3a6b] transition-colors">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">Active</p>
               <Building2 className="h-5 w-5 text-green-500" />
@@ -168,7 +188,7 @@ export default function AdminDashboard() {
             <p className="text-2xl font-bold mt-2 text-green-600">{activeCompanies.length}</p>
             <p className="text-xs text-gray-500 mt-1">Fully operational</p>
           </Link>
-          <Link href="/admin/companies" className="block bg-white rounded-xl p-6 ring-1 ring-gray-200 hover:ring-[#1a3a6b] transition-colors">
+          <Link href="/admin/companies" prefetch={false} className="block bg-white rounded-xl p-6 ring-1 ring-gray-200 hover:ring-[#1a3a6b] transition-colors">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">Expired License</p>
               <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -176,7 +196,7 @@ export default function AdminDashboard() {
             <p className="text-2xl font-bold mt-2 text-red-600">{expiredCompanies.length}</p>
             <p className="text-xs text-gray-500 mt-1">Needs renewal</p>
           </Link>
-          <Link href="/admin/employees" className="block">
+          <Link href="/admin/employees" prefetch={false} className="block">
             <StatCard title="Total Employees" value={stats.employees} icon={Users} description="Across all companies" />
           </Link>
         </div>
@@ -211,7 +231,7 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-500 text-center py-4">No expiring items in the next 30 days</p>
             )}
           </div>
-          <Link href="/admin/expiry-calendar" className="block mt-4 text-sm text-[#1a3a6b] hover:underline font-medium text-center">
+          <Link href="/admin/expiry-calendar" prefetch={false} className="block mt-4 text-sm text-[#1a3a6b] hover:underline font-medium text-center">
             View All Expiry Alerts
           </Link>
         </div>
@@ -223,23 +243,23 @@ export default function AdminDashboard() {
             Quick Stats
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4">
+            <Link href="/admin/employees" prefetch={false} className="block bg-blue-50 rounded-lg p-4 hover:bg-blue-100 transition-colors">
               <p className="text-sm text-gray-600">Visa Compliance Rate</p>
               <p className="text-2xl font-bold text-[#1a3a6b] mt-1">{complianceRate}%</p>
               <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-[#1a3a6b] h-2 rounded-full" style={{ width: `${complianceRate}%` }} />
               </div>
-            </div>
-            <div className="bg-orange-50 rounded-lg p-4">
+            </Link>
+            <Link href="/admin/requests" prefetch={false} className="block bg-orange-50 rounded-lg p-4 hover:bg-orange-100 transition-colors">
               <p className="text-sm text-gray-600">Active Requests</p>
               <p className="text-2xl font-bold text-orange-700 mt-1">{activeRequests.length}</p>
               <p className="text-xs text-gray-500 mt-2">{requests.filter((r) => r.status === "pending").length} pending assignment</p>
-            </div>
-            <div className="bg-red-50 rounded-lg p-4">
+            </Link>
+            <Link href="/admin/documents" prefetch={false} className="block bg-red-50 rounded-lg p-4 hover:bg-red-100 transition-colors">
               <p className="text-sm text-gray-600">Pending Documents</p>
               <p className="text-2xl font-bold text-red-700 mt-1">{pendingDocs.length}</p>
               <p className="text-xs text-gray-500 mt-2">Expired or expiring soon</p>
-            </div>
+            </Link>
           </div>
         </div>
       </div>

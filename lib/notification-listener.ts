@@ -2,39 +2,76 @@
 
 const NTFY_BASE_URL = process.env.NEXT_PUBLIC_NTFY_BASE_URL || "https://notify.corporatepro.cloud"
 
-export function startNotificationListener(topic: string, onNotification?: (data: any) => void): () => void {
+export function startNotificationListener(
+  topic: string,
+  onNotification?: (data: any) => void,
+  onStatusChange?: (connected: boolean) => void
+): () => void {
   if (typeof window === "undefined") return () => {}
 
-  // Request browser notification permission
   if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission()
   }
 
-  const url = `${NTFY_BASE_URL}/${topic}/sse`
-  const eventSource = new EventSource(url)
+  let abortController = new AbortController()
+  let retryCount = 0
+  const maxRetries = 5
 
-  eventSource.onmessage = (event) => {
+  async function connect() {
     try {
-      const data = JSON.parse(event.data)
-      // Show browser notification
-      if ("Notification" in window && Notification.permission === "granted") {
-        const n = new Notification(data.title || "YABS Notification", {
-          body: data.message || "",
-          icon: "/favicon.ico",
-          tag: data.id,
-        })
-        if (data.click) {
-          n.onclick = () => window.open(data.click, "_blank")
+      const url = `${NTFY_BASE_URL}/${topic}/json?poll=1&since=all`
+
+      // Try SSE first without auth (works if ntfy allows anonymous read)
+      const sseUrl = `${NTFY_BASE_URL}/${topic}/sse`
+      const eventSource = new EventSource(sseUrl)
+
+      eventSource.onopen = () => {
+        retryCount = 0
+        onStatusChange?.(true)
+      }
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.event === "message") {
+            if ("Notification" in window && Notification.permission === "granted") {
+              const n = new Notification(data.title || "YABS Notification", {
+                body: data.message || "",
+                icon: "/icons/icon-192.png",
+                tag: data.id,
+              })
+              if (data.click) {
+                n.onclick = () => window.open(data.click, "_blank")
+              }
+            }
+            onNotification?.(data)
+          }
+        } catch {}
+      }
+
+      eventSource.onerror = () => {
+        eventSource.close()
+        onStatusChange?.(false)
+        retryCount++
+        if (retryCount <= maxRetries) {
+          setTimeout(connect, Math.min(retryCount * 5000, 30000))
         }
       }
-      if (onNotification) onNotification(data)
-    } catch {}
+
+      // Store cleanup
+      abortController.signal.addEventListener("abort", () => {
+        eventSource.close()
+        onStatusChange?.(false)
+      })
+    } catch {
+      onStatusChange?.(false)
+    }
   }
 
-  eventSource.onerror = () => {
-    // EventSource auto-reconnects
-    console.log("[Ntfy] Connection error, will retry...")
-  }
+  connect()
 
-  return () => eventSource.close()
+  return () => {
+    abortController.abort()
+    abortController = new AbortController()
+  }
 }

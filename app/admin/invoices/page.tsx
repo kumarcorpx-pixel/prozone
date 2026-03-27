@@ -15,6 +15,10 @@ interface Invoice {
   balance: number
   status: string
   line_items?: { name: string; description?: string; rate: number; quantity: number; item_total: number }[]
+  notes?: string
+  terms?: string
+  sub_total?: number
+  tax_total?: number
 }
 
 const statusColors: Record<string, string> = {
@@ -46,6 +50,8 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [zohoConfigured, setZohoConfigured] = useState(true)
+  const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
 
   const fetchInvoices = async () => {
     try {
@@ -108,6 +114,20 @@ export default function InvoicesPage() {
     }
   }
 
+  const handleViewInvoice = async (invoiceId: string) => {
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}`)
+      if (!res.ok) throw new Error("Failed to load invoice")
+      const data = await res.json()
+      setViewInvoice(data.invoice)
+    } catch {
+      // Fallback: show from list data
+      const inv = invoices.find(i => i.invoice_id === invoiceId)
+      if (inv) setViewInvoice(inv)
+      else toast.error("Failed to load invoice details")
+    }
+  }
+
   const handleDownloadPdf = async (invoiceId: string) => {
     try {
       const res = await fetch(`/api/invoices/${invoiceId}`, {
@@ -129,6 +149,7 @@ export default function InvoicesPage() {
   }
 
   const handleSendInvoice = async (invoiceId: string) => {
+    setSendingId(invoiceId)
     try {
       const res = await fetch(`/api/invoices/${invoiceId}`, {
         method: "PUT",
@@ -137,10 +158,12 @@ export default function InvoicesPage() {
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      toast.success("Invoice sent to customer")
+      toast.success("Invoice sent to customer via Zoho")
       fetchInvoices()
     } catch (err: any) {
       toast.error(err?.message || "Failed to send invoice")
+    } finally {
+      setSendingId(null)
     }
   }
 
@@ -299,7 +322,7 @@ export default function InvoicesPage() {
               <tbody>
                 {filtered.map((inv) => (
                   <tr key={inv.invoice_id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-[#1a3a6b]">{inv.invoice_number}</td>
+                    <td className="px-6 py-4 font-medium text-[#1a3a6b] cursor-pointer hover:underline" onClick={() => handleViewInvoice(inv.invoice_id)}>{inv.invoice_number}</td>
                     <td className="px-6 py-4 text-gray-600">{inv.date}</td>
                     <td className="px-6 py-4 text-gray-900">{inv.customer_name}</td>
                     <td className="px-6 py-4 text-right font-medium text-gray-900">{(inv.total || 0).toLocaleString()}</td>
@@ -312,11 +335,14 @@ export default function InvoicesPage() {
                     <td className="px-6 py-4 text-gray-600">{inv.due_date}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
+                        <button onClick={() => handleViewInvoice(inv.invoice_id)} className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="View Invoice">
+                          <Eye className="h-4 w-4" />
+                        </button>
                         <button onClick={() => handleDownloadPdf(inv.invoice_id)} className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download PDF">
                           <Download className="h-4 w-4" />
                         </button>
-                        <button onClick={() => handleSendInvoice(inv.invoice_id)} className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Send to Customer">
-                          <Send className="h-4 w-4" />
+                        <button onClick={() => handleSendInvoice(inv.invoice_id)} disabled={sendingId === inv.invoice_id} className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors disabled:opacity-50" title="Send to Customer">
+                          {sendingId === inv.invoice_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         </button>
                       </div>
                     </td>
@@ -335,6 +361,84 @@ export default function InvoicesPage() {
           </div>
         )}
       </div>
+      {/* View Invoice Modal */}
+      {viewInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setViewInvoice(null)} />
+          <div className="relative z-10 w-full max-w-[640px] max-h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Invoice {viewInvoice.invoice_number}</h2>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize mt-1 ${statusColors[viewInvoice.status] || "bg-gray-100 text-gray-700"}`}>
+                  {viewInvoice.status?.replace("_", " ")}
+                </span>
+              </div>
+              <button onClick={() => setViewInvoice(null)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><p className="text-gray-500">Customer</p><p className="font-medium">{viewInvoice.customer_name}</p></div>
+                <div><p className="text-gray-500">Date</p><p className="font-medium">{viewInvoice.date}</p></div>
+                <div><p className="text-gray-500">Due Date</p><p className="font-medium">{viewInvoice.due_date}</p></div>
+                <div><p className="text-gray-500">Balance Due</p><p className="font-medium text-red-600">AED {(viewInvoice.balance || 0).toLocaleString()}</p></div>
+              </div>
+
+              {viewInvoice.line_items && viewInvoice.line_items.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Line Items</h3>
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b text-gray-500">
+                      <th className="text-left py-2">Item</th>
+                      <th className="text-right py-2">Rate</th>
+                      <th className="text-right py-2">Qty</th>
+                      <th className="text-right py-2">Amount</th>
+                    </tr></thead>
+                    <tbody>
+                      {viewInvoice.line_items.map((item, i) => (
+                        <tr key={i} className="border-b border-gray-50">
+                          <td className="py-2">
+                            <p className="font-medium">{item.name}</p>
+                            {item.description && <p className="text-xs text-gray-500">{item.description}</p>}
+                          </td>
+                          <td className="py-2 text-right">{(item.rate || 0).toLocaleString()}</td>
+                          <td className="py-2 text-right">{item.quantity}</td>
+                          <td className="py-2 text-right font-medium">{(item.item_total || 0).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="border-t border-gray-200 pt-3 space-y-1 text-sm">
+                {viewInvoice.sub_total != null && (
+                  <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>AED {viewInvoice.sub_total.toLocaleString()}</span></div>
+                )}
+                {viewInvoice.tax_total != null && viewInvoice.tax_total > 0 && (
+                  <div className="flex justify-between"><span className="text-gray-500">VAT</span><span>AED {viewInvoice.tax_total.toLocaleString()}</span></div>
+                )}
+                <div className="flex justify-between font-bold text-base pt-1 border-t">
+                  <span>Total</span><span>AED {(viewInvoice.total || 0).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {viewInvoice.notes && (
+                <div><p className="text-xs text-gray-500 mb-1">Notes</p><p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{viewInvoice.notes}</p></div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+              <button onClick={() => handleDownloadPdf(viewInvoice.invoice_id)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50">
+                <Download className="h-4 w-4" /> Download PDF
+              </button>
+              <button onClick={() => { handleSendInvoice(viewInvoice.invoice_id); setViewInvoice(null) }} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a]">
+                <Send className="h-4 w-4" /> Send to Customer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
