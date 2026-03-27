@@ -128,6 +128,23 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState(user?.phone || "")
   const [integrations, setIntegrations] = useState<IntegrationData | null>(null)
   const [loadingTest, setLoadingTest] = useState<string | null>(null)
+  const [currentPw, setCurrentPw] = useState("")
+  const [newPw, setNewPw] = useState("")
+
+  const handleChangePassword = async () => {
+    if (!currentPw || !newPw) { toast.error("Both passwords required"); return }
+    if (newPw.length < 8) { toast.error("New password must be at least 8 characters"); return }
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+      })
+      const data = await res.json()
+      if (res.ok) { toast.success("Password changed"); setCurrentPw(""); setNewPw("") }
+      else toast.error(data.error || "Failed to change password")
+    } catch { toast.error("Failed to change password") }
+  }
 
   const fetchIntegrations = useCallback(async () => {
     try {
@@ -247,6 +264,19 @@ export default function SettingsPage() {
           <button className="px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
             Save Changes
           </button>
+          {/* Change Password */}
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Change Password</h4>
+            <div className="space-y-3">
+              <input type="password" placeholder="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+              <input type="password" placeholder="New password (min 8 chars)" value={newPw} onChange={e => setNewPw(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+              <button onClick={handleChangePassword} className="px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
+                Change Password
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

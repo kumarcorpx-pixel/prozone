@@ -88,14 +88,14 @@ export async function GET(request: NextRequest) {
     const where: any = {}
     if (status) where.status = status
     if (priority) where.priority = priority
-    if (assignedTo) where.assignedTo = assignedTo
+    if (assignedTo) where.assignedToId = assignedTo
 
     const requests = await prisma.serviceRequest.findMany({
       where,
       include: {
         client: { select: { fullName: true } },
         company: { select: { name: true } },
-        assignee: { select: { fullName: true } },
+        assignedTo: { select: { fullName: true } },
       },
       orderBy: { createdAt: "desc" },
     })
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
         ...r,
         clientName: r.client?.fullName,
         companyName: r.company?.name,
-        assignedToName: r.assignee?.fullName,
+        assignedToName: r.assignedTo?.fullName,
       })),
     })
   } catch (error) {

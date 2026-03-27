@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Login failed" }, { status: 401 })
+    const message = err.message === "Invalid credentials" ? "Invalid credentials" : "Authentication failed"
+    return NextResponse.json({ error: message }, { status: 401 })
   }
 }

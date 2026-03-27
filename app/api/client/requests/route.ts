@@ -4,6 +4,7 @@ import { serviceRequestSchema, sanitize } from "@/lib/validation/schemas"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { runNewRequestWorkflow } from "@/lib/workflow-engine"
+import { handleApiError } from "@/lib/api-error-handler"
 
 const demoRequests = [
   {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
       where: { clientId: user.id },
       include: {
         company: { select: { name: true } },
-        assignee: { select: { fullName: true } },
+        assignedTo: { select: { fullName: true } },
       },
       orderBy: { createdAt: "desc" },
     })
@@ -56,14 +57,11 @@ export async function GET(request: NextRequest) {
       requests: requests.map((r: any) => ({
         ...r,
         companyName: r.company?.name,
-        assignedToName: r.assignee?.fullName,
+        assignedToName: r.assignedTo?.fullName,
       })),
     })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch requests" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -108,10 +106,7 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json({ request: newRequest }, { status: 201 })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to create request" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

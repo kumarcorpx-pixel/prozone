@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Send, MessageSquare } from "lucide-react"
 
 interface Message {
@@ -21,56 +21,29 @@ interface Conversation {
   messages: Message[]
 }
 
-const demoConversations: Conversation[] = [
-  {
-    id: "c1",
-    name: "Ahmed Al Mansoori",
-    role: "Client",
-    lastMessage: "We're processing it with DED now. Expected 2-3 days.",
-    time: "10:30 AM",
-    unread: 1,
-    messages: [
-      { id: "m1", sender: "Ahmed Al Mansoori", text: "Hi, I wanted to check on the status of my trade license renewal.", time: "9:15 AM", isAdmin: false },
-      { id: "m2", sender: "Admin", text: "Hello Ahmed, let me check the current status for you.", time: "9:20 AM", isAdmin: true },
-      { id: "m3", sender: "Ahmed Al Mansoori", text: "When will my trade license be ready?", time: "10:00 AM", isAdmin: false },
-      { id: "m4", sender: "Admin", text: "We're processing it with DED now. Expected 2-3 days.", time: "10:30 AM", isAdmin: true },
-    ],
-  },
-  {
-    id: "c2",
-    name: "Mohammed PRO",
-    role: "Staff",
-    lastMessage: "Good, please update the request status",
-    time: "Yesterday",
-    unread: 0,
-    messages: [
-      { id: "m5", sender: "Mohammed PRO", text: "Just wanted to update you - I submitted the visa application to MOHRE this morning.", time: "Yesterday 2:00 PM", isAdmin: false },
-      { id: "m6", sender: "Admin", text: "Great work, Mohammed. Which client is this for?", time: "Yesterday 2:15 PM", isAdmin: true },
-      { id: "m7", sender: "Mohammed PRO", text: "Submitted visa application to MOHRE", time: "Yesterday 3:00 PM", isAdmin: false },
-      { id: "m8", sender: "Admin", text: "Good, please update the request status", time: "Yesterday 3:10 PM", isAdmin: true },
-    ],
-  },
-  {
-    id: "c3",
-    name: "Fatima Al Hashmi",
-    role: "Client",
-    lastMessage: "I'll send you the required documents list",
-    time: "Mar 24",
-    unread: 2,
-    messages: [
-      { id: "m9", sender: "Fatima Al Hashmi", text: "Hello, I'm interested in setting up a new company in the free zone.", time: "Mar 24 9:00 AM", isAdmin: false },
-      { id: "m10", sender: "Admin", text: "Welcome Fatima! We'd be happy to help with company formation. Which free zone are you considering?", time: "Mar 24 9:30 AM", isAdmin: true },
-      { id: "m11", sender: "Fatima Al Hashmi", text: "Need help with company formation", time: "Mar 24 10:00 AM", isAdmin: false },
-      { id: "m12", sender: "Admin", text: "I'll send you the required documents list", time: "Mar 24 10:15 AM", isAdmin: true },
-    ],
-  },
-]
-
 export default function MessagesPage() {
-  const [selectedConversation, setSelectedConversation] = useState<string>(demoConversations[0].id)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedConversation, setSelectedConversation] = useState<string>("")
   const [newMessage, setNewMessage] = useState("")
 
-  const activeConversation = demoConversations.find((c) => c.id === selectedConversation)
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch("/api/admin/messages")
+        if (res.ok) {
+          const data = await res.json()
+          const convs = data.conversations || []
+          setConversations(convs)
+          if (convs.length > 0) setSelectedConversation(convs[0].id)
+        }
+      } catch {}
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const activeConversation = conversations.find((c) => c.id === selectedConversation)
 
   return (
     <div className="space-y-6">
@@ -79,6 +52,15 @@ export default function MessagesPage() {
         <p className="text-sm text-gray-500 mt-1">Internal messaging and client communication</p>
       </div>
 
+      {loading ? (
+        <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+      ) : conversations.length === 0 ? (
+        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
+          <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-600 font-medium">No conversations yet</p>
+          <p className="text-sm text-gray-400 mt-1">Messages will appear when clients or staff send inquiries.</p>
+        </div>
+      ) : (
       <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden flex" style={{ height: "calc(100vh - 220px)", minHeight: "500px" }}>
         {/* Left Sidebar - Conversation List */}
         <div className="w-80 border-r border-gray-200 flex flex-col flex-shrink-0">
@@ -86,7 +68,7 @@ export default function MessagesPage() {
             <h2 className="text-sm font-semibold text-gray-700">Conversations</h2>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {demoConversations.map((conv) => (
+            {conversations.map((conv) => (
               <button
                 key={conv.id}
                 onClick={() => setSelectedConversation(conv.id)}
@@ -198,6 +180,7 @@ export default function MessagesPage() {
           )}
         </div>
       </div>
+      )}
     </div>
   )
 }

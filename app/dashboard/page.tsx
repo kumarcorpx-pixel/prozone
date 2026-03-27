@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { fetchCompanies, fetchEmployees, fetchDocuments, fetchRequests } from "@/lib/data-fetcher"
-import { demoNotifications, demoPayments, demoRequestDocuments } from "@/lib/demo-data"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import Link from "next/link"
@@ -32,6 +31,8 @@ export default function DashboardPage() {
   const [employees, setEmployees] = useState<any[]>([])
   const [documents, setDocuments] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [payments, setPayments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -46,6 +47,32 @@ export default function DashboardPage() {
       setEmployees(e)
       setDocuments(d)
       setRequests(r)
+
+      // Fetch notifications
+      try {
+        const notifRes = await fetch("/api/notifications")
+        if (notifRes.ok) {
+          const notifData = await notifRes.json()
+          setNotifications((notifData.notifications || []).map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            type: n.type || "info",
+            is_read: n.isRead ?? n.is_read ?? false,
+            created_at: n.createdAt || n.created_at || "",
+          })))
+        }
+      } catch {}
+
+      // Fetch invoices/payments
+      try {
+        const payRes = await fetch("/api/invoices")
+        if (payRes.ok) {
+          const payData = await payRes.json()
+          setPayments(payData.invoices || [])
+        }
+      } catch {}
+
       setLoading(false)
     }
     load()
@@ -60,10 +87,7 @@ export default function DashboardPage() {
   const myRequests = requests
   const activeRequests = myRequests.filter(r => r.status !== "completed" && r.status !== "rejected")
   const completedRequests = myRequests.filter(r => r.status === "completed")
-  const pendingPayments = demoPayments.filter(p => p.status === "pending")
-
-  // Documents linked to requests
-  const myRequestDocs = demoRequestDocuments
+  const pendingPayments = payments.filter((p: any) => p.status === "pending" || p.status === "unpaid" || p.status === "overdue")
 
   // Expiring documents
   const expiringDocs = myDocuments.filter(d => {
@@ -83,7 +107,7 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5)
 
-  const recentNotifications = [...demoNotifications]
+  const recentNotifications = [...notifications]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 4)
 

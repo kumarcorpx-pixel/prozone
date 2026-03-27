@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { handleApiError } from "@/lib/api-error-handler"
 
 const demoDashboard = {
   companies: [
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
     const [companies, activeCount, completedCount, documentsCount] =
       await Promise.all([
         prisma.company.findMany({
-          where: { ownerId: user.id },
+          where: { createdById: user.id },
           orderBy: { createdAt: "desc" },
         }),
         prisma.serviceRequest.count({
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
           },
         }),
         prisma.document.count({
-          where: { ownerId: user.id },
+          where: { createdById: user.id },
         }),
       ])
 
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
     const sixtyDaysFromNow = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
     const expiryAlerts = await prisma.document.findMany({
       where: {
-        ownerId: user.id,
+        createdById: user.id,
         expiryDate: {
           not: null,
           lte: sixtyDaysFromNow,
@@ -87,10 +88,7 @@ export async function GET(request: NextRequest) {
           : null,
       })),
     })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch dashboard" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

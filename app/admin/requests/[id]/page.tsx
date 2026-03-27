@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { demoRequestDocuments } from "@/lib/demo-data"
+import { fetchDocuments } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { isChecklistItemCompleted, toggleChecklistItem, addNote, getNotes, getTimelineEntries, setRequestStatus, getRequestStatus } from "@/lib/demo-store"
 import { fetchRequests } from "@/lib/data-fetcher"
@@ -16,13 +16,6 @@ import { AedIcon } from "@/components/ui/aed-icon"
 
 const statusOptions = ["pending", "in_progress", "under_review", "completed", "rejected"]
 
-const demoFees = [
-  { type: "MOHRE Work Permit", amount: 3500, status: "paid_by_yabs", receipt: "MOHRE-2025-78901", date: "2025-03-15" },
-  { type: "GDRFA Entry Permit", amount: 1500, status: "paid_by_yabs", receipt: "GDRFA-2025-45678", date: "2025-03-16" },
-  { type: "Medical Fitness", amount: 350, status: "paid_by_yabs", receipt: "MED-2025-12345", date: "2025-03-18" },
-  { type: "Typing / Amer Center", amount: 200, status: "paid_by_yabs", receipt: "AMR-2025-67890", date: "2025-03-15" },
-  { type: "YABS Service Fee", amount: 2500, status: "pending_reimbursement", receipt: "YABS-INV-2025-001", date: "2025-03-14" },
-]
 
 const feeStatusColors: Record<string, string> = {
   paid_by_yabs: "bg-green-100 text-green-800",
@@ -43,6 +36,8 @@ export default function AdminRequestDetailPage() {
   const [newChecklistItem, setNewChecklistItem] = useState("")
   const [extraItems, setExtraItems] = useState<string[]>([])
   const [realTimeline, setRealTimeline] = useState<any[]>([])
+  const [governmentFees, setGovernmentFees] = useState<any[]>([])
+  const [realDocs, setRealDocs] = useState<any[]>([])
 
   useEffect(() => {
     async function load() {
@@ -52,6 +47,11 @@ export default function AdminRequestDetailPage() {
       setRequest(req)
       if (req) {
         setStatus(getRequestStatus(req.id, req.status))
+        // Fetch real documents for this request's company
+        try {
+          const docs = await fetchDocuments(req.company_id)
+          setRealDocs(docs)
+        } catch {}
       }
       // Try to load real timeline
       try {
@@ -60,6 +60,14 @@ export default function AdminRequestDetailPage() {
       } catch {
         // Fallback: no real timeline available
       }
+      // Try to load government fees
+      try {
+        const feeRes = await fetch(`/api/data/requests/${requestId}`)
+        if (feeRes.ok) {
+          const feeData = await feeRes.json()
+          if (feeData.government_fees) setGovernmentFees(feeData.government_fees)
+        }
+      } catch {}
       setLoading(false)
     }
     load()
@@ -88,7 +96,7 @@ export default function AdminRequestDetailPage() {
   }
 
   const checklistItems = [...getChecklistForServiceType(request.service_type), ...extraItems]
-  const reqDocs = demoRequestDocuments.filter(d => d.request_id === request.id)
+  const reqDocs = realDocs.filter((d: any) => d.request_id === request.id || d.company_id === request.company_id)
   const demoTimelineEntries = getTimelineEntries(request.id)
   const notes = getNotes(request.id)
   const completedCount = checklistItems.filter(item => isChecklistItemCompleted(request.id, item) === true).length
@@ -260,9 +268,9 @@ export default function AdminRequestDetailPage() {
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-[#1a3a6b]" />
                     <div>
-                      <p className="text-sm font-medium">{doc.file_name}</p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${docTypeBadge[doc.doc_type] || docTypeBadge.general}`}>
-                        {doc.doc_type}
+                      <p className="text-sm font-medium">{doc.file_name || doc.name}</p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${docTypeBadge[doc.doc_type || doc.document_type] || docTypeBadge.general}`}>
+                        {doc.doc_type || doc.document_type || "general"}
                       </span>
                     </div>
                   </div>
@@ -357,39 +365,43 @@ export default function AdminRequestDetailPage() {
 
         {activeTab === "fees" && (
           <div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Fee Type</th>
-                  <th className="text-right px-4 py-3 text-gray-500 font-medium">Amount (AED)</th>
-                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Receipt #</th>
-                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {demoFees.map((fee, i) => (
-                  <tr key={i} className="border-b border-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{fee.type}</td>
-                    <td className="px-4 py-3 text-right">{fee.amount.toLocaleString()}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${feeStatusColors[fee.status] || "bg-gray-100"}`}>
-                        {fee.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">{fee.receipt}</td>
-                    <td className="px-4 py-3 text-gray-500">{new Date(fee.date).toLocaleDateString()}</td>
+            {governmentFees.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Fee Type</th>
+                    <th className="text-right px-4 py-3 text-gray-500 font-medium">Amount (AED)</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Receipt #</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Date</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-gray-50 font-semibold">
-                  <td className="px-4 py-3">Total</td>
-                  <td className="px-4 py-3 text-right">AED {demoFees.reduce((s, f) => s + f.amount, 0).toLocaleString()}</td>
-                  <td colSpan={3} />
-                </tr>
-              </tfoot>
-            </table>
+                </thead>
+                <tbody>
+                  {governmentFees.map((fee: any, i: number) => (
+                    <tr key={fee.id || i} className="border-b border-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{fee.fee_type || fee.feeType}</td>
+                      <td className="px-4 py-3 text-right">{Number(fee.amount).toLocaleString()}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${feeStatusColors[fee.payment_status || fee.paymentStatus] || "bg-gray-100"}`}>
+                          {(fee.payment_status || fee.paymentStatus || "pending").replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 font-mono text-xs">{fee.receipt_number || fee.receiptNumber || "---"}</td>
+                      <td className="px-4 py-3 text-gray-500">{fee.paid_date || fee.paidDate ? new Date(fee.paid_date || fee.paidDate).toLocaleDateString() : "---"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50 font-semibold">
+                    <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3 text-right">AED {governmentFees.reduce((s: number, f: any) => s + Number(f.amount), 0).toLocaleString()}</td>
+                    <td colSpan={3} />
+                  </tr>
+                </tfoot>
+              </table>
+            ) : (
+              <p className="text-center text-gray-500 py-8">No government fees recorded for this request.</p>
+            )}
           </div>
         )}
       </div>

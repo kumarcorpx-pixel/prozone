@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { fetchDocuments, fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
 import { documentCategories } from "@/lib/company-data"
-import { demoRequestDocuments } from "@/lib/demo-data"
+import { toast } from "sonner"
 import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2 } from "lucide-react"
 
 const allCategories = ["all", ...Object.keys(documentCategories)] as const
@@ -37,6 +37,36 @@ export default function DocumentsPage() {
   const [companies, setCompanies] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("name", file.name)
+      if (user?.company_id) formData.append("companyId", user.company_id)
+      formData.append("documentType", "other")
+      const res = await fetch("/api/documents/upload", { method: "POST", body: formData })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success("Document uploaded successfully")
+        // Reload documents
+        const d = await fetchDocuments(user?.company_id || undefined)
+        setDocuments(d)
+      } else {
+        toast.error(data.error || "Upload failed")
+      }
+    } catch {
+      toast.error("Upload failed")
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -62,8 +92,8 @@ export default function DocumentsPage() {
   const myCompanyDocs = documents.filter(d => d.company_id === user?.company_id && !d.employee_id)
   // Employee documents
   const myEmployeeDocs = documents.filter(d => d.company_id === user?.company_id && d.employee_id)
-  // Request-linked documents
-  const myRequestDocs = demoRequestDocuments
+  // Request-linked documents (real docs linked to requests)
+  const myRequestDocs = documents.filter(d => d.company_id === user?.company_id && d.request_id)
 
   const getTabDocs = () => {
     switch (activeTab) {
@@ -94,10 +124,11 @@ export default function DocumentsPage() {
             {myCompany ? `${myCompany.name} — ` : ""}All documents linked to your company, employees, and service requests.
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors">
+        <label className={`inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
           <Upload className="h-4 w-4" />
-          Upload Document
-        </button>
+          {uploading ? "Uploading..." : "Upload Document"}
+          <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.docx" />
+        </label>
       </div>
 
       {/* Tabs */}
@@ -144,16 +175,16 @@ export default function DocumentsPage() {
                             <FileText className="h-4 w-4 text-[#1a3a6b]" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{doc.file_name}</p>
+                            <p className="text-sm font-medium text-gray-900">{doc.file_name || doc.name}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                doc.doc_type === "required" ? "bg-blue-100 text-blue-700" :
-                                doc.doc_type === "submitted" ? "bg-yellow-100 text-yellow-700" :
-                                doc.doc_type === "processed" ? "bg-purple-100 text-purple-700" :
-                                doc.doc_type === "final" ? "bg-green-100 text-green-700" :
+                                (doc.doc_type || doc.document_type) === "required" ? "bg-blue-100 text-blue-700" :
+                                (doc.doc_type || doc.document_type) === "submitted" ? "bg-yellow-100 text-yellow-700" :
+                                (doc.doc_type || doc.document_type) === "processed" ? "bg-purple-100 text-purple-700" :
+                                (doc.doc_type || doc.document_type) === "final" ? "bg-green-100 text-green-700" :
                                 "bg-gray-100 text-gray-700"
                               }`}>
-                                {doc.doc_type}
+                                {doc.doc_type || doc.document_type || "general"}
                               </span>
                               <span className="text-xs text-gray-400">
                                 {new Date(doc.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}

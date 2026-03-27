@@ -6,7 +6,7 @@ import { handleApiError } from "@/lib/api-error-handler"
 import { onDocumentChange } from "@/lib/cache"
 
 export async function POST(request: NextRequest) {
-  const auth = await withAuth(request, ["admin", "pro_staff"])
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
   if (!auth.success) return auth.response
 
   const ip = request.headers.get("x-forwarded-for") || "unknown"

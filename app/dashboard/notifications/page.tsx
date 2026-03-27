@@ -1,31 +1,58 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Bell, Info, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react"
 
 const typeIcons: Record<string, typeof Info> = { info: Info, warning: AlertTriangle, error: AlertCircle, success: CheckCircle2 }
 const typeColors: Record<string, string> = { info: "bg-blue-100 text-blue-600", warning: "bg-yellow-100 text-yellow-600", error: "bg-red-100 text-red-600", success: "bg-green-100 text-green-600" }
 
-const initialNotifications = [
-  { id: "cn1", title: "URGENT: Trade License expiring in 5 days", message: "Gulf Trading LLC trade license expires 31 Mar 2026. Renewal in progress.", type: "error", read: false, time: "1 hour ago", category: "expiry" },
-  { id: "cn2", title: "Request Update", message: "Trade license renewal submitted to DED. Awaiting processing.", type: "info", read: false, time: "2 hours ago", category: "request" },
-  { id: "cn3", title: "Payment Due", message: "Invoice INV-2026-001 for AED 12,600 pending. Due in 5 days.", type: "warning", read: false, time: "20 Mar", category: "payment" },
-  { id: "cn4", title: "Document Ready", message: "Attested Board Resolution ready for collection.", type: "success", read: true, time: "8 Mar", category: "request" },
-  { id: "cn5", title: "Payment Received", message: "AED 840 received for Document Attestation. Thank you.", type: "success", read: true, time: "2 Mar", category: "payment" },
-  { id: "cn6", title: "Visa Expiring Soon", message: "Sara Mahmoud (Emirates Zone Group) visa expiring in 20 days.", type: "warning", read: true, time: "25 Mar", category: "expiry" },
-  { id: "cn7", title: "New Request Created", message: "Company Formation for Tech Ventures FZCO initiated.", type: "info", read: true, time: "12 Mar", category: "request" },
-  { id: "cn8", title: "OVERDUE: Visa Expired", message: "Ravi Patel visa expired 115 days ago. Immediate action required.", type: "error", read: true, time: "ongoing", category: "expiry" },
-]
+function getRelativeTime(dateStr: string): string {
+  const now = new Date()
+  const date = new Date(dateStr)
+  const diff = now.getTime() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+}
 
 const tabs = ["all", "expiry", "request", "payment"] as const
 const tabLabels: Record<string, string> = { all: "All", expiry: "Expiry Alerts", request: "Request Updates", payment: "Payments" }
 
 export default function ClientNotificationsPage() {
-  const [notifications, setNotifications] = useState(initialNotifications)
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<string>("all")
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch("/api/notifications")
+        if (res.ok) {
+          const data = await res.json()
+          setNotifications((data.notifications || []).map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            type: n.type || "info",
+            read: n.isRead ?? n.is_read ?? false,
+            time: n.createdAt ? getRelativeTime(n.createdAt) : (n.created_at ? getRelativeTime(n.created_at) : ""),
+            category: n.category || "request",
+          })))
+        }
+      } catch {}
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const unreadCount = notifications.filter(n => !n.read).length
   const filtered = tab === "all" ? notifications : notifications.filter(n => n.category === tab)
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div className="space-y-6">

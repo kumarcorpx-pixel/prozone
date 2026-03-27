@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { handleApiError } from "@/lib/api-error-handler"
 
 const demoRequests = [
   {
@@ -36,7 +37,7 @@ async function checkStaffAuth(request: NextRequest) {
     return { authorized: false, user: null }
   }
 
-  if (!["staff", "admin"].includes(user.role)) {
+  if (!["pro_staff", "admin"].includes(user.role)) {
     return { authorized: false, user }
   }
 
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     const requests = await prisma.serviceRequest.findMany({
-      where: { assignedTo: auth.user.id },
+      where: { assignedToId: auth.user.id },
       include: {
         client: { select: { fullName: true } },
         company: { select: { name: true } },
@@ -80,11 +81,8 @@ export async function GET(request: NextRequest) {
         companyName: r.company?.name,
       })),
     })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch requests" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -133,14 +131,14 @@ export async function PATCH(request: NextRequest) {
     // Verify the request is assigned to this staff member
     const existing = await prisma.serviceRequest.findUnique({
       where: { id },
-      select: { id: true, assignedTo: true },
+      select: { id: true, assignedToId: true },
     })
 
     if (!existing) {
       return NextResponse.json({ error: "Request not found" }, { status: 404 })
     }
 
-    if (existing.assignedTo !== auth.user.id) {
+    if (existing.assignedToId !== auth.user.id) {
       return NextResponse.json(
         { error: "You can only update requests assigned to you" },
         { status: 403 }
@@ -159,10 +157,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     return NextResponse.json({ request: updated })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to update request" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

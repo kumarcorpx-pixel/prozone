@@ -3,11 +3,8 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import {
-  demoChecklist,
-  demoRequestDocuments,
-} from "@/lib/demo-data"
-import { fetchRequests } from "@/lib/data-fetcher"
+import { getChecklistForServiceType } from "@/lib/checklist-templates"
+import { fetchRequests, fetchDocuments } from "@/lib/data-fetcher"
 import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/api"
 import type { ServiceRequest, RequestTimeline } from "@/lib/types"
 import { toast } from "sonner"
@@ -69,6 +66,7 @@ export default function StaffRequestDetailPage() {
   const [checklistItems, setChecklistItems] = useState<RequestChecklist[]>([])
   const [uploadDocType, setUploadDocType] = useState<string>("submitted")
   const [realTimeline, setRealTimeline] = useState<any[]>([])
+  const [realDocs, setRealDocs] = useState<any[]>([])
 
   useEffect(() => {
     async function load() {
@@ -78,7 +76,23 @@ export default function StaffRequestDetailPage() {
       setRequest(req)
       if (req) {
         setSelectedStatus(req.status || "pending")
-        setChecklistItems(demoChecklist.filter((c) => c.request_id === requestId))
+        // Build checklist from service type template
+        const templateItems = getChecklistForServiceType(req.service_type)
+        setChecklistItems(templateItems.map((item, i) => ({
+          id: `checklist-${i}`,
+          request_id: requestId,
+          item,
+          is_completed: false,
+          completed_by: null,
+          completed_at: null,
+          sort_order: i + 1,
+          created_at: new Date().toISOString(),
+        })))
+        // Fetch real documents for this company
+        try {
+          const docs = await fetchDocuments(req.company_id)
+          setRealDocs(docs)
+        } catch {}
       }
       // Try to load real timeline
       try {
@@ -120,7 +134,7 @@ export default function StaffRequestDetailPage() {
     )
   }
 
-  const requestDocs = demoRequestDocuments.filter((d) => d.request_id === requestId)
+  const requestDocs = realDocs.filter((d: any) => d.company_id === request.company_id)
   const completedItems = checklistItems.filter((c) => c.is_completed).length
   const totalItems = checklistItems.length
 
@@ -384,10 +398,9 @@ export default function StaffRequestDetailPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {doc.file_name}
+                          {doc.file_name || doc.name}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          Uploaded by {doc.uploaded_by === "demo-client-001" ? "Client" : "Staff"} &middot;{" "}
                           {new Date(doc.created_at).toLocaleDateString("en-GB", {
                             day: "numeric",
                             month: "short",
@@ -397,10 +410,10 @@ export default function StaffRequestDetailPage() {
                       </div>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                          docTypeColors[doc.doc_type] || docTypeColors.general
+                          docTypeColors[doc.doc_type || doc.document_type] || docTypeColors.general
                         }`}
                       >
-                        {doc.doc_type}
+                        {doc.doc_type || doc.document_type || "general"}
                       </span>
                     </div>
                   ))

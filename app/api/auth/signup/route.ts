@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     if (err.code === "P2002") {
       return NextResponse.json({ error: "Email already exists" }, { status: 409 })
     }
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const message = err.message === "Invalid credentials" ? "Invalid credentials" : "Authentication failed"
+    return NextResponse.json({ error: message }, { status: 401 })
   }
 }

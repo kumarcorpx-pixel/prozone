@@ -37,7 +37,17 @@ export default function TrackingPage() {
         <div className="space-y-6">
           {activeRequests.map(req => {
             const steps = getChecklistForServiceType(req.service_type)
-            const completedSteps = Math.min(Math.floor(steps.length * 0.4), steps.length)
+            // Calculate actual progress based on request status
+            const statusProgress: Record<string, number> = {
+              pending: 0,
+              in_progress: 0.3,
+              under_review: 0.6,
+              approved: 0.8,
+              completed: 1,
+              rejected: 0,
+            }
+            const progress = statusProgress[req.status] ?? 0
+            const completedSteps = Math.min(Math.round(steps.length * progress), steps.length)
             const currentStep = steps[completedSteps] || "Processing"
 
             return (

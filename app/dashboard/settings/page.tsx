@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Settings, User, Bell, Building2, Phone, Mail, MapPin, Clock, MessageCircle } from "lucide-react"
+import { toast } from "sonner"
 
 export default function ClientSettingsPage() {
   const { user } = useAuth()
@@ -15,9 +16,26 @@ export default function ClientSettingsPage() {
   const [expiry30, setExpiry30] = useState(true)
   const [expiry60, setExpiry60] = useState(true)
   const [expiry90, setExpiry90] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName: name, phone }),
+      })
+      if (res.ok) {
+        toast.success("Profile updated successfully")
+      } else {
+        toast.error("Failed to update profile")
+      }
+    } catch {
+      toast.error("Failed to update profile")
+    }
+    setSaving(false)
+  }
 
   const Toggle = ({ on, toggle }: { on: boolean; toggle: () => void }) => (
     <button onClick={toggle} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${on ? "bg-[#1a3a6b]" : "bg-gray-300"}`}>
@@ -110,8 +128,8 @@ export default function ClientSettingsPage() {
         </div>
       </div>
 
-      <button onClick={handleSave} className="px-6 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]">
-        {saved ? "Saved!" : "Save Changes"}
+      <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] disabled:opacity-50">
+        {saving ? "Saving..." : "Save Changes"}
       </button>
     </div>
   )
