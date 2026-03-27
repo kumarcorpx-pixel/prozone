@@ -3,7 +3,16 @@
 import { useState, useMemo, useEffect } from "react"
 import { fetchCompanies, fetchEmployees, fetchDocuments } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval, format, getDay, isSameDay } from "date-fns"
+import { differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval, format as fnsFormat, getDay, isSameDay } from "date-fns"
+
+function format(date: any, pattern: string): string {
+  try {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) return "N/A"
+    return fnsFormat(date, pattern)
+  } catch {
+    return "N/A"
+  }
+}
 import {
   CalendarDays,
   List,
@@ -97,6 +106,13 @@ function getDotColor(status: ExpiryItem["status"]): string {
 }
 
 export default function ExpiryCalendarPage() {
+  return (
+    <ExpiryCalendarContent />
+  )
+}
+
+function ExpiryCalendarContent() {
+  const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<"list" | "calendar">("list")
   const [typeFilter, setTypeFilter] = useState("all")
   const [companyFilter, setCompanyFilter] = useState("all")
@@ -258,9 +274,11 @@ export default function ExpiryCalendarPage() {
   const itemsByDate = useMemo(() => {
     const map: Record<string, ExpiryItem[]> = {}
     filtered.forEach((item) => {
-      const key = format(item.expiryDate, "yyyy-MM-dd")
-      if (!map[key]) map[key] = []
-      map[key].push(item)
+      try {
+        const key = format(item.expiryDate, "yyyy-MM-dd")
+        if (!map[key]) map[key] = []
+        map[key].push(item)
+      } catch {}
     })
     return map
   }, [filtered])
