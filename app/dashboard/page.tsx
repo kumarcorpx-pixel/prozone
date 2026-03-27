@@ -53,13 +53,11 @@ export default function DashboardPage() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
-  // Get client's company
-  const myCompany = companies.find(c => c.id === user?.company_id)
-  const myEmployees = employees.filter(e => e.company_id === user?.company_id)
-  const myDocuments = documents.filter(d => d.company_id === user?.company_id)
-
-  // Requests linked to client
-  const myRequests = requests.filter(r => r.client_id === user?.id || r.company?.name === myCompany?.name)
+  // Instead of filtering by company_id (which is null), show all data
+  const myCompanies = companies
+  const myEmployees = employees
+  const myDocuments = documents
+  const myRequests = requests
   const activeRequests = myRequests.filter(r => r.status !== "completed" && r.status !== "rejected")
   const completedRequests = myRequests.filter(r => r.status === "completed")
   const pendingPayments = demoPayments.filter(p => p.status === "pending")
@@ -96,9 +94,9 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold">
           Welcome back, {user?.full_name}
         </h1>
-        {myCompany && (
+        {myCompanies.length > 0 && (
           <p className="text-gray-300 mt-1">
-            {myCompany.name} &middot; {myCompany.emirate} &middot; License: {myCompany.license_number}
+            {myCompanies[0].name} &middot; {myCompanies[0].emirate} &middot; License: {myCompanies[0].license_number}
           </p>
         )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">

@@ -30,7 +30,7 @@ export default function CompanyPage() {
       ])
       setCompanies(c)
       setAllEmployees(e)
-      const myCompanies = c.filter((co: any) => co.id === user?.company_id || co.id === "comp-002")
+      const myCompanies = c
       if (myCompanies.length > 0) setSelectedId(myCompanies[0].id)
       setLoading(false)
     }
@@ -39,7 +39,7 @@ export default function CompanyPage() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
-  const myCompanies = companies.filter(c => c.id === user?.company_id || c.id === "comp-002")
+  const myCompanies = companies
   const company = myCompanies.find(c => c.id === selectedId) || myCompanies[0]
   const employees = allEmployees.filter(e => e.company_id === selectedId)
   const licenseExpiry = getExpiryInfo(company?.license_expiry)
