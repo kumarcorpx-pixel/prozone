@@ -5,7 +5,8 @@ import { fetchDocuments, fetchCompanies, fetchEmployees } from "@/lib/data-fetch
 import { createCompanyDocument, uploadFile, getFileUrl } from "@/lib/supabase/api"
 import { documentCategories } from "@/lib/company-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, FileText, Loader2, Plus, X, Upload } from "lucide-react"
+import { OCRConfirmModal } from "@/components/OCRConfirmModal"
+import { Search, FileText, Loader2, Plus, X, Upload, ScanLine } from "lucide-react"
 import { toast } from "sonner"
 
 const statusOptions = ["all", "valid", "expiring_soon", "expired"]
@@ -43,6 +44,13 @@ export default function DocumentsPage() {
   const [formData, setFormData] = useState(defaultDocForm)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
+  const [ocrScanning, setOcrScanning] = useState(false)
+  const [ocrModal, setOcrModal] = useState<{
+    isOpen: boolean
+    documentType: "Trade License" | "Passport" | "Emirates ID" | "Visa"
+    extractedData: Record<string, { value: string | null; confidence: "high" | "low" | null }>
+    rawText: string
+  }>({ isOpen: false, documentType: "Trade License", extractedData: {}, rawText: "" })
 
   useEffect(() => {
     async function load() {
@@ -58,6 +66,62 @@ export default function DocumentsPage() {
     }
     load()
   }, [])
+
+  const ocrDocTypeMap: Record<string, "Trade License" | "Passport" | "Emirates ID" | "Visa"> = {
+    trade_license: "Trade License",
+    passport: "Passport",
+    emirates_id: "Emirates ID",
+    visa: "Visa",
+  }
+
+  const handleOCRScan = async () => {
+    if (!selectedFile) return
+    const ocrDocType = ocrDocTypeMap[formData.document_type]
+    if (!ocrDocType) {
+      toast.info("OCR is available for Trade License, Passport, Emirates ID, and Visa documents")
+      return
+    }
+    setOcrScanning(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", selectedFile)
+      fd.append("documentType", ocrDocType)
+      const res = await fetch("/api/ocr/process", { method: "POST", body: fd })
+      if (!res.ok) throw new Error("OCR processing failed")
+      const data = await res.json()
+      setOcrModal({
+        isOpen: true,
+        documentType: ocrDocType,
+        extractedData: data.extractedData || {},
+        rawText: data.rawText || "",
+      })
+    } catch (err: any) {
+      toast.error(err?.message || "OCR scan failed")
+    } finally {
+      setOcrScanning(false)
+    }
+  }
+
+  const handleOCRConfirm = (data: Record<string, string>) => {
+    // Auto-fill form fields from OCR data
+    if (data.expiryDate || data.expiry_date) {
+      setFormData(prev => ({ ...prev, expiry_date: data.expiryDate || data.expiry_date || prev.expiry_date }))
+    }
+    if (data.companyName || data.company_name) {
+      const name = data.companyName || data.company_name || ""
+      const match = companies.find(c => c.name.toLowerCase().includes(name.toLowerCase()))
+      if (match) setFormData(prev => ({ ...prev, company_id: match.id }))
+    }
+    if (data.licenseNumber || data.passportNumber || data.eidNumber || data.visaNumber) {
+      const ref = data.licenseNumber || data.passportNumber || data.eidNumber || data.visaNumber || ""
+      setFormData(prev => ({ ...prev, notes: ref ? `Ref: ${ref}${prev.notes ? `\n${prev.notes}` : ""}` : prev.notes }))
+    }
+    if (!formData.name && (data.documentType || data.holderName)) {
+      setFormData(prev => ({ ...prev, name: data.holderName ? `${formData.document_type} - ${data.holderName}` : prev.name }))
+    }
+    setOcrModal(prev => ({ ...prev, isOpen: false }))
+    toast.success("OCR data applied to form")
+  }
 
   const handleAddDocument = async () => {
     if (!formData.name.trim()) {
@@ -170,6 +234,17 @@ export default function DocumentsPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#1a3a6b]/10 file:text-[#1a3a6b]"
                 />
               </div>
+              {selectedFile && ocrDocTypeMap[formData.document_type] && (
+                <button
+                  type="button"
+                  onClick={handleOCRScan}
+                  disabled={ocrScanning}
+                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 disabled:opacity-50"
+                >
+                  {ocrScanning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ScanLine className="h-3.5 w-3.5" />}
+                  {ocrScanning ? "Scanning..." : "Auto-fill with OCR"}
+                </button>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company *</label>
@@ -340,6 +415,15 @@ export default function DocumentsPage() {
           </table>
         </div>
       </div>
+
+      <OCRConfirmModal
+        isOpen={ocrModal.isOpen}
+        documentType={ocrModal.documentType}
+        extractedData={ocrModal.extractedData}
+        rawText={ocrModal.rawText}
+        onConfirm={handleOCRConfirm}
+        onSkip={() => setOcrModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

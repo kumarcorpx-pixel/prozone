@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import localFont from "next/font/local"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/lib/auth-context"
+import { ChatWidget } from "@/components/ChatWidget"
 import "./globals.css"
 
 const geistSans = localFont({
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col font-sans">
         <AuthProvider>
           {children}
+          <ChatWidget />
           <Toaster />
         </AuthProvider>
       </body>

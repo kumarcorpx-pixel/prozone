@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { fetchRequests } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
-import { CalendarCheck, MapPin, X, Clock } from "lucide-react"
+import { CalendarCheck, MapPin, X, Clock, ExternalLink, Calendar, Loader2 } from "lucide-react"
 
 const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
 const priorityColors: Record<string, string> = {
@@ -13,12 +13,24 @@ const priorityColors: Record<string, string> = {
   low: "bg-gray-100 text-gray-600",
 }
 
+interface CalEvent {
+  id: string
+  summary: string
+  start: { dateTime?: string; date?: string }
+  end: { dateTime?: string; date?: string }
+  location?: string
+  htmlLink?: string
+}
+
 export default function SchedulePage() {
   const [locations, setLocations] = useState<string[]>([])
   const [locationInput, setLocationInput] = useState("")
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set())
   const [requests, setRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [calEvents, setCalEvents] = useState<CalEvent[]>([])
+  const [calConnected, setCalConnected] = useState<boolean | null>(null)
+  const [calLoading, setCalLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -27,6 +39,27 @@ export default function SchedulePage() {
       setLoading(false)
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    async function loadCalendar() {
+      try {
+        const now = new Date()
+        const end = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+        const res = await fetch(`/api/calendar/events?start=${now.toISOString()}&end=${end.toISOString()}`)
+        const data = await res.json()
+        if (data.connected) {
+          setCalConnected(true)
+          setCalEvents(data.events || [])
+        } else {
+          setCalConnected(false)
+        }
+      } catch {
+        setCalConnected(false)
+      }
+      setCalLoading(false)
+    }
+    loadCalendar()
   }, [])
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
@@ -53,6 +86,20 @@ export default function SchedulePage() {
 
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
 
+  const formatEventTime = (event: CalEvent) => {
+    const start = event.start.dateTime || event.start.date
+    if (!start) return "All day"
+    const d = new Date(start)
+    if (event.start.date && !event.start.dateTime) return "All day"
+    return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+  }
+
+  const formatEventDate = (event: CalEvent) => {
+    const start = event.start.dateTime || event.start.date
+    if (!start) return ""
+    return new Date(start).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -61,6 +108,59 @@ export default function SchedulePage() {
           Today&apos;s Schedule
         </h1>
         <p className="text-sm text-gray-500 mt-1">{today}</p>
+      </div>
+
+      {/* Google Calendar Events */}
+      <div className="bg-white rounded-xl ring-1 ring-gray-200 p-5">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+          <Calendar className="h-4 w-4 text-[#1a3a6b]" />
+          Calendar Events (Next 7 Days)
+        </h3>
+        {calLoading ? (
+          <div className="flex items-center gap-2 text-sm text-gray-500 py-3">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading calendar...
+          </div>
+        ) : calConnected === false ? (
+          <div className="py-3">
+            <p className="text-sm text-gray-500 mb-2">Google Calendar not connected yet.</p>
+            <a
+              href="/api/auth/google"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50"
+            >
+              <Calendar className="h-4 w-4" />
+              Connect Google Calendar
+            </a>
+          </div>
+        ) : calEvents.length === 0 ? (
+          <p className="text-sm text-gray-500 py-2">No upcoming events in the next 7 days.</p>
+        ) : (
+          <div className="space-y-2">
+            {calEvents.slice(0, 8).map(event => (
+              <div key={event.id} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                <div className="text-xs font-medium text-blue-700 bg-blue-100 rounded px-2 py-1 whitespace-nowrap">
+                  {formatEventTime(event)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{event.summary}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-gray-500">{formatEventDate(event)}</span>
+                    {event.location && (
+                      <>
+                        <span className="text-xs text-gray-400">&middot;</span>
+                        <span className="text-xs text-gray-500 truncate">{event.location}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {event.htmlLink && (
+                  <a href={event.htmlLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 flex-shrink-0">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Where I'm going */}

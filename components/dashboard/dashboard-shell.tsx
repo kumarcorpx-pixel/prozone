@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "./sidebar"
+import { NotificationSubscribe } from "@/components/NotificationSubscribe"
 import { Menu, Bell } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
@@ -190,7 +191,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+          <NotificationSubscribe />
+          <div className="mt-4">{children}</div>
+        </main>
       </div>
     </div>
   )
