@@ -89,8 +89,8 @@ export async function POST(request: NextRequest) {
       const doc = await prisma.document.create({
         data: {
           name,
-          companyId,
-          employeeId: employeeId || null,
+          ...(companyId && companyId !== "general" ? { company: { connect: { id: companyId } } } : {}),
+          ...(employeeId ? { employee: { connect: { id: employeeId } } } : {}),
           documentType,
           fileUrl: fileName,
           fileName: file.name,
@@ -149,8 +149,8 @@ export async function POST(request: NextRequest) {
     const doc = await prisma.document.create({
       data: {
         name,
-        companyId,
-        employeeId: employeeId || null,
+        ...(companyId && companyId !== "general" ? { company: { connect: { id: companyId } } } : {}),
+        ...(employeeId ? { employee: { connect: { id: employeeId } } } : {}),
         documentType,
         fileUrl: localFileUrl,
         fileName: file.name,

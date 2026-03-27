@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
 
     const d = await prisma.document.create({
       data: {
-        companyId: validation.data.companyId,
-        employeeId: validation.data.employeeId || null,
+        ...(validation.data.companyId ? { company: { connect: { id: validation.data.companyId } } } : {}),
+        ...(validation.data.employeeId ? { employee: { connect: { id: validation.data.employeeId } } } : {}),
         name: validation.data.name,
         documentType: validation.data.documentType,
         fileUrl: body.file_url || body.fileUrl,

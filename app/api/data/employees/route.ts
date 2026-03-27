@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const e = await prisma.employee.create({
       data: {
-        companyId: validation.data.companyId,
+        company: { connect: { id: validation.data.companyId } },
         fullName: validation.data.fullName,
         email: validation.data.email,
         phone: validation.data.phone,

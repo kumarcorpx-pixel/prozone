@@ -23,13 +23,13 @@ export async function POST(request: NextRequest) {
 
     const r = await prisma.serviceRequest.create({
       data: {
-        clientId: body.client_id || body.clientId,
-        companyId: validation.data.companyId,
+        ...(body.client_id || body.clientId ? { client: { connect: { id: body.client_id || body.clientId } } } : {}),
+        ...(validation.data.companyId ? { company: { connect: { id: validation.data.companyId } } } : {}),
         serviceType: validation.data.serviceType,
         description: validation.data.description,
         status: body.status || "pending",
         priority: validation.data.priority,
-        assignedToId: body.assigned_to || body.assignedToId,
+        ...(body.assigned_to || body.assignedToId ? { assignedTo: { connect: { id: body.assigned_to || body.assignedToId } } } : {}),
         notes: body.notes,
         dueDate: body.due_date || body.dueDate,
       },
