@@ -179,6 +179,7 @@ export default function ExpiryCalendarPage() {
             status: getExpiryStatus(days),
           })
         }
+      }
     })
 
     // Document expiries
