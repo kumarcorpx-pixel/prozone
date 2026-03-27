@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { fetchDocuments, fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
-import { createCompanyDocument, uploadFile, getFileUrl } from "@/lib/api"
 import { documentCategories } from "@/lib/company-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { OCRConfirmModal } from "@/components/OCRConfirmModal"
-import { Search, FileText, Loader2, Plus, X, Upload, ScanLine } from "lucide-react"
+import { Search, FileText, Loader2, Plus, X, Upload, ScanLine, Download, Eye, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 const statusOptions = ["all", "valid", "expiring_soon", "expired"]
@@ -132,40 +131,51 @@ export default function DocumentsPage() {
       toast.error("Please select a company")
       return
     }
+    if (!selectedFile) {
+      toast.error("Please select a file to upload")
+      return
+    }
     setSaving(true)
     try {
-      let fileUrl: string | null = null
-      if (selectedFile) {
-        const path = `documents/${Date.now()}-${selectedFile.name}`
-        fileUrl = await uploadFile(selectedFile, path)
+      const fd = new FormData()
+      fd.append("file", selectedFile)
+      fd.append("name", formData.name)
+      fd.append("companyId", formData.company_id)
+      if (formData.employee_id) fd.append("employeeId", formData.employee_id)
+      fd.append("documentType", formData.document_type)
+      if (formData.expiry_date) fd.append("expiryDate", formData.expiry_date)
+      if (formData.notes) fd.append("notes", formData.notes)
+
+      const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Upload failed")
       }
 
-      await createCompanyDocument({
-        company_id: formData.company_id,
-        employee_id: formData.employee_id || null,
-        name: formData.name,
-        document_type: formData.document_type,
-        file_url: fileUrl,
-        file_size: selectedFile?.size || null,
-        expiry_date: formData.expiry_date || null,
-        status: "valid",
-        uploaded_by: null,
-        notes: formData.notes || null,
-        issue_date: null,
-        issuing_authority: null,
-        reference_number: null,
-        reminder_days: 30,
-      })
       toast.success("Document uploaded successfully")
       setShowAddForm(false)
       setFormData(defaultDocForm)
       setSelectedFile(null)
+      // Refresh documents list
       const updated = await fetchDocuments()
       setDocuments(updated)
     } catch (err: any) {
       toast.error(err?.message || "Failed to upload document")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteDocument = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this document?")) return
+    try {
+      const res = await fetch(`/api/documents/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Delete failed")
+      toast.success("Document deleted")
+      const updated = await fetchDocuments()
+      setDocuments(updated)
+    } catch {
+      toast.error("Failed to delete document")
     }
   }
 
@@ -386,6 +396,7 @@ export default function DocumentsPage() {
                 <th className="text-left px-6 py-3 text-gray-500 font-medium">Type</th>
                 <th className="text-left px-6 py-3 text-gray-500 font-medium">Expiry Date</th>
                 <th className="text-left px-6 py-3 text-gray-500 font-medium">Status</th>
+                <th className="text-left px-6 py-3 text-gray-500 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -413,12 +424,33 @@ export default function DocumentsPage() {
                       {doc.expiry_date ? new Date(doc.expiry_date).toLocaleDateString() : "No expiry"}
                     </td>
                     <td className="px-6 py-4"><StatusBadge status={doc.status} /></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        {doc.file_url ? (
+                          <>
+                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                              className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
+                              <Download className="h-4 w-4" />
+                            </a>
+                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                              className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Preview">
+                              <Eye className="h-4 w-4" />
+                            </a>
+                          </>
+                        ) : (
+                          <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">No file</span>
+                        )}
+                        <button onClick={() => handleDeleteDocument(doc.id)} className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 )
               })}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     <FileText className="h-8 w-8 mx-auto text-gray-300 mb-2" />
                     No documents found matching your filters.
                   </td>

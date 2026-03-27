@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, uploadRateLimit } from "@/lib/rate-limit"
+import prisma from "@/lib/prisma"
+import { withAuth } from "@/lib/auth-middleware"
 
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff"])
+  if (!auth.success) return auth.response
+
   const ip = request.headers.get("x-forwarded-for") || "unknown"
   const rl = rateLimit(`upload:${ip}`, uploadRateLimit)
   if (!rl.success) {
@@ -23,27 +28,50 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "File type not allowed. Use PDF, JPG, PNG, or DOCX" }, { status: 400 })
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: "File too large. Maximum 10MB" }, { status: 400 })
+    if (file.size > 25 * 1024 * 1024) {
+      return NextResponse.json({ error: "File too large. Maximum 25MB" }, { status: 400 })
     }
 
+    const name = (formData.get("name") as string) || file.name
     const companyId = (formData.get("companyId") as string) || "general"
-    const docType = (formData.get("documentType") as string) || "other"
+    const employeeId = (formData.get("employeeId") as string) || null
+    const documentType = (formData.get("documentType") as string) || "other"
+    const expiryDate = formData.get("expiryDate") as string | null
+    const notes = (formData.get("notes") as string) || null
+
     const timestamp = Date.now()
     const ext = file.name.split(".").pop()
-    const fileName = `${companyId}/${docType}-${timestamp}.${ext}`
+    const fileName = `${companyId}/${documentType}-${timestamp}.${ext}`
 
     const buffer = Buffer.from(await file.arrayBuffer())
 
     // Try MinIO first
     try {
       const { uploadToMinio } = await import("@/lib/minio")
-      const fileUrl = await uploadToMinio(buffer, fileName, file.type)
+      await uploadToMinio(buffer, fileName, file.type)
+
+      const doc = await prisma.document.create({
+        data: {
+          name,
+          companyId,
+          employeeId: employeeId || null,
+          documentType,
+          fileUrl: fileName,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type,
+          expiryDate: expiryDate ? new Date(expiryDate) : null,
+          status: "valid",
+          notes: notes || null,
+        },
+      })
+
       return NextResponse.json({
         success: true,
+        id: doc.id,
         fileName: file.name,
         storedName: fileName,
-        fileUrl,
+        fileUrl: fileName,
         fileSize: file.size,
         mimeType: file.type,
         storage: "minio",
@@ -57,14 +85,33 @@ export async function POST(request: NextRequest) {
     const path = await import("path")
     const uploadDir = path.join(process.cwd(), "public", "uploads", companyId)
     await mkdir(uploadDir, { recursive: true })
-    const localFileName = `${docType}-${timestamp}.${ext}`
+    const localFileName = `${documentType}-${timestamp}.${ext}`
     await writeFile(path.join(uploadDir, localFileName), buffer)
+
+    const localFileUrl = `/uploads/${companyId}/${localFileName}`
+
+    const doc = await prisma.document.create({
+      data: {
+        name,
+        companyId,
+        employeeId: employeeId || null,
+        documentType,
+        fileUrl: localFileUrl,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        status: "valid",
+        notes: notes || null,
+      },
+    })
 
     return NextResponse.json({
       success: true,
+      id: doc.id,
       fileName: file.name,
       storedName: fileName,
-      fileUrl: `/uploads/${companyId}/${localFileName}`,
+      fileUrl: localFileUrl,
       fileSize: file.size,
       mimeType: file.type,
       storage: "local",
