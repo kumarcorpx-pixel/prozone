@@ -7,6 +7,9 @@ import { NotificationSubscribe } from "@/components/NotificationSubscribe"
 import { Menu, Bell, AlertTriangle, Info, CheckCircle, FileText } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
+import { useNotifications } from "@/hooks/queries"
+import { useQueryClient } from "@tanstack/react-query"
+import { queryKeys } from "@/lib/query-keys"
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth()

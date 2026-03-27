@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import localFont from "next/font/local"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/lib/auth-context"
+import { QueryProvider } from "@/components/providers/QueryProvider"
 import { ChatWidget } from "@/components/ChatWidget"
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar"
 import "./globals.css"
@@ -62,12 +63,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#1a3a6b" />
       </head>
       <body className="min-h-full flex flex-col font-sans">
+        <QueryProvider>
         <AuthProvider>
           {children}
           <ChatWidget />
           <Toaster />
           <ServiceWorkerRegistrar />
         </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   )
