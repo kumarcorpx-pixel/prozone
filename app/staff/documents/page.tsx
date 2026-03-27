@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { fetchDocuments, fetchRequests } from "@/lib/data-fetcher"
+import { fetchDocuments, fetchRequests, fetchCompanies } from "@/lib/data-fetcher"
 import { FileText, Download } from "lucide-react"
 
 const docTypeColors: Record<string, string> = {
@@ -15,20 +15,28 @@ const docTypeColors: Record<string, string> = {
 export default function StaffDocumentsPage() {
   const [documents, setDocuments] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
+  const [companies, setCompanies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
-      const [d, r] = await Promise.all([
+      const [d, r, c] = await Promise.all([
         fetchDocuments(),
         fetchRequests(),
+        fetchCompanies(),
       ])
       setDocuments(d)
       setRequests(r)
+      setCompanies(c)
       setLoading(false)
     }
     load()
   }, [])
+
+  function getCompanyName(companyId: string) {
+    const company = companies.find((c: any) => c.id === companyId)
+    return company?.name || companyId?.substring(0, 8) + "..." || "Unknown"
+  }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
@@ -62,7 +70,7 @@ export default function StaffDocumentsPage() {
                   {doc.file_name || doc.name}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {doc.request?.service_type || "N/A"} — {doc.request?.company?.name || doc.company_id || "N/A"}
+                  {doc.request?.service_type || "N/A"} — {doc.request?.company?.name || (doc.company_id ? getCompanyName(doc.company_id) : "N/A")}
                 </p>
               </div>
               <span

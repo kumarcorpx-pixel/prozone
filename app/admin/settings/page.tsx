@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from "react"
+import { useAuth } from "@/lib/auth-context"
 import { Settings, User, Bell, Database, Shield } from "lucide-react"
 
 export default function SettingsPage() {
-  const [name, setName] = useState("Sarah Admin")
-  const [email, setEmail] = useState("admin@yabs.ae")
-  const [phone, setPhone] = useState("+971 55 987 6543")
+  const { user } = useAuth()
+  const [name, setName] = useState(user?.full_name || "")
+  const [email, setEmail] = useState(user?.email || "")
+  const [phone, setPhone] = useState(user?.phone || "")
   const [emailNotifs, setEmailNotifs] = useState(true)
   const [smsNotifs, setSmsNotifs] = useState(false)
 

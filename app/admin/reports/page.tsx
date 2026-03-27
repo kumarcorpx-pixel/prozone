@@ -2,6 +2,7 @@
 
 import { TrendingUp, Users, CheckCircle, Clock, FileDown, FileBarChart } from "lucide-react"
 import { AedIcon } from "@/components/ui/aed-icon"
+import { toast } from "sonner"
 
 const summaryStats = [
   { label: "Total Revenue", value: "AED 245,000", icon: AedIcon, color: "bg-[#1a3a6b]", textColor: "text-white", iconColor: "text-white/60", labelColor: "text-white/80" },

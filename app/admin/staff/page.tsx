@@ -1,6 +1,8 @@
 "use client"
 
-import { Users, UserCog, Activity, Mail, Phone } from "lucide-react"
+import { useState } from "react"
+import { Users, UserCog, Activity, Mail, Phone, Plus, X, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 const demoStaff = [
   { id: "s1", name: "Mohammed PRO", email: "mohammed@yabs.ae", phone: "+971 50 555 1234", activeRequests: 5, completedMonth: 12, status: "active" },
@@ -14,7 +16,54 @@ function getWorkloadBadge(count: number) {
   return { label: "Available", className: "bg-green-100 text-green-700" }
 }
 
+const defaultStaffForm = {
+  full_name: "",
+  email: "",
+  phone: "",
+  password: "",
+}
+
 export default function StaffManagementPage() {
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [formData, setFormData] = useState(defaultStaffForm)
+  const [saving, setSaving] = useState(false)
+
+  const handleAddStaff = async () => {
+    if (!formData.full_name.trim() || !formData.email.trim()) {
+      toast.error("Full name and email are required")
+      return
+    }
+    if (!formData.password || formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters")
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch("/api/data/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: formData.full_name,
+          email: formData.email,
+          phone: formData.phone || null,
+          password: formData.password,
+          role: "pro_staff",
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to add staff")
+      }
+      toast.success("Staff member added successfully")
+      setShowAddForm(false)
+      setFormData(defaultStaffForm)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add staff")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -22,11 +71,78 @@ export default function StaffManagementPage() {
           <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage PRO officers and track workload</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]">
-          <UserCog className="h-4 w-4" />
-          + Add Staff
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]"
+        >
+          {showAddForm ? <X className="h-4 w-4" /> : <UserCog className="h-4 w-4" />}
+          {showAddForm ? "Cancel" : "+ Add Staff"}
         </button>
       </div>
+
+      {showAddForm && (
+        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900">Add New Staff Member</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+              <input
+                type="text"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter full name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter email address"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter phone number"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="Enter password (min 6 characters)"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => { setShowAddForm(false); setFormData(defaultStaffForm) }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddStaff}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+            >
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {saving ? "Saving..." : "Add Staff"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

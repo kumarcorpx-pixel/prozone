@@ -78,7 +78,9 @@ export default function ClientsPage() {
     )
   }
 
-  const filtered = profiles.filter(
+  const clientProfiles = profiles.filter((p: any) => p.role === "client")
+
+  const filtered = clientProfiles.filter(
     (p) =>
       p.full_name.toLowerCase().includes(search.toLowerCase()) ||
       p.email.toLowerCase().includes(search.toLowerCase()) ||

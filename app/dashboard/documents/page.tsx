@@ -126,58 +126,51 @@ export default function DocumentsPage() {
       {/* Request Documents Tab */}
       {activeTab === "requests" ? (
         <div className="space-y-4">
-          {documents.map(request => {
-            const reqDocs = myRequestDocs.filter(d => d.request_id === request.id)
-            if (reqDocs.length === 0) return null
-            return (
-              <div key={request.id} className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
-                <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+          {(() => {
+            const requestIds = [...new Set(myRequestDocs.map(d => d.request_id))]
+            return requestIds.map(requestId => {
+              const reqDocs = myRequestDocs.filter(d => d.request_id === requestId)
+              return (
+                <div key={requestId} className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
+                  <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-[#1a3a6b]" />
-                    <span className="font-medium text-sm">{request.service_type}</span>
+                    <span className="font-medium text-sm">Request {requestId}</span>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    request.status === "completed" ? "bg-green-100 text-green-700" :
-                    request.status === "in_progress" ? "bg-blue-100 text-blue-700" :
-                    "bg-yellow-100 text-yellow-700"
-                  }`}>
-                    {request.status?.replace("_", " ")}
-                  </span>
-                </div>
-                <div className="divide-y divide-gray-100">
-                  {reqDocs.map(doc => (
-                    <div key={doc.id} className="px-5 py-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-[#1a3a6b]/10 flex items-center justify-center">
-                          <FileText className="h-4 w-4 text-[#1a3a6b]" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{doc.file_name}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                              doc.doc_type === "required" ? "bg-blue-100 text-blue-700" :
-                              doc.doc_type === "submitted" ? "bg-yellow-100 text-yellow-700" :
-                              doc.doc_type === "processed" ? "bg-purple-100 text-purple-700" :
-                              doc.doc_type === "final" ? "bg-green-100 text-green-700" :
-                              "bg-gray-100 text-gray-700"
-                            }`}>
-                              {doc.doc_type}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {new Date(doc.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                            </span>
+                  <div className="divide-y divide-gray-100">
+                    {reqDocs.map(doc => (
+                      <div key={doc.id} className="px-5 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-[#1a3a6b]/10 flex items-center justify-center">
+                            <FileText className="h-4 w-4 text-[#1a3a6b]" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{doc.file_name}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                doc.doc_type === "required" ? "bg-blue-100 text-blue-700" :
+                                doc.doc_type === "submitted" ? "bg-yellow-100 text-yellow-700" :
+                                doc.doc_type === "processed" ? "bg-purple-100 text-purple-700" :
+                                doc.doc_type === "final" ? "bg-green-100 text-green-700" :
+                                "bg-gray-100 text-gray-700"
+                              }`}>
+                                {doc.doc_type}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {new Date(doc.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        <button className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5">
+                          <Download className="h-4 w-4" />
+                        </button>
                       </div>
-                      <button className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5">
-                        <Download className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          })()}
           {myRequestDocs.length === 0 && (
             <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
               <Link2 className="h-12 w-12 text-gray-300 mx-auto mb-3" />
