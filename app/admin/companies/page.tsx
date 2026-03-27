@@ -56,6 +56,10 @@ export default function CompaniesPage() {
       toast.error("Company name is required")
       return
     }
+    if (!formData.license_number.trim()) {
+      toast.error("Trade License Number is required")
+      return
+    }
     setSaving(true)
     try {
       await createCompany({
@@ -161,7 +165,7 @@ export default function CompaniesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Trade License Number</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Trade License Number <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={formData.license_number}
@@ -281,6 +285,9 @@ export default function CompaniesPage() {
                   </div>
                 </div>
                 <StatusBadge status={company.status} />
+                {(!company.license_number || !company.license_expiry) && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">Incomplete</span>
+                )}
               </div>
 
               <div className="space-y-2 text-sm">

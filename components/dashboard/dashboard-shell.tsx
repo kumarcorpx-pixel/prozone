@@ -121,6 +121,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <div className="relative">
               <button
                 onClick={() => setNotifOpen(!notifOpen)}
+                aria-label="Notifications"
                 className="relative p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 <Bell className="h-5 w-5" />
@@ -129,7 +130,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               {notifOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg ring-1 ring-gray-200 z-50">
+                  <div role="menu" className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg ring-1 ring-gray-200 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
                     </div>
@@ -139,7 +140,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         { title: "New Request Submitted", message: "Company formation request received", type: "info" },
                         { title: "Document Uploaded", message: "Trade license copy uploaded", type: "success" },
                       ].map((n, i) => (
-                        <div key={i} className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                        <div key={i} role="menuitem" className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
                           <p className="text-sm font-medium text-gray-900">{n.title}</p>
                           <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
                         </div>
@@ -160,6 +161,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <div className="relative">
               <button
                 onClick={() => setAvatarOpen(!avatarOpen)}
+                aria-label="Open profile menu"
                 className="h-8 w-8 rounded-full bg-[#1a3a6b] flex items-center justify-center cursor-pointer"
               >
                 <span className="text-white text-xs font-medium">

@@ -45,10 +45,22 @@ export default function CompanyPage() {
   const licenseExpiry = getExpiryInfo(company?.license_expiry)
 
   const complianceItems = [
-    { label: "Trade License", ok: licenseExpiry.days !== null && licenseExpiry.days > 0 },
-    { label: "Employee Visas", ok: employees.filter(e => e.visa_status === "valid").length === employees.length },
-    { label: "Emirates IDs", ok: employees.filter(e => e.emirates_id_expiry && new Date(e.emirates_id_expiry) > new Date()).length === employees.length },
-    { label: "Labor Cards", ok: employees.filter(e => e.labor_card_expiry && new Date(e.labor_card_expiry) > new Date()).length === employees.length },
+    {
+      label: "Trade License",
+      ok: company?.license_expiry ? new Date(company.license_expiry) > new Date() : false
+    },
+    {
+      label: "Employee Visas",
+      ok: employees.length > 0 && employees.filter(e => e.visa_status === "valid" || e.visa_status === "processing").length > 0
+    },
+    {
+      label: "Emirates IDs",
+      ok: employees.length > 0 && employees.filter(e => e.emirates_id).length > 0
+    },
+    {
+      label: "Labor Cards",
+      ok: employees.length > 0 && employees.filter(e => e.labor_card_number).length > 0
+    },
   ]
   const complianceScore = Math.round((complianceItems.filter(i => i.ok).length / complianceItems.length) * 100)
 

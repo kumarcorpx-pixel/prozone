@@ -29,6 +29,7 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
+  AlertTriangle,
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -226,6 +227,16 @@ export default function CompanyDetailPage() {
         </div>
         <StatusBadge status={company.status} />
       </div>
+
+      {(!company.license_number || !company.license_expiry) && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-yellow-800">Incomplete Company Information</p>
+            <p className="text-xs text-yellow-600 mt-0.5">Please update the trade license number and expiry date for compliance tracking.</p>
+          </div>
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 overflow-x-auto">
