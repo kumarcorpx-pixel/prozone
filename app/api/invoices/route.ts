@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       status,
       search_text: search,
       sort_column: "date",
-      sort_order: "descending",
+      sort_order: "D",
     })
 
     return NextResponse.json(result)

@@ -82,5 +82,5 @@ export interface ZohoListParams {
   customer_id?: string
   search_text?: string
   sort_column?: string
-  sort_order?: "ascending" | "descending"
+  sort_order?: "ascending" | "descending" | "A" | "D"
 }
