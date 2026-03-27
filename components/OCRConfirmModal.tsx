@@ -1,129 +1,194 @@
 "use client"
 
 import { useState } from "react"
-import { X, CheckCircle2, AlertCircle, XCircle, ChevronDown, ChevronUp, ScanLine } from "lucide-react"
+import { X, ChevronDown, ChevronUp, ScanLine } from "lucide-react"
 
-interface FieldData {
+interface ExtractedField {
   value: string | null
   confidence: "high" | "low" | null
 }
 
 interface OCRConfirmModalProps {
   isOpen: boolean
-  documentType: string
-  extractedData: Record<string, FieldData> | null
+  documentType: "Trade License" | "Passport" | "Emirates ID" | "Visa"
+  extractedData: Record<string, ExtractedField>
   rawText: string
   onConfirm: (data: Record<string, string>) => void
   onSkip: () => void
 }
 
-const typeLabels: Record<string, string> = {
-  "trade-license": "Trade License",
-  passport: "Passport",
-  "emirates-id": "Emirates ID",
-  visa: "Visa",
-  unknown: "Document",
-}
-
-const fieldLabels: Record<string, string> = {
-  companyName: "Company Name",
-  licenseNumber: "License Number",
-  expiryDate: "Expiry Date",
-  issueDate: "Issue Date",
-  emirate: "Emirate",
-  activity: "Business Activity",
-  legalForm: "Legal Form",
-  fullName: "Full Name",
-  passportNumber: "Passport Number",
-  nationality: "Nationality",
-  dateOfBirth: "Date of Birth",
-  gender: "Gender",
-  idNumber: "Emirates ID Number",
-  visaNumber: "Visa Number",
-  visaType: "Visa Type",
-  sponsor: "Sponsor",
-  uid: "UID",
+const documentTypeBadgeStyles: Record<string, string> = {
+  "Trade License": "bg-blue-100 text-blue-800",
+  Passport: "bg-purple-100 text-purple-800",
+  "Emirates ID": "bg-emerald-100 text-emerald-800",
+  Visa: "bg-amber-100 text-amber-800",
 }
 
 function ConfidenceDot({ confidence }: { confidence: "high" | "low" | null }) {
-  if (confidence === "high") return <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" /><span className="text-[10px] text-green-600">Detected</span></div>
-  if (confidence === "low") return <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-yellow-500" /><span className="text-[10px] text-yellow-600">Please verify</span></div>
-  return <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /><span className="text-[10px] text-red-500">Not found</span></div>
+  if (confidence === "high") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-green-600">
+        <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+        Detected
+      </span>
+    )
+  }
+  if (confidence === "low") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-yellow-600">
+        <span className="h-2 w-2 rounded-full bg-yellow-500 shrink-0" />
+        Please verify
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-red-500">
+      <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+      Not found
+    </span>
+  )
 }
 
-export function OCRConfirmModal({ isOpen, documentType, extractedData, rawText, onConfirm, onSkip }: OCRConfirmModalProps) {
-  const [values, setValues] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {}
-    if (extractedData) {
-      for (const [k, v] of Object.entries(extractedData)) {
-        init[k] = v.value || ""
-      }
-    }
-    return init
-  })
-  const [showRaw, setShowRaw] = useState(false)
+function formatLabel(key: string): string {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[_-]/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase())
+    .trim()
+}
 
-  if (!isOpen || !extractedData) return null
+export function OCRConfirmModal({
+  isOpen,
+  documentType,
+  extractedData,
+  rawText,
+  onConfirm,
+  onSkip,
+}: OCRConfirmModalProps) {
+  const [formValues, setFormValues] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {}
+    for (const [key, field] of Object.entries(extractedData)) {
+      initial[key] = field.value ?? ""
+    }
+    return initial
+  })
+  const [rawTextOpen, setRawTextOpen] = useState(false)
+
+  if (!isOpen) return null
+
+  const handleFieldChange = (key: string, value: string) => {
+    setFormValues((prev) => ({ ...prev, [key]: value }))
+  }
 
   const handleConfirm = () => {
     const cleaned: Record<string, string> = {}
-    for (const [k, v] of Object.entries(values)) {
-      if (v.trim()) cleaned[k] = v.trim()
+    for (const [key, value] of Object.entries(formValues)) {
+      if (value.trim()) cleaned[key] = value.trim()
     }
     onConfirm(cleaned)
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onSkip} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-2xl">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onSkip}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 w-full max-w-[600px] max-h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-3">
-            <ScanLine className="h-5 w-5 text-[#1a3a6b]" />
+            <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-[#1a3a6b]/10 shrink-0">
+              <ScanLine className="h-5 w-5 text-[#1a3a6b]" />
+            </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Extracted Document Information</h2>
-              <p className="text-xs text-gray-500">Verify and correct if needed</p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Extracted Document Information
+              </h2>
+              <span
+                className={`inline-block mt-1 px-2.5 py-0.5 text-xs font-medium rounded-full ${documentTypeBadgeStyles[documentType] ?? "bg-gray-100 text-gray-700"}`}
+              >
+                {documentType}
+              </span>
             </div>
           </div>
-          <button onClick={onSkip} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+          <button
+            onClick={onSkip}
+            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        <div className="px-6 py-4 space-y-4">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-            {typeLabels[documentType] || documentType}
-          </span>
-
-          <div className="space-y-3">
-            {Object.entries(extractedData).map(([key, field]) => (
-              <div key={key}>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-sm font-medium text-gray-700">{fieldLabels[key] || key}</label>
-                  <ConfidenceDot confidence={field.confidence} />
-                </div>
-                <input
-                  value={values[key] || ""}
-                  onChange={e => setValues({ ...values, [key]: e.target.value })}
-                  className={`w-full px-3 py-2 text-sm rounded-lg border ${!field.value ? "border-yellow-300 bg-yellow-50" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20`}
-                  placeholder={`Enter ${fieldLabels[key] || key}`}
-                />
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {Object.entries(extractedData).map(([key, field]) => (
+            <div key={key}>
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor={`ocr-field-${key}`}
+                  className="text-sm font-medium text-gray-700"
+                >
+                  {formatLabel(key)}
+                </label>
+                <ConfidenceDot confidence={field.confidence} />
               </div>
-            ))}
-          </div>
+              <input
+                id={`ocr-field-${key}`}
+                type="text"
+                value={formValues[key] ?? ""}
+                onChange={(e) => handleFieldChange(key, e.target.value)}
+                placeholder={`Enter ${formatLabel(key).toLowerCase()}`}
+                className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent transition-colors ${
+                  field.value === null
+                    ? "border-yellow-400 bg-yellow-50/50"
+                    : "border-gray-300"
+                }`}
+              />
+            </div>
+          ))}
 
-          <div>
-            <button onClick={() => setShowRaw(!showRaw)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
-              {showRaw ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              View Raw Text
+          {/* Collapsible Raw Text */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden mt-2">
+            <button
+              type="button"
+              onClick={() => setRawTextOpen((prev) => !prev)}
+              className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <span>View Raw Text</span>
+              {rawTextOpen ? (
+                <ChevronUp className="h-4 w-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-gray-400" />
+              )}
             </button>
-            {showRaw && (
-              <pre className="mt-2 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 font-mono max-h-[200px] overflow-auto whitespace-pre-wrap">{rawText}</pre>
+            {rawTextOpen && (
+              <div className="px-4 pb-4 border-t border-gray-100">
+                <pre className="mt-3 whitespace-pre-wrap text-xs text-gray-600 bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto font-mono leading-relaxed">
+                  {rawText}
+                </pre>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
-          <button onClick={onSkip} className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50">Skip</button>
-          <button onClick={handleConfirm} className="px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a]">Confirm & Save</button>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 shrink-0">
+          <button
+            onClick={onSkip}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Skip
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors"
+          >
+            Confirm & Save
+          </button>
         </div>
       </div>
     </div>
