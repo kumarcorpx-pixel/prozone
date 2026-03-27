@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { dispatchStatusUpdate, dispatchStaffAssignment } from "@/lib/notify-dispatch"
 
 export async function GET(
   _request: NextRequest,
@@ -65,10 +66,35 @@ export async function PATCH(
     if (body.due_date !== undefined || body.dueDate !== undefined) data.dueDate = body.due_date || body.dueDate
     if (body.completed_date !== undefined || body.completedDate !== undefined) data.completedDate = body.completed_date || body.completedDate
 
+    // Get old request to detect changes
+    const old = await prisma.serviceRequest.findUnique({ where: { id }, select: { status: true, assignedToId: true } })
+
     const r = await prisma.serviceRequest.update({
       where: { id },
       data,
+      include: { company: { select: { name: true } } },
     })
+
+    // Dispatch notifications on status change
+    if (body.status && old && body.status !== old.status) {
+      dispatchStatusUpdate({
+        id: r.id,
+        serviceType: r.serviceType || "PRO Service",
+        status: r.status,
+        clientId: r.clientId,
+      }).catch(err => console.error("[Notify] Status dispatch error:", err))
+    }
+
+    // Dispatch notifications on staff assignment
+    if ((body.assigned_to || body.assignedToId) && r.assignedToId && r.assignedToId !== old?.assignedToId) {
+      dispatchStaffAssignment({
+        id: r.id,
+        serviceType: r.serviceType || "PRO Service",
+        companyName: r.company?.name || "N/A",
+        staffId: r.assignedToId,
+        clientId: r.clientId,
+      }).catch(err => console.error("[Notify] Assignment dispatch error:", err))
+    }
 
     const mapped = {
       id: r.id,

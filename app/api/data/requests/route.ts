@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { runNewRequestWorkflow } from "@/lib/workflow-engine"
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,6 +34,11 @@ export async function POST(request: NextRequest) {
       created_at: r.createdAt,
       updated_at: r.updatedAt,
     }
+
+    // Trigger automated workflow (auto-assign, notify, etc.)
+    runNewRequestWorkflow(r.id).catch((err: any) =>
+      console.error("[Workflow] Background error:", err.message)
+    )
 
     return NextResponse.json(mapped)
   } catch (err: any) {

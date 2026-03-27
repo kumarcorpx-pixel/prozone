@@ -3,6 +3,7 @@ import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { serviceRequestSchema, sanitize } from "@/lib/validation/schemas"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { runNewRequestWorkflow } from "@/lib/workflow-engine"
 
 const demoRequests = [
   {
@@ -100,6 +101,11 @@ export async function POST(request: NextRequest) {
         status: "pending",
       },
     })
+
+    // Trigger automated workflow (auto-assign, notify, etc.)
+    runNewRequestWorkflow(newRequest.id).catch((err: any) =>
+      console.error("[Workflow] Background error:", err.message)
+    )
 
     return NextResponse.json({ request: newRequest }, { status: 201 })
   } catch (err: any) {

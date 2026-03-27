@@ -3,6 +3,7 @@ import localFont from "next/font/local"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/lib/auth-context"
 import { ChatWidget } from "@/components/ChatWidget"
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar"
 import "./globals.css"
 
 const geistSans = localFont({
@@ -47,16 +48,25 @@ export const metadata: Metadata = {
     follow: true,
   },
   metadataBase: new URL("https://corporatepro.cloud"),
+  manifest: "/manifest.json",
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <head>
+        <meta name="theme-color" content="#1a3a6b" />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <AuthProvider>
           {children}
           <ChatWidget />
           <Toaster />
+          <ServiceWorkerRegistrar />
         </AuthProvider>
       </body>
     </html>
