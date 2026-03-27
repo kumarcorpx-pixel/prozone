@@ -5,7 +5,6 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { fetchDocuments } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
-import { isChecklistItemCompleted, toggleChecklistItem, addNote, getNotes, getTimelineEntries, setRequestStatus, getRequestStatus } from "@/lib/demo-store"
 import { fetchRequests } from "@/lib/data-fetcher"
 import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/api"
 import type { ServiceRequest, RequestTimeline } from "@/lib/types"
@@ -35,6 +34,7 @@ export default function AdminRequestDetailPage() {
   const [noteInput, setNoteInput] = useState("")
   const [newChecklistItem, setNewChecklistItem] = useState("")
   const [extraItems, setExtraItems] = useState<string[]>([])
+  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({})
   const [realTimeline, setRealTimeline] = useState<any[]>([])
   const [governmentFees, setGovernmentFees] = useState<any[]>([])
   const [realDocs, setRealDocs] = useState<any[]>([])
@@ -46,7 +46,7 @@ export default function AdminRequestDetailPage() {
       const req = found || requests[0]
       setRequest(req)
       if (req) {
-        setStatus(getRequestStatus(req.id, req.status))
+        setStatus(req.status)
         // Fetch real documents for this request's company
         try {
           const docs = await fetchDocuments(req.company_id)
@@ -97,23 +97,16 @@ export default function AdminRequestDetailPage() {
 
   const checklistItems = [...getChecklistForServiceType(request.service_type), ...extraItems]
   const reqDocs = realDocs.filter((d: any) => d.request_id === request.id || d.company_id === request.company_id)
-  const demoTimelineEntries = getTimelineEntries(request.id)
-  const notes = getNotes(request.id)
-  const completedCount = checklistItems.filter(item => isChecklistItemCompleted(request.id, item) === true).length
+  const completedCount = checklistItems.filter(item => checklistState[item] === true).length
 
-  // Merge real timeline + demo timeline + notes
-  const allTimeline = [
-    ...realTimeline.map(t => ({
-      id: t.id,
-      request_id: t.request_id,
-      message: t.message,
-      created_by: t.creator?.full_name || t.created_by || "System",
-      created_at: t.created_at,
-      status: t.status,
-    })),
-    ...demoTimelineEntries,
-    ...notes.map(n => ({ id: n.id, request_id: n.request_id, message: `Note: ${n.content}`, created_by: n.user_name, created_at: n.created_at, status: undefined })),
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  const allTimeline = realTimeline.map(t => ({
+    id: t.id,
+    request_id: t.request_id,
+    message: t.message,
+    created_by: t.creator?.full_name || t.created_by || "System",
+    created_at: t.created_at,
+    status: t.status,
+  })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   const handleStatusUpdate = async () => {
     try {
@@ -131,9 +124,7 @@ export default function AdminRequestDetailPage() {
       const timeline = await getRequestTimeline(requestId)
       setRealTimeline(timeline)
     } catch (err: any) {
-      // Fallback to demo store
-      setRequestStatus(request.id, status, "Sarah Admin")
-      toast.error(err?.message || "Failed to update via Supabase, saved locally")
+      toast.error(err?.message || "Failed to update status")
     }
   }
 
@@ -146,19 +137,15 @@ export default function AdminRequestDetailPage() {
         message: noteInput,
         created_by: "admin",
       })
-      // Also save to demo store for immediate UI update
-      addNote(request.id, "Sarah Admin", "admin", noteInput)
       setNoteInput("")
       toast.success("Note added")
-      // Refresh real timeline
+      // Refresh timeline
       try {
         const timeline = await getRequestTimeline(requestId)
         setRealTimeline(timeline)
       } catch {}
-    } catch {
-      // Fallback to demo store only
-      addNote(request.id, "Sarah Admin", "admin", noteInput)
-      setNoteInput("")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add note")
     }
   }
 
@@ -302,13 +289,13 @@ export default function AdminRequestDetailPage() {
             ) : (
               <div className="space-y-2">
                 {checklistItems.map((item, i) => {
-                  const completed = isChecklistItemCompleted(request.id, item) === true
+                  const completed = checklistState[item] === true
                   return (
                     <label key={i} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${completed ? "bg-green-50" : "bg-gray-50 hover:bg-gray-100"}`}>
                       <input
                         type="checkbox"
                         checked={completed}
-                        onChange={() => toggleChecklistItem(request.id, item, !completed, "Sarah Admin")}
+                        onChange={() => setChecklistState(prev => ({ ...prev, [item]: !completed }))}
                         className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1a3a6b]"
                       />
                       <span className={`text-sm ${completed ? "line-through text-gray-400" : "text-gray-700"}`}>{item}</span>

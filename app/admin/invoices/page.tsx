@@ -61,11 +61,10 @@ export default function InvoicesPage() {
       const res = await fetch(`/api/invoices?${params}`)
       const data = await res.json()
       if (data.error) {
-        if (data.message === "Zoho not configured") setZohoConfigured(false)
         setInvoices([])
       } else {
         setInvoices(data.invoices || [])
-        setZohoConfigured(true)
+        setZohoConfigured(data.zoho_configured !== false)
       }
     } catch {
       setInvoices([])
@@ -92,7 +91,8 @@ export default function InvoicesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customer_id: formData.customer_id || formData.customer_name,
+          customer_id: formData.customer_id || undefined,
+          customer_name: formData.customer_name,
           service_type: formData.service_type,
           company_name: formData.company_name,
           gov_fees: parseFloat(formData.gov_fees) || 0,
@@ -213,7 +213,7 @@ export default function InvoicesPage() {
 
       {!zohoConfigured && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-800">
-          Zoho Invoice is not configured. Add ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN, and ZOHO_ORG_ID to your .env.local file.
+          Zoho Invoice is not configured. Invoices will be created locally. To enable Zoho sync, add ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN, and ZOHO_ORG_ID to your .env.local file.
         </div>
       )}
 

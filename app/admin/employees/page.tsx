@@ -514,10 +514,10 @@ export default function EmployeesPage() {
                 </div>
               </div>
 
-              <button className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-[#1a3a6b] bg-[#1a3a6b]/10 rounded-lg hover:bg-[#1a3a6b]/20 transition-colors">
+              <Link href={`/admin/employees/${emp.id}`} prefetch={false} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-[#1a3a6b] bg-[#1a3a6b]/10 rounded-lg hover:bg-[#1a3a6b]/20 transition-colors">
                 <Eye className="h-3.5 w-3.5" />
                 View Details
-              </button>
+              </Link>
             </div>
           )
         })}
