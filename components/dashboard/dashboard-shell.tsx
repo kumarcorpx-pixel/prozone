@@ -13,9 +13,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  // Route protection: redirect users to their correct portal
+  // Route protection: redirect to login if not authenticated
   useEffect(() => {
-    if (isLoading || !user) return
+    if (isLoading) return
+
+    // Not logged in → redirect to login
+    if (!user) {
+      router.replace("/login")
+      return
+    }
+
     const role = user.role
 
     // Staff trying to access admin routes → redirect to /staff
@@ -48,8 +55,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    router.push("/login")
-    return null
+    // Already redirecting via useEffect above
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-gray-500">Redirecting to login...</p>
+        </div>
+      </div>
+    )
   }
 
   const role = user.role === "admin" ? "admin" : user.role === "pro_staff" ? "pro_staff" : "client"
