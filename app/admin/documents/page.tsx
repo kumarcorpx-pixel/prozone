@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { fetchDocuments, fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
-import { createCompanyDocument, uploadFile, getFileUrl } from "@/lib/supabase/api"
+import { createCompanyDocument, uploadFile, getFileUrl } from "@/lib/api"
 import { documentCategories } from "@/lib/company-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { OCRConfirmModal } from "@/components/OCRConfirmModal"

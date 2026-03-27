@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { fetchRequests, fetchProfiles, fetchCompanies } from "@/lib/data-fetcher"
-import { createServiceRequest } from "@/lib/supabase/api"
+import { createServiceRequest } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, FileText, Plus, X, Loader2 } from "lucide-react"
 import { toast } from "sonner"

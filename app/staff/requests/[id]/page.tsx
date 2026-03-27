@@ -8,7 +8,7 @@ import {
   demoRequestDocuments,
 } from "@/lib/demo-data"
 import { fetchRequests } from "@/lib/data-fetcher"
-import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/supabase/api"
+import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/api"
 import type { ServiceRequest, RequestTimeline } from "@/lib/types"
 import { toast } from "sonner"
 import { StatusBadge } from "@/components/dashboard/status-badge"

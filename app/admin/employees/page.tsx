@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { fetchEmployees, fetchCompanies } from "@/lib/data-fetcher"
-import { createEmployee } from "@/lib/supabase/api"
+import { createEmployee } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye, Loader2, X } from "lucide-react"
 import { toast } from "sonner"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
-import { createCompany } from "@/lib/supabase/api"
+import { createCompany } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, Plus, Building2, MapPin, Calendar, Loader2, X } from "lucide-react"
 import Link from "next/link"

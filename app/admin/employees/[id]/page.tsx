@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { fetchEmployees, fetchCompanies, fetchDocuments } from "@/lib/data-fetcher"
-import { updateEmployee } from "@/lib/supabase/api"
+import { updateEmployee } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { toast } from "sonner"
 import {
