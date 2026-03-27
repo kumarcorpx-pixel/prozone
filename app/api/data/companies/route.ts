@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
+import { companySchema } from "@/lib/validation/schemas"
+import { validateBody } from "@/lib/validation/validate"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin"])
@@ -8,15 +11,18 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
+    const validation = validateBody(companySchema, body)
+    if (!validation.success) return validation.response
+
     const company = await prisma.company.create({
       data: {
-        name: body.name,
+        name: validation.data.name,
         tradeName: body.trade_name || body.tradeName,
         licenseNumber: body.license_number || body.licenseNumber,
-        licenseType: body.license_type || body.licenseType,
-        emirate: body.emirate,
-        phone: body.phone,
-        email: body.email,
+        licenseType: validation.data.licenseType,
+        emirate: validation.data.emirate,
+        phone: validation.data.phone,
+        email: validation.data.email,
         status: body.status || "active",
         jurisdiction: body.jurisdiction,
         freeZone: body.free_zone || body.freeZone,
@@ -53,8 +59,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(mapped)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -96,10 +102,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch companies:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch companies" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
