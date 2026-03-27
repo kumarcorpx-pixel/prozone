@@ -11,13 +11,33 @@ export async function GET(request: NextRequest) {
   const results = { checked: 0, alerts: 0, expired: 0, notified: 0 }
 
   try {
+    // Query employees — these fields exist in all schema versions
     const employees = await prisma.employee.findMany({
       select: { id: true, fullName: true, companyId: true, visaExpiry: true, emiratesIdExpiry: true, passportExpiry: true, laborCardExpiry: true },
     })
 
-    const companies = await prisma.company.findMany({
-      select: { id: true, name: true, licenseExpiry: true, establishmentCardExpiry: true, chamberCommerceExpiry: true, ejariTawtheeqExpiry: true, leaseExpiry: true },
-    })
+    // Query companies — only select licenseExpiry which always exists
+    // Use raw SQL to safely check for optional columns
+    let companies: any[] = []
+    try {
+      companies = await prisma.$queryRaw`
+        SELECT id, name, license_expiry as "licenseExpiry",
+          CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='companies' AND column_name='establishment_card_expiry')
+            THEN (SELECT establishment_card_expiry FROM companies c2 WHERE c2.id = c.id) END as "establishmentCardExpiry",
+          CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='companies' AND column_name='chamber_commerce_expiry')
+            THEN (SELECT chamber_commerce_expiry FROM companies c2 WHERE c2.id = c.id) END as "chamberCommerceExpiry",
+          CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='companies' AND column_name='ejari_tawtheeq_expiry')
+            THEN (SELECT ejari_tawtheeq_expiry FROM companies c2 WHERE c2.id = c.id) END as "ejariTawtheeqExpiry",
+          CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='companies' AND column_name='lease_expiry')
+            THEN (SELECT lease_expiry FROM companies c2 WHERE c2.id = c.id) END as "leaseExpiry"
+        FROM companies c
+      ` as any[]
+    } catch {
+      // Fallback: only query fields guaranteed to exist
+      companies = await prisma.company.findMany({
+        select: { id: true, name: true, licenseExpiry: true },
+      })
+    }
 
     const documents = await prisma.document.findMany({
       where: { expiryDate: { not: null } },
@@ -48,7 +68,6 @@ export async function GET(request: NextRequest) {
 
     results.checked = allItems.length
 
-    // Only send notifications at key thresholds: 90, 60, 30, 14, 7, 3, 1 days
     const alertThresholds = [90, 60, 30, 14, 7, 3, 1]
 
     for (const item of allItems) {
@@ -59,7 +78,6 @@ export async function GET(request: NextRequest) {
         results.expired++
       }
 
-      // Send notification at threshold days
       if (alertThresholds.includes(daysUntil) || daysUntil < 0) {
         results.alerts++
         try {
