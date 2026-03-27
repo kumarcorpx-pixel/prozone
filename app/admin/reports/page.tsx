@@ -42,6 +42,41 @@ const reportCards = [
   },
 ]
 
+function downloadCSV(data: any[], filename: string) {
+  if (!data.length) return
+  const headers = Object.keys(data[0]).join(",")
+  const rows = data.map(r => Object.values(r).join(",")).join("\n")
+  const blob = new Blob([headers + "\n" + rows], { type: "text/csv" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.click()
+}
+
+const reportData: Record<string, any[]> = {
+  "Revenue Report": [
+    { month: "January", revenue: 45000, collected: 38000, outstanding: 7000 },
+    { month: "February", revenue: 52000, collected: 48000, outstanding: 4000 },
+    { month: "March", revenue: 61000, collected: 42000, outstanding: 19000 },
+  ],
+  "Service Report": [
+    { service: "Trade License Renewal", requests: 24, completed: 21, completion_rate: "87.5%" },
+    { service: "Visa Processing", requests: 18, completed: 15, completion_rate: "83.3%" },
+    { service: "Document Attestation", requests: 12, completed: 11, completion_rate: "91.7%" },
+  ],
+  "Client Report": [
+    { client: "Gulf Trading LLC", status: "Active", requests: 8, total_billed: 45000 },
+    { client: "Tech Ventures FZCO", status: "Active", requests: 5, total_billed: 31500 },
+    { client: "Emirates Zone Group", status: "Active", requests: 3, total_billed: 12000 },
+  ],
+  "Staff Report": [
+    { staff: "Mohammed PRO", active_requests: 5, completed_this_month: 12, avg_days: 6 },
+    { staff: "Ali Hassan", active_requests: 3, completed_this_month: 8, avg_days: 9 },
+    { staff: "Fatima Khan", active_requests: 9, completed_this_month: 15, avg_days: 7 },
+  ],
+}
+
 export default function ReportsPage() {
   return (
     <div className="space-y-6">
@@ -75,11 +110,23 @@ export default function ReportsPage() {
                 <h3 className="text-lg font-semibold text-gray-900">{report.title}</h3>
                 <p className="text-sm text-gray-500 mt-1">{report.description}</p>
                 <div className="flex items-center gap-3 mt-4">
-                  <button className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
+                  <button
+                    onClick={() => toast.info("Report generation coming soon")}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+                  >
                     <FileBarChart className="h-4 w-4" />
                     Generate Report
                   </button>
-                  <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                  <button
+                    onClick={() => {
+                      const data = reportData[report.title]
+                      if (data) {
+                        downloadCSV(data, `${report.title.toLowerCase().replace(/\s+/g, "-")}.csv`)
+                        toast.success(`${report.title} CSV downloaded`)
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >
                     <FileDown className="h-4 w-4" />
                     Export CSV
                   </button>
