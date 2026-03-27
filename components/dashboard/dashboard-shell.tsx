@@ -16,25 +16,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
-  const [notifications, setNotifications] = useState<any[]>([])
   const router = useRouter()
   const pathname = usePathname()
+  const queryClient = useQueryClient()
 
-  // Fetch notifications from API
-  useEffect(() => {
-    async function loadNotifications() {
-      try {
-        const res = await fetch("/api/notifications")
-        if (res.ok) {
-          const data = await res.json()
-          setNotifications((data.notifications || []).slice(0, 10))
-        }
-      } catch {}
-    }
-    loadNotifications()
-    const interval = setInterval(loadNotifications, 60000)
-    return () => clearInterval(interval)
-  }, [])
+  const { data: notifData } = useNotifications()
+  const notifications = (notifData?.notifications || []).slice(0, 10)
 
   const markAsRead = async (id: string) => {
     try {
@@ -43,7 +30,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, isRead: true }),
       })
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all })
     } catch {}
   }
 
