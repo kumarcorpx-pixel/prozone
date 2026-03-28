@@ -238,32 +238,83 @@ export default function EmployeeDetailPage() {
         )}
 
         {activeTab === "documents" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Upload button */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">{documents.length} document(s)</p>
+              <div className="flex items-center gap-2">
+                <select id="emp-doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                  <option value="visa">Visa</option>
+                  <option value="emirates_id">Emirates ID</option>
+                  <option value="passport">Passport</option>
+                  <option value="labor_card">Labor Card</option>
+                  <option value="contract">Contract</option>
+                  <option value="medical_insurance">Medical Insurance</option>
+                  <option value="photo">Photo</option>
+                  <option value="other">Other</option>
+                </select>
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
+                  <Upload className="h-4 w-4" />
+                  Upload Document
+                  <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      if (file.size > 25 * 1024 * 1024) { toast.error("File too large (max 25MB)"); return }
+                      const docType = (document.getElementById("emp-doctype-select") as HTMLSelectElement)?.value || "other"
+                      try {
+                        const fd = new FormData()
+                        fd.append("file", file)
+                        fd.append("name", file.name.replace(/\.[^.]+$/, ""))
+                        if (employee.company_id) fd.append("companyId", employee.company_id)
+                        fd.append("employeeId", employeeId)
+                        fd.append("documentType", docType)
+                        const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
+                        if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
+                        toast.success("Document uploaded!")
+                        const docs = await fetchDocuments()
+                        setDocuments(docs.filter((d: any) => d.employee_id === employeeId))
+                      } catch (err: any) { toast.error(err?.message || "Upload failed") }
+                      e.target.value = ""
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
             {documents.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <FileText className="h-8 w-8 mx-auto text-gray-300 mb-2" />
                 <p>No documents found for this employee</p>
               </div>
             ) : (
-              documents.map((doc: any) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-[#1a3a6b]" />
-                    <div>
-                      <p className="text-sm font-medium">{doc.name}</p>
-                      <p className="text-xs text-gray-500">{doc.document_type || "Document"}</p>
+              <div className="space-y-3">
+                {documents.map((doc: any) => (
+                  <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-[#1a3a6b]" />
+                      <div>
+                        <p className="text-sm font-medium">{doc.name}</p>
+                        <p className="text-xs text-gray-500">{doc.document_type || "Document"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {doc.expiry_date && (
+                        <p className={`text-xs font-medium ${getExpiryInfo(doc.expiry_date).color}`}>
+                          {new Date(doc.expiry_date).toLocaleDateString()}
+                        </p>
+                      )}
+                      <StatusBadge status={doc.status || "valid"} />
+                      {doc.file_url && (
+                        <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                          className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
+                          <Download className="h-4 w-4" />
+                        </a>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    {doc.expiry_date && (
-                      <p className={`text-xs font-medium ${getExpiryInfo(doc.expiry_date).color}`}>
-                        {new Date(doc.expiry_date).toLocaleDateString()}
-                      </p>
-                    )}
-                    <StatusBadge status={doc.status || "valid"} />
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         )}

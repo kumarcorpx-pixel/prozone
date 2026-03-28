@@ -63,10 +63,22 @@ export async function GET(
         const path = await import("path")
         const filePath = path.join(process.cwd(), "public", "uploads", doc.fileUrl)
         const fileBuffer = await readFile(filePath)
+
+        const notesLine = doc.notes?.split("\n").find((l: string) => l.startsWith("file:"))
+        const fileName = notesLine?.replace("file:", "") || doc.fileUrl.split("/").pop() || "document"
+        const mimeLine = doc.notes?.split("\n").find((l: string) => l.startsWith("mime:"))
+        const ext = fileName.split(".").pop()?.toLowerCase()
+        const mimeType = mimeLine?.replace("mime:", "") ||
+          (ext === "pdf" ? "application/pdf" :
+           ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
+           ext === "png" ? "image/png" :
+           "application/octet-stream")
+
         return new NextResponse(fileBuffer, {
           headers: {
-            "Content-Type": "application/octet-stream",
-            "Content-Disposition": `attachment; filename="${doc.fileUrl.split("/").pop()}"`,
+            "Content-Type": mimeType,
+            "Content-Disposition": `inline; filename="${fileName}"`,
+            "Cache-Control": "private, max-age=3600",
           },
         })
       } catch {
