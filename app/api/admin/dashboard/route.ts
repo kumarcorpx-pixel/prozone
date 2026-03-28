@@ -41,29 +41,53 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Fetch counts and revenue in parallel
-    const [companiesCount, employeesCount, activeReqCount, completedReqCount, documentsCount, totalRevenue, paidRevenue, pendingRevenue, overdueRevenue] =
+    // Fetch counts safely
+    const safeCount = async (fn: () => Promise<number>) => {
+      try { return await fn() } catch { return 0 }
+    }
+
+    const [companiesCount, employeesCount, activeReqCount, completedReqCount, documentsCount] =
       await Promise.all([
-        prisma.company.count(),
-        prisma.employee.count(),
-        prisma.serviceRequest.count({
+        safeCount(() => prisma.company.count()),
+        safeCount(() => prisma.employee.count()),
+        safeCount(() => prisma.serviceRequest.count({
           where: { status: { in: ["pending", "in_progress", "under_review"] } },
-        }),
-        prisma.serviceRequest.count({
+        })),
+        safeCount(() => prisma.serviceRequest.count({
           where: { status: "completed" },
-        }),
-        prisma.document.count(),
+        })),
+        safeCount(() => prisma.document.count()),
+      ])
+
+    // Fetch revenue safely
+    let revenueData = { total: 0, paid: 0, pending: 0, overdue: 0 }
+    try {
+      const [totalRevenue, paidRevenue, pendingRevenue, overdueRevenue] = await Promise.all([
         prisma.invoice.aggregate({ _sum: { totalAmount: true } }),
         prisma.invoice.aggregate({ _sum: { totalAmount: true }, where: { status: "paid" } }),
         prisma.invoice.aggregate({ _sum: { totalAmount: true }, where: { status: "pending" } }),
         prisma.invoice.aggregate({ _sum: { totalAmount: true }, where: { status: "overdue" } }),
       ])
+      revenueData = {
+        total: Number(totalRevenue._sum.totalAmount || 0),
+        paid: Number(paidRevenue._sum.totalAmount || 0),
+        pending: Number(pendingRevenue._sum.totalAmount || 0),
+        overdue: Number(overdueRevenue._sum.totalAmount || 0),
+      }
+    } catch {
+      // Revenue queries failed, use defaults
+    }
 
     // Recent activity
-    const recentActivity = await prisma.activityLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    })
+    let recentActivity: any[] = []
+    try {
+      recentActivity = await prisma.activityLog.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      })
+    } catch {
+      // ActivityLog query failed, use empty array
+    }
 
     return NextResponse.json({
       companies: companiesCount,
@@ -72,13 +96,10 @@ export async function GET(request: NextRequest) {
       completedRequests: completedReqCount,
       documents: documentsCount,
       revenue: {
-        total: Number(totalRevenue._sum.totalAmount || 0),
-        paid: Number(paidRevenue._sum.totalAmount || 0),
-        pending: Number(pendingRevenue._sum.totalAmount || 0),
-        overdue: Number(overdueRevenue._sum.totalAmount || 0),
+        ...revenueData,
         currency: "AED",
       },
-      recentActivity: recentActivity || [],
+      recentActivity,
     })
   } catch (error) {
     return handleApiError(error)

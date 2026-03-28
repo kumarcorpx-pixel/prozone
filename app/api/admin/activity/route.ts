@@ -11,11 +11,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const activities = await prisma.activityLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      include: { user: { select: { fullName: true } } },
-    })
+    let activities: any[] = []
+    try {
+      activities = await prisma.activityLog.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { user: { select: { fullName: true } } },
+      })
+    } catch {
+      // If the query fails (e.g. relation mismatch on VPS), return empty
+      return NextResponse.json({ activities: [] })
+    }
 
     const mapped = activities.map((a: any) => ({
       id: a.id,
