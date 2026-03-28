@@ -483,11 +483,83 @@ export default function CompanyDetailPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">{documents.length} document(s)</p>
-              <Link href="/admin/documents" className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
-                <Plus className="h-4 w-4" />
-                Upload Document
-              </Link>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
+                  <Upload className="h-4 w-4" />
+                  Upload Company Document
+                  <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      if (file.size > 25 * 1024 * 1024) { toast.error("File too large (max 25MB)"); return }
+                      try {
+                        const fd = new FormData()
+                        fd.append("file", file)
+                        fd.append("name", file.name.replace(/\.[^.]+$/, ""))
+                        fd.append("companyId", companyId)
+                        fd.append("documentType", "trade_license")
+                        const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
+                        if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
+                        toast.success("Document uploaded!")
+                        const updatedDocs = await fetchDocuments(companyId)
+                        setDocuments(updatedDocs)
+                      } catch (err: any) { toast.error(err?.message || "Upload failed") }
+                      e.target.value = ""
+                    }}
+                  />
+                </label>
+              </div>
             </div>
+
+            {/* Upload for specific employee */}
+            {employees.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm p-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">Upload Employee Document</p>
+                <div className="flex flex-wrap gap-2">
+                  <select id="emp-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white flex-1 min-w-[200px]">
+                    {employees.map((emp: any) => (
+                      <option key={emp.id} value={emp.id}>{emp.full_name}</option>
+                    ))}
+                  </select>
+                  <select id="doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                    <option value="visa">Visa</option>
+                    <option value="emirates_id">Emirates ID</option>
+                    <option value="passport">Passport</option>
+                    <option value="labor_card">Labor Card</option>
+                    <option value="contract">Contract</option>
+                    <option value="medical_insurance">Medical Insurance</option>
+                    <option value="photo">Photo</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <label className="inline-flex items-center gap-2 px-4 py-2 border border-[#1a3a6b] text-[#1a3a6b] rounded-lg text-sm font-medium cursor-pointer hover:bg-[#1a3a6b]/5 transition-colors">
+                    <Upload className="h-4 w-4" />
+                    Choose File
+                    <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const empId = (document.getElementById("emp-select") as HTMLSelectElement)?.value
+                        const docType = (document.getElementById("doctype-select") as HTMLSelectElement)?.value || "other"
+                        try {
+                          const fd = new FormData()
+                          fd.append("file", file)
+                          fd.append("name", file.name.replace(/\.[^.]+$/, ""))
+                          fd.append("companyId", companyId)
+                          if (empId) fd.append("employeeId", empId)
+                          fd.append("documentType", docType)
+                          const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
+                          if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
+                          toast.success("Employee document uploaded!")
+                          const updatedDocs = await fetchDocuments(companyId)
+                          setDocuments(updatedDocs)
+                        } catch (err: any) { toast.error(err?.message || "Upload failed") }
+                        e.target.value = ""
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Company-level documents */}
             <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
@@ -505,16 +577,22 @@ export default function CompanyDetailPage() {
                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cat.color}`}>{cat.label}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 flex-shrink-0">
-                          <span className={`text-sm ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span className={`text-xs ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
                           <StatusBadge status={doc.status} />
+                          {doc.file_url && (
+                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                              className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
+                              <FileText className="h-4 w-4" />
+                            </a>
+                          )}
                         </div>
                       </div>
                     )
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No company-level documents</p>
+                <p className="text-sm text-gray-500">No company-level documents uploaded yet. Use the button above to upload.</p>
               )}
             </div>
 
