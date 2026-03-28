@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { jwtVerify } from "jose"
 
 const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/about", "/contact", "/services", "/faq", "/privacy", "/consultation", "/offline"]
-const publicApiPaths = ["/api/auth/login", "/api/auth/signup", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/google", "/api/auth/google/callback", "/api/auth/zoho", "/api/auth/zoho/callback", "/api/contact", "/api/consultation", "/api/health", "/api/services", "/api/activities"]
+const publicApiPaths = ["/api/auth/login", "/api/auth/logout", "/api/auth/signup", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/google", "/api/auth/google/callback", "/api/auth/zoho", "/api/auth/zoho/callback", "/api/contact", "/api/consultation", "/api/health", "/api/services", "/api/activities"]
 const cronPaths = ["/api/cron/"]
 
 const ALLOWED_ORIGINS = [
@@ -121,10 +121,10 @@ export async function middleware(request: NextRequest) {
 
   response.cookies.set("auth_token", token!, {
     httpOnly: true,
-    secure: true,
+    secure: request.url.startsWith("https"),
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 2, // 2 hours — matches JWT expiry
+    maxAge: 60 * 60 * 2,
   })
 
   // Add CORS headers to API responses
