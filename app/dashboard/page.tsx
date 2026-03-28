@@ -11,6 +11,7 @@ import {
   AlertTriangle, AlertCircle, Users, Building2, ArrowRight, Calendar,
   Search, Clock
 } from "lucide-react"
+import { FadeIn, StaggerContainer, StaggerItem, HoverScale } from "@/components/ui/motion"
 
 const notificationIcons: Record<string, typeof Info> = {
   info: Info,

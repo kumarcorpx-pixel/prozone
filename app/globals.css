@@ -159,3 +159,62 @@ body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* Pulse animation for badges */
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Slide in from bottom for notifications */
+@keyframes slide-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Glow effect for important buttons */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(26, 58, 107, 0.15);
+}
+
+.glow-primary:hover {
+  box-shadow: 0 0 30px rgba(26, 58, 107, 0.25);
+}
+
+/* Highlighted menu items */
+.menu-highlight {
+  position: relative;
+}
+
+.menu-highlight::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c9a96e;
+  animation: pulse-dot 2s ease-in-out infinite;
+}

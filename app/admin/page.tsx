@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { AedIcon } from "@/components/ui/aed-icon"
+import { FadeIn, StaggerContainer, StaggerItem, HoverScale } from "@/components/ui/motion"
 
 function getDaysUntil(dateStr: string): number {
   const now = new Date()
@@ -145,144 +146,179 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6 bg-[#f8f9fb] min-h-screen -m-6 p-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-[#1a3a6b] via-[#1e4a7e] to-[#234d85] rounded-2xl p-8 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }} />
-        <div className="relative">
-          <p className="text-blue-200 text-sm font-medium">Good {getTimeOfDay()}</p>
-          <h1 className="text-3xl font-bold mt-1">Admin Dashboard</h1>
-          <p className="text-blue-200 mt-2">Managing {companies.length} companies &middot; {totalEmployees} employees</p>
+      <FadeIn>
+        <div className="bg-gradient-to-r from-[#1a3a6b] via-[#1e4a7e] to-[#234d85] rounded-2xl p-8 text-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          }} />
+          <div className="relative">
+            <p className="text-blue-200 text-sm font-medium">Good {getTimeOfDay()}</p>
+            <h1 className="text-3xl font-bold mt-1">Admin Dashboard</h1>
+            <p className="text-blue-200 mt-2">Managing {companies.length} companies &middot; {totalEmployees} employees</p>
+          </div>
         </div>
-      </div>
+      </FadeIn>
 
       {/* Revenue Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/admin/invoices" prefetch={false} className="block">
-          <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.total.toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">All time</p>
+      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StaggerItem>
+          <Link href="/admin/invoices" prefetch={false} className="block">
+            <HoverScale>
+              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.total.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400 mt-1">All time</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-xl bg-[#c9a96e]/10 flex items-center justify-center">
+                    <AedIcon className="h-6 w-6 text-[#c9a96e]" />
+                  </div>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-[#c9a96e]/10 flex items-center justify-center">
-                <AedIcon className="h-6 w-6 text-[#c9a96e]" />
-              </div>
-            </div>
-          </div>
-        </Link>
+            </HoverScale>
+          </Link>
+        </StaggerItem>
 
-        <Link href="/admin/invoices?status=paid" prefetch={false} className="block">
-          <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-emerald-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Paid</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.paid.toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">{revenue.total > 0 ? Math.round(revenue.paid / revenue.total * 100) : 0}% collection rate</p>
+        <StaggerItem>
+          <Link href="/admin/invoices?status=paid" prefetch={false} className="block">
+            <HoverScale>
+              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-emerald-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Paid</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.paid.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400 mt-1">{revenue.total > 0 ? Math.round(revenue.paid / revenue.total * 100) : 0}% collection rate</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  </div>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-              </div>
-            </div>
-          </div>
-        </Link>
+            </HoverScale>
+          </Link>
+        </StaggerItem>
 
-        <Link href="/admin/invoices?status=sent" prefetch={false} className="block">
-          <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-amber-400">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Pending</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.pending.toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">{revenue.total > 0 ? Math.round(revenue.pending / revenue.total * 100) : 0}% of total</p>
+        <StaggerItem>
+          <Link href="/admin/invoices?status=sent" prefetch={false} className="block">
+            <HoverScale>
+              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-amber-400">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Pending</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.pending.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400 mt-1">{revenue.total > 0 ? Math.round(revenue.pending / revenue.total * 100) : 0}% of total</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-amber-500" />
+                  </div>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-amber-500" />
-              </div>
-            </div>
-          </div>
-        </Link>
+            </HoverScale>
+          </Link>
+        </StaggerItem>
 
-        <Link href="/admin/invoices?status=overdue" prefetch={false} className="block">
-          <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Overdue</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.overdue.toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">{revenue.total > 0 ? Math.round(revenue.overdue / revenue.total * 100) : 0}% of total</p>
+        <StaggerItem>
+          <Link href="/admin/invoices?status=overdue" prefetch={false} className="block">
+            <HoverScale>
+              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-red-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Overdue</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.overdue.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400 mt-1">{revenue.total > 0 ? Math.round(revenue.overdue / revenue.total * 100) : 0}% of total</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center">
+                    <AlertTriangle className="h-6 w-6 text-red-500" />
+                  </div>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-red-500" />
-              </div>
-            </div>
-          </div>
-        </Link>
-      </div>
+            </HoverScale>
+          </Link>
+        </StaggerItem>
+      </StaggerContainer>
 
       {/* Company Portfolio Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/admin/companies" prefetch={false} className="block">
-          <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Total Companies</p>
-                <p className="text-3xl font-bold text-[#1a3a6b] mt-1">{stats.companies}</p>
-                <p className="text-xs text-gray-400 mt-1">Managed companies</p>
+      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StaggerItem>
+          <Link href="/admin/companies" prefetch={false} className="block">
+            <HoverScale>
+              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Total Companies</p>
+                    <p className="text-3xl font-bold text-[#1a3a6b] mt-1">{stats.companies}</p>
+                    <p className="text-xs text-gray-400 mt-1">Managed companies</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-xl bg-[#1a3a6b]/10 flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-[#1a3a6b]" />
+                  </div>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-[#1a3a6b]/10 flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-[#1a3a6b]" />
-              </div>
-            </div>
-          </div>
-        </Link>
+            </HoverScale>
+          </Link>
+        </StaggerItem>
 
-        <Link href="/admin/companies" prefetch={false} className="block">
-          <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Active</p>
-                <p className="text-3xl font-bold text-emerald-600 mt-1">{activeCompanies.length}</p>
-                <p className="text-xs text-gray-400 mt-1">Fully operational</p>
+        <StaggerItem>
+          <Link href="/admin/companies" prefetch={false} className="block">
+            <HoverScale>
+              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Active</p>
+                    <p className="text-3xl font-bold text-emerald-600 mt-1">{activeCompanies.length}</p>
+                    <p className="text-xs text-gray-400 mt-1">Fully operational</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-emerald-500" />
+                  </div>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-emerald-500" />
-              </div>
-            </div>
-          </div>
-        </Link>
+            </HoverScale>
+          </Link>
+        </StaggerItem>
 
-        <Link href="/admin/companies" prefetch={false} className="block">
-          <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Expired License</p>
-                <p className="text-3xl font-bold text-red-600 mt-1">{expiredCompanies.length}</p>
-                <p className="text-xs text-gray-400 mt-1">Needs renewal</p>
+        <StaggerItem>
+          <Link href="/admin/companies" prefetch={false} className="block">
+            <HoverScale>
+              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Expired License</p>
+                    <p className="text-3xl font-bold text-red-600 mt-1">{expiredCompanies.length}</p>
+                    <p className="text-xs text-gray-400 mt-1">Needs renewal</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center">
+                    <ShieldAlert className="h-6 w-6 text-red-500" />
+                  </div>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center">
-                <ShieldAlert className="h-6 w-6 text-red-500" />
-              </div>
-            </div>
-          </div>
-        </Link>
+            </HoverScale>
+          </Link>
+        </StaggerItem>
 
-        <Link href="/admin/employees" prefetch={false} className="block">
-          <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Total Employees</p>
-                <p className="text-3xl font-bold text-[#1a3a6b] mt-1">{stats.employees}</p>
-                <p className="text-xs text-gray-400 mt-1">Across all companies</p>
+        <StaggerItem>
+          <Link href="/admin/employees" prefetch={false} className="block">
+            <HoverScale>
+              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Total Employees</p>
+                    <p className="text-3xl font-bold text-[#1a3a6b] mt-1">{stats.employees}</p>
+                    <p className="text-xs text-gray-400 mt-1">Across all companies</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-xl bg-[#1a3a6b]/10 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-[#1a3a6b]" />
+                  </div>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-[#1a3a6b]/10 flex items-center justify-center">
-                <Users className="h-6 w-6 text-[#1a3a6b]" />
-              </div>
-            </div>
-          </div>
-        </Link>
-      </div>
+            </HoverScale>
+          </Link>
+        </StaggerItem>
+      </StaggerContainer>
 
       {/* Quick Stats + Expiry Alerts */}
+      <FadeIn delay={0.2}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Quick Stats (2/3) */}
         <div className="bg-white rounded-2xl p-6 shadow-sm lg:col-span-2">
@@ -361,6 +397,7 @@ export default function AdminDashboard() {
           </Link>
         </div>
       </div>
+      </FadeIn>
 
       {/* Recent Requests + Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
