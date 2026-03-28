@@ -246,7 +246,7 @@ export default function DocumentsPage() {
               {filteredDocs.map((doc) => {
                 const catConfig = documentCategories[doc.document_type || "other"] || documentCategories.other
                 const expiryStatus = getExpiryStatus(doc.expiry_date)
-                const employee = doc.employee_id ? myEmployees.find(e => e.id === doc.employee_id) : null
+                const employee = doc.employee_id ? employees.find((e: any) => e.id === doc.employee_id) : null
 
                 return (
                   <div key={doc.id} className="bg-white rounded-xl ring-1 ring-gray-200 p-5 hover:ring-gray-300 transition-all">
