@@ -3,52 +3,36 @@
 export async function fetchCompanies() {
   try {
     const res = await fetch("/api/data/companies")
-    if (res.ok) {
-      const data = await res.json()
-      if (Array.isArray(data) && data.length > 0) return data
-    }
+    if (res.ok) return await res.json()
   } catch {}
-  const { demoCompanies } = await import("./company-data")
-  return demoCompanies
+  return []
 }
 
 export async function fetchEmployees(companyId?: string) {
   try {
     const url = companyId ? `/api/data/employees?companyId=${companyId}` : "/api/data/employees"
     const res = await fetch(url)
-    if (res.ok) {
-      const data = await res.json()
-      if (Array.isArray(data) && data.length > 0) return data
-    }
+    if (res.ok) return await res.json()
   } catch {}
-  const { demoEmployees } = await import("./company-data")
-  return companyId ? demoEmployees.filter(e => e.company_id === companyId) : demoEmployees
+  return []
 }
 
 export async function fetchDocuments(companyId?: string) {
   try {
     const url = companyId ? `/api/data/documents?companyId=${companyId}` : "/api/data/documents"
     const res = await fetch(url)
-    if (res.ok) {
-      const data = await res.json()
-      if (Array.isArray(data) && data.length > 0) return data
-    }
+    if (res.ok) return await res.json()
   } catch {}
-  const { companyDocuments } = await import("./company-data")
-  return companyId ? companyDocuments.filter(d => d.company_id === companyId) : companyDocuments
+  return []
 }
 
 export async function fetchRequests(filters?: Record<string, string>) {
   try {
     const params = new URLSearchParams(filters || {})
     const res = await fetch(`/api/data/requests?${params}`)
-    if (res.ok) {
-      const data = await res.json()
-      if (Array.isArray(data) && data.length > 0) return data
-    }
+    if (res.ok) return await res.json()
   } catch {}
-  const { demoRequests } = await import("./demo-data")
-  return demoRequests
+  return []
 }
 
 export async function fetchCompany(id: string) {
@@ -56,29 +40,21 @@ export async function fetchCompany(id: string) {
     const res = await fetch(`/api/data/companies/${id}`)
     if (res.ok) return await res.json()
   } catch {}
-  const { demoCompanies } = await import("./company-data")
-  return demoCompanies.find(c => c.id === id) || null
+  return null
 }
 
 export async function fetchProfiles() {
   try {
     const res = await fetch("/api/data/users")
-    if (res.ok) {
-      const data = await res.json()
-      if (Array.isArray(data) && data.length > 0) return data
-    }
+    if (res.ok) return await res.json()
   } catch {}
-  const { demoProfiles } = await import("./demo-data")
-  return demoProfiles
+  return []
 }
 
 export async function fetchServices() {
   try {
     const res = await fetch("/api/data/services")
-    if (res.ok) {
-      const data = await res.json()
-      if (Array.isArray(data) && data.length > 0) return data
-    }
+    if (res.ok) return await res.json()
   } catch {}
   return []
 }

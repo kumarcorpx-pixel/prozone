@@ -92,21 +92,35 @@ export async function GET(request: NextRequest) {
 
     if (isAdminOrStaff) {
       const mapped = await cached(CK.requests(), TTL.REQUESTS, async () => {
-        const requests = await prisma.serviceRequest.findMany({
-          orderBy: { createdAt: "desc" },
-          include: includeRelations,
-        })
-        return requests.map(mapRequest)
+        try {
+          const requests = await prisma.serviceRequest.findMany({
+            orderBy: { createdAt: "desc" },
+            include: includeRelations,
+          })
+          return requests.map(mapRequest)
+        } catch {
+          // Fallback without includes
+          const requests = await prisma.serviceRequest.findMany({ orderBy: { createdAt: "desc" } })
+          return requests.map(mapRequest)
+        }
       })
       return NextResponse.json(mapped)
     }
 
     const clientFilter = user.role === "client" ? { clientId: user.id } : undefined
-    const requests = await prisma.serviceRequest.findMany({
-      where: clientFilter,
-      orderBy: { createdAt: "desc" },
-      include: includeRelations,
-    })
+    let requests: any[]
+    try {
+      requests = await prisma.serviceRequest.findMany({
+        where: clientFilter,
+        orderBy: { createdAt: "desc" },
+        include: includeRelations,
+      })
+    } catch {
+      requests = await prisma.serviceRequest.findMany({
+        where: clientFilter,
+        orderBy: { createdAt: "desc" },
+      })
+    }
     const mapped = requests.map(mapRequest)
 
     return NextResponse.json(mapped)
