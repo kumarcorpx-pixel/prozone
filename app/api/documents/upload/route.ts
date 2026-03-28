@@ -38,9 +38,45 @@ export async function POST(request: NextRequest) {
     const name = (formData.get("name") as string) || file.name
     const companyId = (formData.get("companyId") as string) || "general"
     const employeeId = (formData.get("employeeId") as string) || null
-    const documentType = (formData.get("documentType") as string) || "other"
+    let documentType = (formData.get("documentType") as string) || "other"
     const expiryDate = formData.get("expiryDate") as string | null
     const notes = (formData.get("notes") as string) || null
+
+    // Normalize Labour → Labor (British/American spelling)
+    if (documentType === "labour_card") documentType = "labor_card"
+
+    // Auto-detect document type from filename if type is "other"
+    if (documentType === "other") {
+      const fn = (name || file.name).toLowerCase()
+      if (fn.includes("trade") && fn.includes("licen")) documentType = "trade_license"
+      else if (fn.includes("establishment") || fn.includes("estab")) documentType = "establishment_card"
+      else if (fn.includes("ejari") || fn.includes("tawtheeq")) documentType = "ejari"
+      else if (fn.includes("memorandum") || fn.includes("moa")) documentType = "moa"
+      else if (fn.includes("power of attorney") || fn.includes("poa")) documentType = "poa"
+      else if (fn.includes("labour") || fn.includes("labor")) documentType = "labor_card"
+      else if (fn.includes("visa")) documentType = "visa"
+      else if (fn.includes("emirates") && fn.includes("id")) documentType = "emirates_id"
+      else if (fn.includes("passport")) documentType = "passport"
+      else if (fn.includes("noc") || fn.includes("no objection")) documentType = "noc"
+      else if (fn.includes("wps") || fn.includes("sif")) documentType = "wps"
+      else if (fn.includes("insurance") || fn.includes("medical")) documentType = "medical_insurance"
+      else if (fn.includes("immigration")) documentType = "immigration_card"
+      else if (fn.includes("offer") && fn.includes("letter")) documentType = "offer_letter"
+    }
+
+    // Duplicate detection: check if same name + type + company/employee already exists
+    try {
+      const where: any = { name, documentType }
+      if (companyId && companyId !== "general") where.companyId = companyId
+      if (employeeId) where.employeeId = employeeId
+      const existing = await prisma.document.findFirst({ where }).catch(() => null)
+      if (existing) {
+        return NextResponse.json({
+          error: `Duplicate document: "${name}" (${documentType}) already exists. Delete the existing one first or rename this file.`,
+          existingId: existing.id,
+        }, { status: 409 })
+      }
+    } catch {}
 
     const timestamp = Date.now()
     const buffer = Buffer.from(await file.arrayBuffer())

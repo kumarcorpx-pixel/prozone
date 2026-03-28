@@ -133,13 +133,22 @@ export default function CompanyDetailPage() {
       if (c) setEditData({
         name: c.name || "", trade_name: c.trade_name || "", license_number: c.license_number || "",
         license_expiry: c.license_expiry?.split("T")[0] || "", license_type: c.license_type || "",
-        legal_form: c.legal_form || "", emirate: c.emirate || "", phone: c.phone || "",
-        email: c.email || "", address: c.address || "", industry: c.industry || "",
+        jurisdiction: c.jurisdiction || "", legal_form: c.legal_form || "", emirate: c.emirate || "",
+        free_zone_authority: c.free_zone_authority || "",
+        phone: c.phone || "", email: c.email || "", address: c.address || "", industry: c.industry || "",
+        capital: c.capital || "",
         status: c.status || "active", visa_quota_total: c.visa_quota_total || 0,
-        mohre_company_number: c.mohre_company_number || "", establishment_card_number: c.establishment_card_number || "",
+        mohre_company_number: c.mohre_company_number || "", mol_number: c.mol_number || "",
+        establishment_card_number: c.establishment_card_number || "",
+        establishment_card_expiry: c.establishment_card_expiry?.split("T")[0] || "",
         immigration_file_number: c.immigration_file_number || "", computer_card_number: c.computer_card_number || "",
         chamber_commerce_number: c.chamber_commerce_number || "", ejari_tawtheeq_number: c.ejari_tawtheeq_number || "",
-        vat_trn: c.vat_trn || "", sponsor_name: c.sponsor_name || "",
+        ejari_tawtheeq_type: c.ejari_tawtheeq_type || "", ejari_tawtheeq_expiry: c.ejari_tawtheeq_expiry?.split("T")[0] || "",
+        lease_expiry: c.lease_expiry?.split("T")[0] || "",
+        vat_trn: c.vat_trn || "", corporate_tax_number: c.corporate_tax_number || "",
+        sponsor_name: c.sponsor_name || "", sponsor_eid: c.sponsor_eid || "",
+        local_service_agent: c.local_service_agent || "",
+        poa_status: c.poa_status || "", poa_expiry: c.poa_expiry?.split("T")[0] || "",
         created_by: c.created_by || "",
       })
       setEmployees(e)
@@ -223,11 +232,11 @@ export default function CompanyDetailPage() {
         <button onClick={() => setActiveTab("edit")} className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
           <FileText className="h-4 w-4" /> Edit Company Details
         </button>
-        <Link href="/admin/documents" prefetch={false} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+        <button onClick={() => setActiveTab("documents")} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
           <Upload className="h-4 w-4" /> Upload Document
-        </Link>
-        <Link href="/admin/employees" prefetch={false} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-          <Users className="h-4 w-4" /> Add Employee
+        </button>
+        <Link href={`/admin/employees?companyId=${companyId}&companyName=${encodeURIComponent(company.name)}`} prefetch={false} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <Plus className="h-4 w-4" /> Add Employee
         </Link>
       </div>
 
@@ -370,42 +379,44 @@ export default function CompanyDetailPage() {
             </CollapsibleSection>
 
             <CollapsibleSection title="Visa Quota">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">
-                    Used {ec.visa_quota_used} of {ec.visa_quota_total} ({ec.visa_quota_total - ec.visa_quota_used} remaining)
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {ec.visa_quota_total > 0 ? Math.round((ec.visa_quota_used / ec.visa_quota_total) * 100) : 0}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full transition-all ${
-                      ec.visa_quota_total > 0 && ec.visa_quota_used / ec.visa_quota_total > 0.9
-                        ? "bg-red-500"
-                        : ec.visa_quota_total > 0 && ec.visa_quota_used / ec.visa_quota_total > 0.7
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
-                    }`}
-                    style={{ width: `${ec.visa_quota_total > 0 ? (ec.visa_quota_used / ec.visa_quota_total) * 100 : 0}%` }}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500">Total</p>
-                    <p className="text-lg font-bold text-[#1a3a6b]">{ec.visa_quota_total}</p>
+              {(() => {
+                const quotaTotal = ec.visa_quota_total || 0
+                const quotaUsed = employees.filter((e: any) => e.visa_expiry && new Date(e.visa_expiry) > new Date()).length
+                const quotaPercent = quotaTotal > 0 ? Math.round((quotaUsed / quotaTotal) * 100) : 0
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">
+                        Used {quotaUsed} of {quotaTotal} ({Math.max(quotaTotal - quotaUsed, 0)} remaining)
+                      </span>
+                      <span className="font-medium text-gray-900">{quotaPercent}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className={`h-3 rounded-full transition-all ${
+                          quotaPercent > 90 ? "bg-red-500" : quotaPercent > 70 ? "bg-yellow-500" : "bg-green-500"
+                        }`}
+                        style={{ width: `${Math.min(quotaPercent, 100)}%` }}
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Total (MOL)</p>
+                        <p className="text-lg font-bold text-[#1a3a6b]">{quotaTotal}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Active Visas</p>
+                        <p className="text-lg font-bold text-orange-600">{quotaUsed}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Available</p>
+                        <p className="text-lg font-bold text-green-600">{Math.max(quotaTotal - quotaUsed, 0)}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400">Auto-calculated from {employees.length} employees with active visas</p>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500">Used</p>
-                    <p className="text-lg font-bold text-orange-600">{ec.visa_quota_used}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500">Available</p>
-                    <p className="text-lg font-bold text-green-600">{ec.visa_quota_total - ec.visa_quota_used}</p>
-                  </div>
-                </div>
-              </div>
+                )
+              })()}
             </CollapsibleSection>
 
             {/* Notes */}
@@ -505,21 +516,42 @@ export default function CompanyDetailPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">{documents.length} document(s)</p>
-              <div className="flex items-center gap-2">
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm p-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">Upload Company Document</p>
+              <div className="flex flex-wrap gap-2">
+                <select id="company-doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white flex-1 min-w-[180px]">
+                  <option value="trade_license">Trade License</option>
+                  <option value="establishment_card">Establishment Card</option>
+                  <option value="ejari">Ejari / Tawtheeq</option>
+                  <option value="moa">MOA</option>
+                  <option value="poa">Power of Attorney</option>
+                  <option value="immigration_card">Immigration Card</option>
+                  <option value="wps">WPS / SIF</option>
+                  <option value="noc">NOC</option>
+                  <option value="contract">Contract</option>
+                  <option value="financial">Financial</option>
+                  <option value="legal">Legal</option>
+                  <option value="other">Other</option>
+                </select>
+                <input id="company-expiry-select" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Expiry Date (optional)" />
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
                   <Upload className="h-4 w-4" />
-                  Upload Company Document
+                  Choose File
                   <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                     onChange={async (e) => {
                       const file = e.target.files?.[0]
                       if (!file) return
                       if (file.size > 25 * 1024 * 1024) { toast.error("File too large (max 25MB)"); return }
+                      const compDocType = (document.getElementById("company-doctype-select") as HTMLSelectElement)?.value || "trade_license"
+                      const compExpiry = (document.getElementById("company-expiry-select") as HTMLInputElement)?.value
                       try {
                         const fd = new FormData()
                         fd.append("file", file)
                         fd.append("name", file.name.replace(/\.[^.]+$/, ""))
                         fd.append("companyId", companyId)
-                        fd.append("documentType", "trade_license")
+                        fd.append("documentType", compDocType)
+                        if (compExpiry) fd.append("expiryDate", compExpiry)
                         const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
                         if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
                         toast.success("Document uploaded!")
@@ -550,9 +582,12 @@ export default function CompanyDetailPage() {
                     <option value="labor_card">Labor Card</option>
                     <option value="contract">Contract</option>
                     <option value="medical_insurance">Medical Insurance</option>
+                    <option value="offer_letter">Offer Letter</option>
+                    <option value="noc">NOC</option>
                     <option value="photo">Photo</option>
                     <option value="other">Other</option>
                   </select>
+                  <input id="expiry-select" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Expiry Date (optional)" placeholder="Expiry" />
                   <label className="inline-flex items-center gap-2 px-4 py-2 border border-[#1a3a6b] text-[#1a3a6b] rounded-lg text-sm font-medium cursor-pointer hover:bg-[#1a3a6b]/5 transition-colors">
                     <Upload className="h-4 w-4" />
                     Choose File
@@ -562,6 +597,7 @@ export default function CompanyDetailPage() {
                         if (!file) return
                         const empId = (document.getElementById("emp-select") as HTMLSelectElement)?.value
                         const docType = (document.getElementById("doctype-select") as HTMLSelectElement)?.value || "other"
+                        const expiryVal = (document.getElementById("expiry-select") as HTMLInputElement)?.value
                         try {
                           const fd = new FormData()
                           fd.append("file", file)
@@ -569,6 +605,7 @@ export default function CompanyDetailPage() {
                           fd.append("companyId", companyId)
                           if (empId) fd.append("employeeId", empId)
                           fd.append("documentType", docType)
+                          if (expiryVal) fd.append("expiryDate", expiryVal)
                           const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
                           if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
                           toast.success("Employee document uploaded!")
@@ -958,21 +995,34 @@ export default function CompanyDetailPage() {
                 { key: "license_number", label: "License Number", type: "text" },
                 { key: "license_expiry", label: "License Expiry", type: "date" },
                 { key: "license_type", label: "License Type", type: "select", options: ["Commercial", "Professional", "Industrial", "Tourism", "E-Commerce", "General Trading"] },
+                { key: "jurisdiction", label: "Jurisdiction", type: "select", options: ["Mainland", "Free Zone", "Offshore"] },
                 { key: "legal_form", label: "Legal Form", type: "select", options: ["LLC", "FZE", "FZCO", "Branch", "Sole Establishment", "Civil Company"] },
                 { key: "emirate", label: "Emirate", type: "select", options: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain"] },
+                { key: "free_zone_authority", label: "DED / Free Zone Authority", type: "text" },
                 { key: "phone", label: "Phone", type: "text" },
                 { key: "email", label: "Email", type: "email" },
                 { key: "address", label: "Address", type: "text" },
                 { key: "industry", label: "Industry", type: "text" },
-                { key: "visa_quota_total", label: "Visa Quota", type: "number" },
+                { key: "capital", label: "Capital (AED)", type: "text" },
+                { key: "visa_quota_total", label: "Visa Quota (MOL Approved)", type: "number" },
                 { key: "mohre_company_number", label: "MOHRE Company Number", type: "text" },
+                { key: "mol_number", label: "MOL Number", type: "text" },
                 { key: "establishment_card_number", label: "Establishment Card Number", type: "text" },
+                { key: "establishment_card_expiry", label: "Establishment Card Expiry", type: "date" },
                 { key: "immigration_file_number", label: "Immigration File Number (GDRFA)", type: "text" },
                 { key: "computer_card_number", label: "Computer Card Number", type: "text" },
                 { key: "chamber_commerce_number", label: "Chamber of Commerce Number", type: "text" },
                 { key: "ejari_tawtheeq_number", label: "Ejari/Tawtheeq Number", type: "text" },
+                { key: "ejari_tawtheeq_type", label: "Ejari/Tawtheeq Type", type: "select", options: ["Ejari", "Tawtheeq"] },
+                { key: "ejari_tawtheeq_expiry", label: "Ejari/Tawtheeq Expiry", type: "date" },
+                { key: "lease_expiry", label: "Lease Expiry", type: "date" },
                 { key: "vat_trn", label: "VAT TRN", type: "text" },
+                { key: "corporate_tax_number", label: "Corporate Tax Number", type: "text" },
                 { key: "sponsor_name", label: "Sponsor Name", type: "text" },
+                { key: "sponsor_eid", label: "Sponsor Emirates ID", type: "text" },
+                { key: "local_service_agent", label: "Local Service Agent", type: "text" },
+                { key: "poa_status", label: "POA Status", type: "select", options: ["Active", "Inactive", "Expired"] },
+                { key: "poa_expiry", label: "POA Expiry", type: "date" },
                 { key: "created_by", label: "Client / Owner", type: "select-client" },
               ].map(field => (
                 <div key={field.key}>

@@ -100,9 +100,9 @@ export default function EmployeeDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start gap-4">
-        <Link href="/admin/employees" className="p-2 rounded-lg hover:bg-gray-100 mt-1">
+        <a href={company ? `/admin/companies/${company.id}` : "/admin/employees"} className="p-2 rounded-lg hover:bg-gray-100 mt-1">
           <ArrowLeft className="h-5 w-5 text-gray-500" />
-        </Link>
+        </a>
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-full bg-[#1a3a6b] flex items-center justify-center">
