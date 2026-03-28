@@ -80,7 +80,7 @@ export async function middleware(request: NextRequest) {
   // No valid token — redirect or 401
   if (!user) {
     if (!pathname.startsWith("/api/")) {
-      const loginUrl = new URL("/login", request.url)
+      const loginUrl = new URL("/", request.url)
       loginUrl.searchParams.set("redirect", pathname)
       loginUrl.searchParams.set("expired", "true")
       const response = NextResponse.redirect(loginUrl)
@@ -103,7 +103,7 @@ export async function middleware(request: NextRequest) {
         pro_staff: "/staff",
         client: "/dashboard",
       }
-      const correctPath = redirectMap[user.role] || "/login"
+      const correctPath = redirectMap[user.role] || "/"
       return NextResponse.redirect(new URL(correctPath, request.url))
     }
     return NextResponse.json({ error: "Access denied" }, { status: 403 })

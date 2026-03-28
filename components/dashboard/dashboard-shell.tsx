@@ -65,7 +65,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
     // Not logged in → redirect to login
     if (!user) {
-      router.replace("/login")
+      router.replace("/")
       return
     }
 
