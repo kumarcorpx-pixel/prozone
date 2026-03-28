@@ -31,10 +31,10 @@ export default function AuditLogPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/admin/activity")
+        const res = await fetch("/api/admin/audit-log")
         if (res.ok) {
           const data = await res.json()
-          setAuditLog((data.activities || []).map((a: any) => ({
+          setAuditLog(((data.data || data.activities || []) as any[]).map((a: any) => ({
             id: a.id,
             user: a.message?.split(" ")[0] || "System",
             action: a.action || a.message || "",

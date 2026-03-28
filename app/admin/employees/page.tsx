@@ -435,9 +435,9 @@ export default function EmployeesPage() {
                 return (
                   <tr key={emp.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-4">
-                      <Link href={`/admin/employees/${emp.id}`} prefetch={false} className="font-medium text-[#1a3a6b] hover:underline">
+                      <a href={`/admin/employees/${emp.id}`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">
                         {emp.full_name}
-                      </Link>
+                      </a>
                     </td>
                     <td className="py-3 px-4 text-gray-600">{getCompanyName(emp.company_id)}</td>
                     <td className="py-3 px-4 text-gray-600">{emp.nationality || "N/A"}</td>
