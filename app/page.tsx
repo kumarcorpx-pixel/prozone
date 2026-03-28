@@ -176,30 +176,46 @@ export default function HomePage() {
             </motion.p>
           </div>
 
-          {/* Service Grid + Client Portal */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 max-w-4xl mx-auto">
-            {proServices.slice(0, 4).map((s, i) => (
-              <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.05 }}
-                className="bg-white rounded-xl border border-gray-200 p-4 text-center hover:border-[#1a3a6b]/30 hover:shadow-md transition-all cursor-default">
-                <s.icon className="h-7 w-7 text-[#1a3a6b] mx-auto mb-2" />
-                <p className="text-xs font-semibold text-gray-800">{s.label}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">{s.desc}</p>
-              </motion.div>
-            ))}
+          {/* Client Portal — prominent animated button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, type: "spring", bounce: 0.3 }}
+            className="max-w-sm mx-auto mb-10"
+          >
+            <button onClick={() => setShowLogin(true)}
+              className="group w-full bg-gradient-to-r from-[#1a3a6b] to-[#0f2340] rounded-2xl p-5 shadow-xl shadow-[#1a3a6b]/20 hover:shadow-2xl hover:-translate-y-1 transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <motion.div
+                    animate={{ rotate: [0, -8, 8, 0], scale: [1, 1.05, 1] }}
+                    transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+                    className="h-12 w-12 rounded-xl bg-[#D4A843]/20 flex items-center justify-center"
+                  >
+                    <Fingerprint className="h-6 w-6 text-[#D4A843]" />
+                  </motion.div>
+                  <div className="text-left">
+                    <p className="text-white font-bold text-base">Client Portal</p>
+                    <p className="text-blue-200/70 text-xs">Sign in to track your services</p>
+                  </div>
+                </div>
+                <motion.div animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}
+                  className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-[#D4A843]/30 transition-colors">
+                  <ArrowRight className="h-5 w-5 text-white" />
+                </motion.div>
+              </div>
+            </button>
+          </motion.div>
 
-            {/* Client Portal Card — center */}
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, type: "spring" }}
-              className="bg-[#1a3a6b] rounded-xl p-5 text-center text-white row-span-2 flex flex-col items-center justify-center">
-              <Fingerprint className="h-10 w-10 mb-3 text-[#D4A843]" />
-              <p className="font-bold text-lg">Client Portal</p>
-              <button onClick={() => setShowLogin(true)} className="mt-3 px-5 py-2 bg-[#D4A843] text-[#1a3a6b] text-xs font-bold rounded-lg hover:bg-[#c9a040] transition-colors">
-                Client Portal
-              </button>
-            </motion.div>
-
-            {proServices.slice(4).map((s, i) => (
-              <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 + i * 0.05 }}
-                className="bg-white rounded-xl border border-gray-200 p-4 text-center hover:border-[#1a3a6b]/30 hover:shadow-md transition-all cursor-default">
+          {/* Service Grid — 4 columns on desktop, 2 on mobile */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
+            {proServices.map((s, i) => (
+              <motion.div key={s.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 + i * 0.05 }}
+                className="bg-white rounded-xl border border-gray-200 p-4 text-center hover:border-[#1a3a6b]/30 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-default"
+              >
                 <s.icon className="h-7 w-7 text-[#1a3a6b] mx-auto mb-2" />
                 <p className="text-xs font-semibold text-gray-800">{s.label}</p>
                 <p className="text-[10px] text-gray-400 mt-0.5">{s.desc}</p>
@@ -300,7 +316,9 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
               <div className="bg-gradient-to-br from-[#1a3a6b] to-[#0f2340] rounded-2xl p-8 text-white">
-                <img src="/images/yabs-logo.gif" alt="YABS" className="h-16 w-auto mb-4" />
+                <div className="bg-white rounded-xl p-3 inline-block mb-4">
+                  <img src="/images/yabs-logo.gif" alt="YABS" className="h-14 w-auto" />
+                </div>
                 <h3 className="text-2xl font-bold">15+ Years of Trust</h3>
                 <p className="text-blue-200 mt-2">Serving 500+ businesses across Dubai, Abu Dhabi and Sharjah with dedicated PRO services.</p>
                 <div className="grid grid-cols-2 gap-4 mt-6">
@@ -354,7 +372,9 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <img src="/images/yabs-logo.gif" alt="YABS" className="h-14 w-auto mb-4" />
+              <div className="bg-white rounded-lg p-2 inline-block mb-4">
+                <img src="/images/yabs-logo.gif" alt="YABS" className="h-12 w-auto" />
+              </div>
               <p className="text-sm text-blue-200">Your trusted partner for all corporate PRO services across UAE.</p>
               <div className="flex gap-3 mt-4">
                 <a href="https://wa.me/971565204844" target="_blank" rel="noopener noreferrer" className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
