@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Phone, Mail, MapPin, Clock, CheckCircle2 } from "lucide-react"
+import { Phone, Mail, MapPin, Clock, CheckCircle2, MessageCircle, Calendar } from "lucide-react"
 
 const serviceOptions = [
   "Trade License Services",
@@ -237,6 +237,16 @@ export default function ContactPage() {
                     <p className="text-sm text-gray-600">Fri - Sat: Closed</p>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3">
+                <a href="https://wa.me/971565204844?text=Hi%20YABS%2C%20I%20need%20PRO%20services" target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors">
+                  <MessageCircle className="h-5 w-5" /> Chat on WhatsApp
+                </a>
+                <a href="/contact" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#1a3a6b] text-white rounded-xl text-sm font-semibold hover:bg-[#15305a] transition-colors">
+                  <Calendar className="h-5 w-5" /> Book a Free Consultation
+                </a>
               </div>
 
               {/* Quick Contact Card */}
