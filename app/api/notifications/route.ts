@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const user = token ? await getUserFromToken(token) : null
 
     if (!user) {
-      return NextResponse.json({ notifications: demoNotifications, demo: true })
+      return NextResponse.json({ notifications: [], demo: false })
     }
 
     const notifications = await prisma.notification.findMany({
