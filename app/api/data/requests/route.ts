@@ -71,10 +71,13 @@ export async function GET(request: NextRequest) {
   try {
     const isAdminOrStaff = user.role === "admin" || user.role === "pro_staff"
 
+    const includeRelations = { company: { select: { name: true } } }
+
     const mapRequest = (r: any) => ({
       id: r.id,
       client_id: r.clientId,
       company_id: r.companyId,
+      company_name: r.company?.name || "Unknown",
       service_type: r.serviceType,
       description: r.description,
       status: r.status,
@@ -91,6 +94,7 @@ export async function GET(request: NextRequest) {
       const mapped = await cached(CK.requests(), TTL.REQUESTS, async () => {
         const requests = await prisma.serviceRequest.findMany({
           orderBy: { createdAt: "desc" },
+          include: includeRelations,
         })
         return requests.map(mapRequest)
       })
@@ -101,6 +105,7 @@ export async function GET(request: NextRequest) {
     const requests = await prisma.serviceRequest.findMany({
       where: clientFilter,
       orderBy: { createdAt: "desc" },
+      include: includeRelations,
     })
     const mapped = requests.map(mapRequest)
 

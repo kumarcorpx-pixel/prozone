@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
 import { onEmployeeChange } from "@/lib/cache"
+import { logAudit } from "@/lib/audit"
 
 export async function GET(
   request: NextRequest,
@@ -117,6 +118,7 @@ export async function PATCH(
     }
 
     await onEmployeeChange()
+    logAudit(auth.user.id, "UPDATE", "employee", id, { fields: Object.keys(data) }).catch(() => {})
     return NextResponse.json(mapped)
   } catch (error) {
     return handleApiError(error)

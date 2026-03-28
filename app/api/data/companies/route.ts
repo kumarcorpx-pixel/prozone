@@ -5,6 +5,7 @@ import { companySchema } from "@/lib/validation/schemas"
 import { validateBody } from "@/lib/validation/validate"
 import { handleApiError } from "@/lib/api-error-handler"
 import { cached, CK, TTL, onCompanyChange } from "@/lib/cache"
+import { logAudit } from "@/lib/audit"
 
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin"])
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     await onCompanyChange()
+    logAudit(auth.user.id, "CREATE", "company", mapped.id, { name: mapped.name }).catch(() => {})
     return NextResponse.json(mapped)
   } catch (error) {
     return handleApiError(error)

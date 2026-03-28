@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { authenticateUser } from "@/lib/auth"
 import { rateLimit, loginRateLimit } from "@/lib/rate-limit"
 import { loginSchema } from "@/lib/validation/schemas"
+import { logAudit } from "@/lib/audit"
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"
@@ -18,6 +19,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { token, user } = await authenticateUser(result.data.email, result.data.password)
+
+    logAudit(user.id, "LOGIN", "user", user.id, { email: user.email }).catch(() => {})
 
     const response = NextResponse.json({ success: true, user, token })
     // Set HTTP-only cookie

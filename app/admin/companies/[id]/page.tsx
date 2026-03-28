@@ -112,6 +112,7 @@ export default function CompanyDetailPage() {
   const [loading, setLoading] = useState(true)
   const [editData, setEditData] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  const [clients, setClients] = useState<any[]>([])
 
   useEffect(() => {
     async function load() {
@@ -131,9 +132,16 @@ export default function CompanyDetailPage() {
         immigration_file_number: c.immigration_file_number || "", computer_card_number: c.computer_card_number || "",
         chamber_commerce_number: c.chamber_commerce_number || "", ejari_tawtheeq_number: c.ejari_tawtheeq_number || "",
         vat_trn: c.vat_trn || "", sponsor_name: c.sponsor_name || "",
+        created_by: c.created_by || "",
       })
       setEmployees(e)
       setDocuments(d)
+
+      try {
+        const clientsRes = await fetch("/api/data/users?role=client")
+        if (clientsRes.ok) setClients(await clientsRes.json())
+      } catch {}
+
       setLoading(false)
     }
     load()
@@ -581,12 +589,16 @@ export default function CompanyDetailPage() {
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <span className={`text-xs ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
                           <StatusBadge status={doc.status} />
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            {doc.file_url && (
-                              <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
-                                className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100" title="Download">
-                                <Download className="h-4 w-4" />
-                              </a>
+                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                            {doc.file_url ? (
+                              <>
+                                <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                                  className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="View/Download">
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">No file</span>
                             )}
                           </div>
                         </div>
@@ -618,12 +630,16 @@ export default function CompanyDetailPage() {
                         <div className="flex items-center gap-4 flex-shrink-0">
                           <span className={`text-sm ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
                           <StatusBadge status={doc.status} />
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            {doc.file_url && (
-                              <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
-                                className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100" title="Download">
-                                <Download className="h-4 w-4" />
-                              </a>
+                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                            {doc.file_url ? (
+                              <>
+                                <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                                  className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="View/Download">
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">No file</span>
                             )}
                           </div>
                         </div>
@@ -768,6 +784,7 @@ export default function CompanyDetailPage() {
                 { key: "ejari_tawtheeq_number", label: "Ejari/Tawtheeq Number", type: "text" },
                 { key: "vat_trn", label: "VAT TRN", type: "text" },
                 { key: "sponsor_name", label: "Sponsor Name", type: "text" },
+                { key: "created_by", label: "Client / Owner", type: "select-client" },
               ].map(field => (
                 <div key={field.key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
@@ -776,6 +793,12 @@ export default function CompanyDetailPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20">
                       <option value="">Select...</option>
                       {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : field.type === "select-client" ? (
+                    <select value={editData[field.key] || ""} onChange={e => setEditData({ ...editData, [field.key]: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20">
+                      <option value="">No owner assigned</option>
+                      {clients.map((c: any) => <option key={c.id} value={c.id}>{c.full_name} ({c.email})</option>)}
                     </select>
                   ) : (
                     <input type={field.type} value={editData[field.key] || ""} onChange={e => setEditData({ ...editData, [field.key]: field.type === "number" ? Number(e.target.value) : e.target.value })}

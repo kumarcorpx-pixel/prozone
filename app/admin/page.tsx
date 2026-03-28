@@ -433,7 +433,7 @@ export default function AdminDashboard() {
                   >
                     <td className="py-3 text-gray-900 font-medium">
                       <Link href={`/admin/requests/${req.id}`} prefetch={false} className="hover:text-[#1a3a6b]">
-                        {req.company?.name || "N/A"}
+                        {req.company_name || "N/A"}
                       </Link>
                     </td>
                     <td className="py-3 text-gray-500">{req.service_type}</td>

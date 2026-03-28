@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
 import { onCompanyChange } from "@/lib/cache"
+import { logAudit } from "@/lib/audit"
 
 export async function GET(
   request: NextRequest,
@@ -52,6 +53,7 @@ export async function GET(
       notes: c.notes,
       visa_quota_total: c.visaQuotaTotal,
       visa_quota_used: c.visaQuotaUsed,
+      created_by: c.createdById,
       created_at: c.createdAt,
     }
 
@@ -90,6 +92,7 @@ export async function PATCH(
     if (body.notes !== undefined) data.notes = body.notes
     if (body.visa_quota_total !== undefined) data.visaQuotaTotal = body.visa_quota_total
     if (body.visa_quota_used !== undefined) data.visaQuotaUsed = body.visa_quota_used
+    if (body.created_by !== undefined) data.createdById = body.created_by || null
 
     const c = await prisma.company.update({
       where: { id },
@@ -116,10 +119,12 @@ export async function PATCH(
       notes: c.notes,
       visa_quota_total: c.visaQuotaTotal,
       visa_quota_used: c.visaQuotaUsed,
+      created_by: c.createdById,
       created_at: c.createdAt,
     }
 
     await onCompanyChange()
+    logAudit(auth.user.id, "UPDATE", "company", id, { fields: Object.keys(data) }).catch(() => {})
     return NextResponse.json(mapped)
   } catch (error) {
     return handleApiError(error)
