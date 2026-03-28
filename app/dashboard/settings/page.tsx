@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { Settings, User, Bell, Building2, Phone, Mail, MapPin, Clock, MessageCircle } from "lucide-react"
+import { Settings, User, Bell, Building2, Phone, Mail, MapPin, Clock, MessageCircle, Lock, Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 
 export default function ClientSettingsPage() {
@@ -18,6 +18,12 @@ export default function ClientSettingsPage() {
   const [expiry90, setExpiry90] = useState(false)
   const [saving, setSaving] = useState(false)
   const [linkedCompanies, setLinkedCompanies] = useState<any[]>([])
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [showCurrentPw, setShowCurrentPw] = useState(false)
+  const [showNewPw, setShowNewPw] = useState(false)
 
   useEffect(() => {
     async function loadCompanies() {
@@ -77,6 +83,53 @@ export default function ClientSettingsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
             <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
           </div>
+        </div>
+      </div>
+
+      {/* Security / Password */}
+      <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+        <h3 className="font-semibold text-[#1a3a6b] flex items-center gap-2 mb-4"><Lock className="h-5 w-5" /> Security</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+            <div className="relative">
+              <input type={showCurrentPw ? "text" : "password"} value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm pr-10" placeholder="Enter current password" />
+              <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+            <div className="relative">
+              <input type={showNewPw ? "text" : "password"} value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm pr-10" placeholder="At least 8 characters" />
+              <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Re-enter new password" />
+          </div>
+          <button disabled={changingPassword || !currentPassword || !newPassword} onClick={async () => {
+            if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return }
+            if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return }
+            setChangingPassword(true)
+            try {
+              const res = await fetch("/api/auth/change-password", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ currentPassword, newPassword }),
+              })
+              const data = await res.json()
+              if (!res.ok) throw new Error(data.error || "Failed")
+              toast.success("Password changed successfully")
+              setCurrentPassword(""); setNewPassword(""); setConfirmPassword("")
+            } catch (err: any) { toast.error(err.message || "Failed to change password") }
+            setChangingPassword(false)
+          }} className="px-4 py-2 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] disabled:opacity-50">
+            {changingPassword ? "Changing..." : "Change Password"}
+          </button>
         </div>
       </div>
 

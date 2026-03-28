@@ -9,8 +9,9 @@ import { toast } from "sonner"
 import {
   Building2, Users, FileText, Shield, CheckCircle2, XCircle, HelpCircle,
   Upload, ChevronDown, ChevronRight, MapPin, Calendar, Phone, Mail, Loader2,
-  Download, AlertTriangle, Search, Briefcase, Globe
+  Download, AlertTriangle, Search, Briefcase, Globe, Eye
 } from "lucide-react"
+import { DocumentPreview } from "@/components/ui/document-preview"
 import Link from "next/link"
 
 function getExpiryInfo(date: string | null) {
@@ -33,6 +34,7 @@ export default function CompanyPage() {
   const [uploading, setUploading] = useState(false)
   const [empSearch, setEmpSearch] = useState("")
   const [docSearch, setDocSearch] = useState("")
+  const [previewDoc, setPreviewDoc] = useState<any>(null)
 
   useEffect(() => {
     async function load() {
@@ -370,18 +372,35 @@ export default function CompanyPage() {
                         </div>
                       </div>
                     </div>
-                    {doc.file_url && (
-                      <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
-                        className="p-2 text-gray-400 hover:text-[#1a3a6b] transition-colors flex-shrink-0">
-                        <Download className="h-4 w-4" />
-                      </a>
-                    )}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {doc.file_url && (
+                        <button onClick={() => setPreviewDoc(doc)} className="p-2 text-gray-400 hover:text-[#1a3a6b] transition-colors" title="Preview">
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      )}
+                      {doc.file_url && (
+                        <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                          className="p-2 text-gray-400 hover:text-[#1a3a6b] transition-colors" title="Download">
+                          <Download className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )
               })}
             </div>
           )}
         </div>
+      )}
+
+      {previewDoc && (
+        <DocumentPreview
+          docId={previewDoc.id}
+          docName={previewDoc.name}
+          mimeType={previewDoc.mime_type || previewDoc.notes?.match?.(/mime:(\S+)/)?.[1]}
+          fileUrl={previewDoc.file_url}
+          onClose={() => setPreviewDoc(null)}
+        />
       )}
     </div>
   )

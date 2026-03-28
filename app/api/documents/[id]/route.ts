@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
 import { onDocumentChange } from "@/lib/cache"
+import { logAudit } from "@/lib/audit"
 
 export async function GET(
   request: NextRequest,
@@ -64,6 +65,12 @@ export async function DELETE(
     // Delete from DB
     await prisma.document.delete({ where: { id } })
     await onDocumentChange()
+    logAudit(auth.user.id, "DELETE", "document", id, {
+      name: doc.name,
+      documentType: doc.documentType,
+      companyId: doc.companyId,
+      employeeId: doc.employeeId,
+    }).catch(() => {})
     return NextResponse.json({ success: true })
   } catch (error) {
     return handleApiError(error)

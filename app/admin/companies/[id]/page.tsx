@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useState, useEffect, useCallback } from "react"
+import { useParams, useSearchParams } from "next/navigation"
 import { fetchCompany, fetchEmployees, fetchDocuments } from "@/lib/data-fetcher"
 import { documentCategories } from "@/lib/company-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
@@ -22,12 +22,14 @@ import {
   ClipboardCheck,
   AlertTriangle,
   Download,
+  Eye,
   X,
   Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { AedIcon } from "@/components/ui/aed-icon"
+import { DocumentPreview } from "@/components/ui/document-preview"
 
 function getExpiryColor(dateStr: string | null): string {
   if (!dateStr) return "text-gray-400"
@@ -107,7 +109,21 @@ const feeStatusColors: Record<string, string> = {
 export default function CompanyDetailPage() {
   const params = useParams()
   const companyId = params.id as string
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTabState] = useState("overview")
+  const [previewDoc, setPreviewDoc] = useState<any>(null)
+
+  // Persist tab state in URL hash
+  const setActiveTab = useCallback((tab: string) => {
+    setActiveTabState(tab)
+    window.history.replaceState(null, "", `#${tab}`)
+  }, [])
+
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "")
+    if (hash && ["overview", "employees", "documents", "compliance", "fees", "wps", "uploads", "shareholders", "edit"].includes(hash)) {
+      setActiveTabState(hash)
+    }
+  }, [])
   const [company, setCompany] = useState<any>(null)
   const [employees, setEmployees] = useState<any[]>([])
   const [documents, setDocuments] = useState<any[]>([])
@@ -628,10 +644,16 @@ export default function CompanyDetailPage() {
                           <StatusBadge status={doc.status} />
                           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                             {doc.file_url ? (
+                              <>
+                              <button onClick={() => setPreviewDoc(doc)}
+                                className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Preview">
+                                <Eye className="h-4 w-4" />
+                              </button>
                               <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
                                 className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
                                 <Download className="h-4 w-4" />
                               </a>
+                              </>
                             ) : (
                               <label className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors cursor-pointer" title="Upload file">
                                 <Upload className="h-4 w-4" />
@@ -681,10 +703,16 @@ export default function CompanyDetailPage() {
                           <StatusBadge status={doc.status} />
                           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                             {doc.file_url ? (
+                              <>
+                              <button onClick={() => setPreviewDoc(doc)}
+                                className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Preview">
+                                <Eye className="h-4 w-4" />
+                              </button>
                               <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
                                 className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
                                 <Download className="h-4 w-4" />
                               </a>
+                              </>
                             ) : (
                               <label className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors cursor-pointer" title="Upload file">
                                 <Upload className="h-4 w-4" />
@@ -1082,6 +1110,17 @@ export default function CompanyDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <DocumentPreview
+          docId={previewDoc.id}
+          docName={previewDoc.name}
+          mimeType={previewDoc.mime_type || previewDoc.notes?.match(/mime:(\S+)/)?.[1]}
+          fileUrl={previewDoc.file_url}
+          onClose={() => setPreviewDoc(null)}
+        />
+      )}
     </div>
   )
 }

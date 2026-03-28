@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { documentCategories } from "@/lib/company-data"
 import { toast } from "sonner"
-import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2, Search } from "lucide-react"
+import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2, Search, Eye } from "lucide-react"
+import { DocumentPreview } from "@/components/ui/document-preview"
 
 const allCategories = ["all", ...Object.keys(documentCategories)] as const
 
@@ -38,6 +39,7 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [previewDoc, setPreviewDoc] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -287,11 +289,18 @@ export default function DocumentsPage() {
                           </div>
                         </div>
                       </div>
-                      {doc.file_url && (
-                        <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5 transition-colors">
-                          <Download className="h-4 w-4" />
-                        </a>
-                      )}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {doc.file_url && (
+                          <button onClick={() => setPreviewDoc(doc)} className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5 transition-colors" title="Preview">
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        )}
+                        {doc.file_url && (
+                          <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5 transition-colors" title="Download">
+                            <Download className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
                       {doc.expiry_date && (
@@ -311,6 +320,15 @@ export default function DocumentsPage() {
             </div>
           )}
         </>
+      )}
+      {previewDoc && (
+        <DocumentPreview
+          docId={previewDoc.id}
+          docName={previewDoc.name}
+          mimeType={previewDoc.mime_type || previewDoc.notes?.match?.(/mime:(\S+)/)?.[1]}
+          fileUrl={previewDoc.file_url}
+          onClose={() => setPreviewDoc(null)}
+        />
       )}
     </div>
   )
