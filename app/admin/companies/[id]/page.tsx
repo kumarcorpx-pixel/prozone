@@ -344,16 +344,39 @@ export default function CompanyDetailPage() {
 
               <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
                 <h3 className="font-semibold text-[#1a3a6b] mb-4">Business Activities</h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {(company.activities || []).map((activity: string, i: number) => (
-                    <span key={i} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                    <span key={i} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                       {activity}
+                      <button onClick={async () => {
+                        const updated = (company.activities || []).filter((_: string, idx: number) => idx !== i)
+                        try {
+                          await fetch(`/api/data/companies/${companyId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activities: updated }) })
+                          setCompany({ ...company, activities: updated })
+                        } catch {}
+                      }} className="text-gray-400 hover:text-red-500 ml-1">&times;</button>
                     </span>
                   ))}
-                  {company.activities.length === 0 && (
+                  {(!company.activities || company.activities.length === 0) && (
                     <p className="text-sm text-gray-500">No activities listed</p>
                   )}
                 </div>
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  const input = (e.target as any).activity as HTMLInputElement
+                  const val = input.value.trim()
+                  if (!val) return
+                  const updated = [...(company.activities || []), val]
+                  try {
+                    await fetch(`/api/data/companies/${companyId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activities: updated }) })
+                    setCompany({ ...company, activities: updated })
+                    input.value = ""
+                    toast.success("Activity added")
+                  } catch { toast.error("Failed to add activity") }
+                }} className="flex gap-2">
+                  <input name="activity" placeholder="Add business activity..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  <button type="submit" className="px-3 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">Add</button>
+                </form>
               </div>
             </div>
 

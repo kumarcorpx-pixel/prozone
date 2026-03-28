@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { fetchEmployees, fetchCompanies } from "@/lib/data-fetcher"
 import { createEmployee } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye, Loader2, X } from "lucide-react"
+import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye, Loader2, X, Upload, FileSpreadsheet, Download } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -44,6 +44,10 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true)
 
   const [showAddForm, setShowAddForm] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<any>(null)
   const [formData, setFormData] = useState(defaultEmployeeForm)
   const [saving, setSaving] = useState(false)
 
@@ -194,13 +198,22 @@ export default function EmployeesPage() {
           <h1 className="text-2xl font-bold text-[#1a3a6b]">Employee Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage employees across all companies</p>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
-        >
-          {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showAddForm ? "Cancel" : "Add Employee"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImport(!showImport)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Import CSV
+          </button>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+          >
+            {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showAddForm ? "Cancel" : "Add Employee"}
+          </button>
+        </div>
       </div>
 
       {showAddForm && (
@@ -309,6 +322,74 @@ export default function EmployeesPage() {
               {saving ? "Saving..." : "Add Employee"}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Import CSV Panel */}
+      {showImport && (
+        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Import Employees from CSV</h2>
+            <button onClick={() => { setShowImport(false); setImportResult(null) }} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
+            <p className="font-medium mb-2">CSV Format — Required columns:</p>
+            <code className="text-xs bg-white px-2 py-1 rounded block overflow-x-auto">full_name,company_name,designation,department,nationality,phone,email</code>
+            <p className="mt-2 text-xs">Use <strong>company_name</strong> (exact match) or <strong>company_id</strong>. <strong>full_name</strong> is required.</p>
+            <a href="data:text/csv;charset=utf-8,full_name,company_name,designation,department,nationality,phone,email%0AJohn Doe,ALBA CLEANING SERVICES L.L.C,Cleaner,Operations,Indian,+971501234567,john@example.com" download="employee-template.csv" className="inline-flex items-center gap-1 mt-2 text-xs text-[#1a3a6b] font-medium hover:underline">
+              <Download className="h-3 w-3" /> Download Template CSV
+            </a>
+          </div>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#1a3a6b]/50 transition-colors cursor-pointer" onClick={() => document.getElementById("csv-file-input")?.click()}>
+            {importFile ? (
+              <div className="flex items-center justify-center gap-2">
+                <FileSpreadsheet className="h-5 w-5 text-[#1a3a6b]" />
+                <span className="text-sm font-medium text-gray-900">{importFile.name}</span>
+                <span className="text-xs text-gray-400">({(importFile.size / 1024).toFixed(0)} KB)</span>
+              </div>
+            ) : (
+              <>
+                <Upload className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Click to select CSV file</p>
+              </>
+            )}
+            <input id="csv-file-input" type="file" className="hidden" accept=".csv" onChange={e => { setImportFile(e.target.files?.[0] || null); setImportResult(null) }} />
+          </div>
+          {importResult && (
+            <div className={`rounded-lg p-4 text-sm ${importResult.summary?.errors?.length > 0 ? "bg-yellow-50 text-yellow-800" : "bg-green-50 text-green-800"}`}>
+              <p className="font-medium">Import Complete</p>
+              <p>Created: {importResult.summary?.created || 0} | Skipped: {importResult.summary?.skipped || 0} | Total: {importResult.summary?.total || 0}</p>
+              {importResult.summary?.errors?.length > 0 && (
+                <div className="mt-2 text-xs space-y-1">
+                  {importResult.summary.errors.slice(0, 5).map((err: any, i: number) => (
+                    <p key={i}>Row {err.row}: {err.error}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            disabled={!importFile || importing}
+            onClick={async () => {
+              if (!importFile) return
+              setImporting(true)
+              try {
+                const fd = new FormData()
+                fd.append("file", importFile)
+                const res = await fetch("/api/admin/employees/import", { method: "POST", body: fd })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data.error || "Import failed")
+                setImportResult(data)
+                toast.success(`Imported ${data.summary?.created || 0} employees`)
+                const emps = await fetchEmployees()
+                setAllEmployees(emps)
+              } catch (err: any) { toast.error(err.message || "Import failed") }
+              setImporting(false)
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] disabled:opacity-50"
+          >
+            {importing ? <><Loader2 className="h-4 w-4 animate-spin" /> Importing...</> : <><Upload className="h-4 w-4" /> Import Employees</>}
+          </button>
         </div>
       )}
 
