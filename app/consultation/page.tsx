@@ -29,6 +29,7 @@ export default function ConsultationPage() {
   })
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [zoomLink, setZoomLink] = useState("")
   const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,6 +45,7 @@ export default function ConsultationPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Submission failed")
+      if (data.zoomLink) setZoomLink(data.zoomLink)
       setSubmitted(true)
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.")
@@ -59,13 +61,36 @@ export default function ConsultationPage() {
           <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="h-8 w-8 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-3">Booking Received!</h1>
-          <p className="text-gray-600 mb-2">
-            Thank you for your interest. Our team will contact you within 24 hours to schedule your free Zoom consultation.
-          </p>
-          <p className="text-sm text-gray-500 mb-8">
-            Check your email and WhatsApp for the meeting link.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">
+            {zoomLink ? "Zoom Meeting Scheduled!" : "Booking Received!"}
+          </h1>
+          {zoomLink ? (
+            <>
+              <p className="text-gray-600 mb-4">
+                Your free consultation has been confirmed. Join the meeting at your scheduled time.
+              </p>
+              <a
+                href={zoomLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-lg mb-4"
+              >
+                <Video className="h-5 w-5" /> Join Zoom Meeting
+              </a>
+              <p className="text-sm text-gray-500 mb-8">
+                The meeting link has also been sent to your email.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-gray-600 mb-2">
+                Thank you for your interest. Our team will contact you within 24 hours to schedule your free Zoom consultation.
+              </p>
+              <p className="text-sm text-gray-500 mb-8">
+                Check your email and WhatsApp for the meeting link.
+              </p>
+            </>
+          )}
           <Link href="/" className="inline-flex items-center gap-2 text-[#1a3a6b] font-semibold hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back to Home
           </Link>
