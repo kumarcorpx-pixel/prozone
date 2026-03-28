@@ -413,7 +413,7 @@ export default function DocumentsPage() {
                         <span className="font-medium text-gray-900">{doc.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{company?.name || "Unknown"}</td>
+                    <td className="px-6 py-4 text-gray-600">{company?.name || "Unassigned"}</td>
                     <td className="px-6 py-4 text-gray-600">{employee?.full_name || "-"}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cat?.color || "bg-gray-100 text-gray-700"}`}>

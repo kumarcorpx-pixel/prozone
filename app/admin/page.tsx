@@ -43,6 +43,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Auto-cleanup demo requests on first load
+    fetch("/api/admin/cleanup", { method: "POST" }).catch(() => {})
+
     async function load() {
       const [comps, emps, docs, reqs, st] = await Promise.all([
         fetchCompanies(),

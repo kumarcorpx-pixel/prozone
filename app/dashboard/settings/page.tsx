@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Settings, User, Bell, Building2, Phone, Mail, MapPin, Clock, MessageCircle } from "lucide-react"
 import { toast } from "sonner"
@@ -17,6 +17,17 @@ export default function ClientSettingsPage() {
   const [expiry60, setExpiry60] = useState(true)
   const [expiry90, setExpiry90] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [linkedCompanies, setLinkedCompanies] = useState<any[]>([])
+
+  useEffect(() => {
+    async function loadCompanies() {
+      try {
+        const res = await fetch("/api/client/companies")
+        if (res.ok) setLinkedCompanies(await res.json())
+      } catch {}
+    }
+    loadCompanies()
+  }, [])
 
   const handleSave = async () => {
     setSaving(true)
@@ -102,14 +113,15 @@ export default function ClientSettingsPage() {
       <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
         <h3 className="font-semibold text-[#1a3a6b] flex items-center gap-2 mb-4"><Building2 className="h-5 w-5" /> Linked Companies</h3>
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div><p className="text-sm font-medium">Gulf Trading LLC</p><p className="text-xs text-gray-500">Abu Dhabi &middot; Primary</p></div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Active</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div><p className="text-sm font-medium">Emirates Zone Group</p><p className="text-xs text-gray-500">Dubai DMCC</p></div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Active</span>
-          </div>
+          {linkedCompanies.length === 0 && (
+            <p className="text-sm text-gray-400 py-3">No linked companies found.</p>
+          )}
+          {linkedCompanies.map((company: any) => (
+            <div key={company.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div><p className="text-sm font-medium">{company.name}</p><p className="text-xs text-gray-500">{company.emirate || "N/A"}{company.license_type === "freezone" ? " Free Zone" : ""}</p></div>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${company.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{company.status === "active" ? "Active" : company.status || "N/A"}</span>
+            </div>
+          ))}
         </div>
         <button className="mt-3 text-sm text-[#1a3a6b] hover:underline">+ Request to add company</button>
       </div>
