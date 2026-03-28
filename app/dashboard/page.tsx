@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { fetchCompanies, fetchEmployees, fetchDocuments, fetchRequests } from "@/lib/data-fetcher"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import Link from "next/link"
@@ -29,6 +28,7 @@ const notificationColors: Record<string, string> = {
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const [stats, setStats] = useState({ companies: 0, employees: 0, documents: 0, activeRequests: 0 })
   const [companies, setCompanies] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [documents, setDocuments] = useState<any[]>([])
@@ -37,25 +37,30 @@ export default function DashboardPage() {
   const [payments, setPayments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  const isAdmin = user?.role === "admin"
+  const apiPrefix = isAdmin ? "/api/data" : "/api/client"
+
   useEffect(() => {
     async function load() {
-      const [c, e, d, r] = await Promise.all([
-        fetchCompanies(),
-        fetchEmployees(),
-        fetchDocuments(),
-        fetchRequests(),
-      ])
-      setCompanies(c)
-      setEmployees(e)
-      setDocuments(d)
-      setRequests(r)
-
-      // Fetch notifications
       try {
-        const notifRes = await fetch("/api/notifications")
-        if (notifRes.ok) {
-          const notifData = await notifRes.json()
-          setNotifications((notifData.notifications || []).map((n: any) => ({
+        const [statsRes, companiesRes, employeesRes, documentsRes, requestsRes, notifsRes, invoicesRes] = await Promise.all([
+          fetch(`${apiPrefix}/stats`),
+          fetch(`${apiPrefix}/companies`),
+          fetch(`${apiPrefix}/employees`),
+          fetch(`${apiPrefix}/documents`),
+          fetch(`${apiPrefix}/requests`),
+          fetch("/api/notifications"),
+          fetch("/api/invoices"),
+        ])
+
+        if (statsRes.ok) { const d = await statsRes.json(); setStats(d) }
+        if (companiesRes.ok) { setCompanies(await companiesRes.json()) }
+        if (employeesRes.ok) { setEmployees(await employeesRes.json()) }
+        if (documentsRes.ok) { setDocuments(await documentsRes.json()) }
+        if (requestsRes.ok) { setRequests(await requestsRes.json()) }
+        if (notifsRes.ok) {
+          const d = await notifsRes.json()
+          setNotifications((d.notifications || []).map((n: any) => ({
             id: n.id,
             title: n.title,
             message: n.message,
@@ -64,26 +69,16 @@ export default function DashboardPage() {
             created_at: n.createdAt || n.created_at || "",
           })))
         }
+        if (invoicesRes.ok) { const d = await invoicesRes.json(); setPayments(d.invoices || []) }
       } catch {}
-
-      // Fetch invoices/payments
-      try {
-        const payRes = await fetch("/api/invoices")
-        if (payRes.ok) {
-          const payData = await payRes.json()
-          setPayments(payData.invoices || [])
-        }
-      } catch {}
-
       setLoading(false)
     }
     load()
-  }, [])
+  }, [apiPrefix])
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
-  // Admins see all companies; clients see only their own
-  const myCompanies = user?.role === "admin" ? companies : companies.filter(c => c.created_by === user?.id)
+  const myCompanies = companies
   const myEmployees = employees
   const myDocuments = documents
   const myRequests = requests
@@ -152,7 +147,7 @@ export default function DashboardPage() {
               <p className="text-blue-200 text-sm">Welcome back</p>
               <h1 className="text-2xl font-bold mt-1">{user?.full_name}</h1>
               {user?.role === "admin" ? (
-                <p className="text-blue-300 text-sm mt-1">YABS PRO Services &middot; Managing {companies.length} companies</p>
+                <p className="text-blue-300 text-sm mt-1">YABS PRO Services &middot; Managing {stats.companies} companies</p>
               ) : company ? (
                 <p className="text-blue-300 text-sm mt-1">{company.name}{company.emirate ? ` \u00b7 ${company.emirate}` : ""}{company.license_number ? ` \u00b7 License: ${company.license_number}` : ""}</p>
               ) : (

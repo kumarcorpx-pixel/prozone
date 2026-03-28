@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { fetchCompanies, fetchEmployees, fetchDocuments } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { toast } from "sonner"
 import {
@@ -33,11 +32,20 @@ export default function CompanyPage() {
 
   useEffect(() => {
     async function load() {
-      const [c, e, d] = await Promise.all([fetchCompanies(), fetchEmployees(), fetchDocuments()])
-      setCompanies(c)
-      setAllEmployees(e)
-      setDocuments(d)
-      if (c.length > 0) setSelectedId(c[0].id)
+      try {
+        const [companiesRes, employeesRes, documentsRes] = await Promise.all([
+          fetch("/api/client/companies"),
+          fetch("/api/client/employees"),
+          fetch("/api/client/documents"),
+        ])
+        const c = companiesRes.ok ? await companiesRes.json() : []
+        const e = employeesRes.ok ? await employeesRes.json() : []
+        const d = documentsRes.ok ? await documentsRes.json() : []
+        setCompanies(c)
+        setAllEmployees(e)
+        setDocuments(d)
+        if (c.length > 0) setSelectedId(c[0].id)
+      } catch {}
       setLoading(false)
     }
     load()
@@ -58,8 +66,8 @@ export default function CompanyPage() {
       const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
       toast.success("Document uploaded successfully")
-      const updatedDocs = await fetchDocuments()
-      setDocuments(updatedDocs)
+      const updatedRes = await fetch("/api/client/documents")
+      if (updatedRes.ok) setDocuments(await updatedRes.json())
     } catch (err: any) {
       toast.error(err?.message || "Upload failed")
     } finally {

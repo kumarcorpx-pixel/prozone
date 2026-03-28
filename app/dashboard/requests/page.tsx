@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { fetchRequests, fetchCompanies } from "@/lib/data-fetcher"
 import { createServiceRequest, getSession } from "@/lib/api"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { StatusBadge } from "@/components/dashboard/status-badge"
