@@ -157,7 +157,7 @@ export default function DashboardPage() {
             <div className="hidden sm:flex items-center gap-6 text-center">
               <div>
                 <p className="text-2xl font-bold">{activeRequests.length}</p>
-                <p className="text-xs text-blue-200">Active</p>
+                <p className="text-xs text-blue-200">Active Requests</p>
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
@@ -205,7 +205,7 @@ export default function DashboardPage() {
         {[
           { label: "New Request", count: `${requests.length} total`, icon: FileText, href: "/dashboard/requests", color: "bg-blue-50 text-blue-600" },
           { label: "Documents", count: `${documents.length} files`, icon: FolderOpen, href: "/dashboard/documents", color: "bg-purple-50 text-purple-600" },
-          { label: "Track Progress", count: `${activeRequests.length} active`, icon: Search, href: "/dashboard/tracking", color: "bg-green-50 text-green-600" },
+          { label: "My Company", count: `${stats.companies} linked`, icon: Building2, href: "/dashboard/company", color: "bg-green-50 text-green-600" },
           { label: "Payments", count: `${payments.length} invoices`, icon: CreditCard, href: "/dashboard/payments", color: "bg-amber-50 text-amber-600" },
         ].map(item => (
           <StaggerItem key={item.label}>
@@ -238,10 +238,14 @@ export default function DashboardPage() {
           </div>
           <div className="divide-y divide-gray-50">
             {recentRequests.length === 0 ? (
-              <div className="p-10 text-center text-gray-400">
+              <div className="p-10 text-center">
                 <FileText className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-                <p className="font-medium">No requests yet</p>
-                <p className="text-sm mt-1">Submit your first service request to get started</p>
+                <p className="font-medium text-gray-700">Need PRO Services?</p>
+                <p className="text-sm text-gray-400 mt-1">Submit your first service request and we&apos;ll handle the rest.</p>
+                <Link href="/dashboard/requests" className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]">
+                  <FileText className="h-4 w-4" /> Submit New Request
+                </Link>
+                <p className="text-xs text-gray-400 mt-3">Or <Link href="/dashboard/messages" className="text-[#1a3a6b] hover:underline">message your PRO team directly</Link></p>
               </div>
             ) : (
               recentRequests.map((request) => (

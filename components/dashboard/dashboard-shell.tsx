@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "./sidebar"
 import { NotificationSubscribe } from "@/components/NotificationSubscribe"
-import { Menu, Bell, AlertTriangle, Info, CheckCircle, FileText } from "lucide-react"
+import { Menu, Bell, AlertTriangle, Info, CheckCircle, FileText, Search } from "lucide-react"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { CommandPalette } from "./command-palette"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { useNotifications } from "@/hooks/queries"
@@ -17,6 +18,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const queryClient = useQueryClient()
@@ -164,6 +166,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Search trigger */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors w-64"
+            >
+              <Search className="h-4 w-4" />
+              <span className="flex-1 text-left">Search...</span>
+              <kbd className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded font-mono">Ctrl+K</kbd>
+            </button>
             {/* Notification bell */}
             <div className="relative">
               <button
@@ -255,6 +266,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <div className="mt-4"><ErrorBoundary>{children}</ErrorBoundary></div>
         </main>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        basePath={sidebarRole === "admin" ? "/admin" : sidebarRole === "pro_staff" ? "/staff" : "/dashboard"}
+      />
     </div>
   )
 }

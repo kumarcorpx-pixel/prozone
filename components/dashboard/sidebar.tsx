@@ -39,8 +39,7 @@ interface NavItem {
 
 const clientLinks: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My Requests", href: "/dashboard/requests", icon: FileText },
-  { label: "Track Progress", href: "/dashboard/tracking", icon: Search },
+  { label: "Services & Requests", href: "/dashboard/requests", icon: FileText },
   { label: "My Documents", href: "/dashboard/documents", icon: FolderOpen },
   { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
   { label: "My Company", href: "/dashboard/company", icon: Building2 },
@@ -142,9 +141,6 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
             >
               <item.icon className={`h-[18px] w-[18px] ${active ? "text-white" : "text-gray-400"}`} />
               {item.label}
-              {(item.label === "Documents" || item.label === "Invoicing" || item.label === "Reports") && !active && (
-                <span className="ml-auto h-2 w-2 rounded-full bg-[#c9a96e] animate-pulse-dot" />
-              )}
             </Link>
           )
         })}

@@ -14,6 +14,9 @@ import {
   CheckCircle2,
   ShieldAlert,
   BarChart3,
+  X,
+  ClipboardList,
+  Search,
 } from "lucide-react"
 import Link from "next/link"
 import { AedIcon } from "@/components/ui/aed-icon"
@@ -41,6 +44,13 @@ export default function AdminDashboard() {
   const [revenue, setRevenue] = useState({ total: 0, paid: 0, pending: 0, overdue: 0 })
   const [activityFeed, setActivityFeed] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [revenueDismissed, setRevenueDismissed] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("revenueBannerDismissed") === "true") {
+      setRevenueDismissed(true)
+    }
+  }, [])
 
   useEffect(() => {
     // Auto-cleanup demo requests on first load
@@ -162,95 +172,62 @@ export default function AdminDashboard() {
         </div>
       </FadeIn>
 
-      {/* Revenue Row */}
-      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StaggerItem>
-          <Link href="/admin/invoices" prefetch={false} className="block">
-            <HoverScale>
-              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.total.toLocaleString()}</p>
-                    <p className="text-xs text-gray-400 mt-1">All time</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-xl bg-[#c9a96e]/10 flex items-center justify-center">
-                    <AedIcon className="h-6 w-6 text-[#c9a96e]" />
-                  </div>
-                </div>
-              </div>
-            </HoverScale>
-          </Link>
-        </StaggerItem>
-
-        <StaggerItem>
-          <Link href="/admin/invoices?status=paid" prefetch={false} className="block">
-            <HoverScale>
-              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-emerald-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Paid</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.paid.toLocaleString()}</p>
-                    <p className="text-xs text-gray-400 mt-1">{revenue.total > 0 ? Math.round(revenue.paid / revenue.total * 100) : 0}% collection rate</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+      {/* Revenue Row — show full cards only when there's data */}
+      {revenue.total > 0 ? (
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StaggerItem>
+            <Link href="/admin/invoices" prefetch={false} className="block">
+              <HoverScale>
+                <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.total.toLocaleString()}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-xl bg-[#c9a96e]/10 flex items-center justify-center">
+                      <AedIcon className="h-6 w-6 text-[#c9a96e]" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </HoverScale>
-          </Link>
-        </StaggerItem>
-
-        <StaggerItem>
-          <Link href="/admin/invoices?status=sent" prefetch={false} className="block">
-            <HoverScale>
-              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-amber-400">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Pending</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.pending.toLocaleString()}</p>
-                    <p className="text-xs text-gray-400 mt-1">{revenue.total > 0 ? Math.round(revenue.pending / revenue.total * 100) : 0}% of total</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-amber-500" />
-                  </div>
-                </div>
-              </div>
-            </HoverScale>
-          </Link>
-        </StaggerItem>
-
-        <StaggerItem>
-          <Link href="/admin/invoices?status=overdue" prefetch={false} className="block">
-            <HoverScale>
-              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-red-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Overdue</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.overdue.toLocaleString()}</p>
-                    <p className="text-xs text-gray-400 mt-1">{revenue.total > 0 ? Math.round(revenue.overdue / revenue.total * 100) : 0}% of total</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center">
-                    <AlertTriangle className="h-6 w-6 text-red-500" />
-                  </div>
-                </div>
-              </div>
-            </HoverScale>
-          </Link>
-        </StaggerItem>
-      </StaggerContainer>
-
-      {/* Revenue Setup Prompt */}
-      {revenue.total === 0 && revenue.paid === 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-amber-800">Revenue tracking not set up</p>
-            <p className="text-xs text-amber-600 mt-0.5">Create invoices in the <a href="/admin/invoices" className="underline font-medium">Invoicing</a> page to track revenue, or connect Zoho Invoice in <a href="/admin/settings" className="underline font-medium">Settings</a>.</p>
+              </HoverScale>
+            </Link>
+          </StaggerItem>
+          <StaggerItem>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-emerald-500">
+              <p className="text-sm text-gray-500 font-medium">Paid</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.paid.toLocaleString()}</p>
+            </div>
+          </StaggerItem>
+          <StaggerItem>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-amber-400">
+              <p className="text-sm text-gray-500 font-medium">Pending</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.pending.toLocaleString()}</p>
+            </div>
+          </StaggerItem>
+          <StaggerItem>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-red-500">
+              <p className="text-sm text-gray-500 font-medium">Overdue</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">AED {revenue.overdue.toLocaleString()}</p>
+            </div>
+          </StaggerItem>
+        </StaggerContainer>
+      ) : !revenueDismissed ? (
+        <div className="bg-white rounded-2xl p-5 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-xl bg-[#c9a96e]/10 flex items-center justify-center">
+              <AedIcon className="h-5 w-5 text-[#c9a96e]" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">Revenue Tracking</p>
+              <p className="text-xs text-gray-500">Set up invoicing to track revenue across your companies</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/invoices" className="px-4 py-2 bg-[#1a3a6b] text-white text-xs font-medium rounded-lg hover:bg-[#15305a]">Set Up</Link>
+            <button onClick={() => { localStorage.setItem("revenueBannerDismissed", "true"); setRevenueDismissed(true) }} className="p-1.5 text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Company Portfolio Row */}
       <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -403,7 +380,12 @@ export default function AdminDashboard() {
               </div>
             ))}
             {expiringItems.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-6">No expiring items in the next 30 days</p>
+              <div className="text-center py-6">
+                <AlertTriangle className="h-8 w-8 text-gray-200 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">No expiry dates configured</p>
+                <p className="text-xs text-gray-400 mt-1">Add expiry dates to documents to enable alerts</p>
+                <Link href="/admin/documents" className="inline-block mt-2 text-xs text-[#1a3a6b] font-medium hover:underline">Go to Documents &rarr;</Link>
+              </div>
             )}
           </div>
           <Link href="/admin/expiry-calendar" prefetch={false} className="block mt-4 text-sm text-[#1a3a6b] hover:text-[#c9a96e] font-medium text-center transition-colors">
@@ -442,7 +424,12 @@ export default function AdminDashboard() {
               <tbody>
                 {requests.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-sm text-gray-400">No requests yet</td>
+                    <td colSpan={4} className="py-10 text-center">
+                      <ClipboardList className="h-10 w-10 text-gray-200 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-gray-500">No requests yet</p>
+                      <p className="text-xs text-gray-400 mt-1">Service requests from clients will appear here</p>
+                      <Link href="/admin/requests" className="inline-block mt-3 text-xs text-[#1a3a6b] font-medium hover:underline">View Requests Page &rarr;</Link>
+                    </td>
                   </tr>
                 ) : (
                   requests.slice(0, 5).map((req) => (
@@ -476,7 +463,11 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-4">
             {activityFeed.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-6">No recent activity</p>
+              <div className="text-center py-8">
+                <Activity className="h-10 w-10 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-500">No recent activity</p>
+                <p className="text-xs text-gray-400 mt-1">Actions like uploads, edits, and status changes will appear here</p>
+              </div>
             )}
             {activityFeed.map((item, index) => (
               <div key={item.id} className="flex items-start gap-3 relative">
