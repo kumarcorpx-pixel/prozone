@@ -18,9 +18,61 @@ export async function GET(
       return NextResponse.json({ error: "Document not found or no file attached" }, { status: 404 })
     }
 
-    const { getMinioUrl } = await import("@/lib/minio")
-    const presignedUrl = await getMinioUrl(doc.fileUrl)
-    return NextResponse.redirect(presignedUrl)
+    // If file is stored locally (starts with /uploads/)
+    if (doc.fileUrl.startsWith("/uploads/")) {
+      try {
+        const { readFile } = await import("fs/promises")
+        const path = await import("path")
+        const filePath = path.join(process.cwd(), "public", doc.fileUrl)
+        const fileBuffer = await readFile(filePath)
+
+        // Get filename from notes or fileUrl
+        const notesLine = doc.notes?.split("\n").find((l: string) => l.startsWith("file:"))
+        const fileName = notesLine?.replace("file:", "") || doc.fileUrl.split("/").pop() || "document"
+
+        // Get mime type from notes or guess from extension
+        const mimeLine = doc.notes?.split("\n").find((l: string) => l.startsWith("mime:"))
+        const ext = fileName.split(".").pop()?.toLowerCase()
+        const mimeType = mimeLine?.replace("mime:", "") ||
+          (ext === "pdf" ? "application/pdf" :
+           ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
+           ext === "png" ? "image/png" :
+           "application/octet-stream")
+
+        return new NextResponse(fileBuffer, {
+          headers: {
+            "Content-Type": mimeType,
+            "Content-Disposition": `inline; filename="${fileName}"`,
+            "Cache-Control": "private, max-age=3600",
+          },
+        })
+      } catch {
+        return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
+      }
+    }
+
+    // Try MinIO presigned URL
+    try {
+      const { getMinioUrl } = await import("@/lib/minio")
+      const presignedUrl = await getMinioUrl(doc.fileUrl)
+      return NextResponse.redirect(presignedUrl)
+    } catch {
+      // MinIO failed — try reading from local fallback
+      try {
+        const { readFile } = await import("fs/promises")
+        const path = await import("path")
+        const filePath = path.join(process.cwd(), "public", "uploads", doc.fileUrl)
+        const fileBuffer = await readFile(filePath)
+        return new NextResponse(fileBuffer, {
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "Content-Disposition": `attachment; filename="${doc.fileUrl.split("/").pop()}"`,
+          },
+        })
+      } catch {
+        return NextResponse.json({ error: "File not accessible" }, { status: 404 })
+      }
+    }
   } catch (error) {
     return handleApiError(error)
   }
