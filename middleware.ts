@@ -20,6 +20,13 @@ function isOriginAllowed(origin: string | null): boolean {
 async function verifyJWT(token: string): Promise<{ userId: string; email: string; role: string } | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
+    // Double-check expiry
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      return null
+    }
+    if (!payload.userId || !payload.role) {
+      return null
+    }
     return payload as any
   } catch {
     return null
@@ -114,10 +121,10 @@ export async function middleware(request: NextRequest) {
 
   response.cookies.set("auth_token", token!, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "lax",
     path: "/",
-    // No maxAge = session cookie — dies when browser closes
+    maxAge: 60 * 60 * 2, // 2 hours — matches JWT expiry
   })
 
   // Add CORS headers to API responses

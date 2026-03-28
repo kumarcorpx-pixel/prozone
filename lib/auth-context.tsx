@@ -19,18 +19,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function checkAuth() {
-      // Quick load from localStorage
-      const saved = localStorage.getItem("prozone_user")
-      if (saved) {
-        try { setUser(JSON.parse(saved)) } catch {}
-      }
-
       // Clear any leftover demo data
       localStorage.removeItem("prozone_demo_role")
       localStorage.removeItem("prozone_demo_store")
       document.cookie = "prozone_demo_role=; path=/; max-age=0"
 
-      // Verify with server
+      // Always verify with server first — never trust localStorage alone
       try {
         const res = await fetch("/api/auth/me")
         if (res.ok) {
@@ -38,10 +32,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(data.user)
           localStorage.setItem("prozone_user", JSON.stringify(data.user))
         } else {
+          // Not authenticated — clear everything
           localStorage.removeItem("prozone_user")
+          document.cookie = "auth_token=; path=/; max-age=0"
           setUser(null)
         }
-      } catch {}
+      } catch {
+        // Network error — try localStorage as offline fallback only
+        const saved = localStorage.getItem("prozone_user")
+        if (saved) {
+          try { setUser(JSON.parse(saved)) } catch { setUser(null) }
+        }
+      }
       setIsLoading(false)
     }
     checkAuth()
@@ -56,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) {
           localStorage.removeItem("prozone_user")
           setUser(null)
-          window.location.href = "/login?expired=true"
+          window.location.href = "/?expired=true"
         }
       } catch {}
     }, 180000)
