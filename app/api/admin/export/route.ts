@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { handleApiError } from "@/lib/api-error-handler"
+import { withAuth } from "@/lib/auth-middleware"
 
 function toCSV(headers: string[], rows: Record<string, any>[]): string {
   const escapeField = (val: any): string => {
@@ -22,6 +23,9 @@ function toCSV(headers: string[], rows: Record<string, any>[]): string {
 }
 
 export async function GET(request: NextRequest) {
+  const auth = await withAuth(request, ["admin"])
+  if (!auth.success) return auth.response
+
   try {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get("type")

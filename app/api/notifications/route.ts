@@ -6,32 +6,6 @@ import { notificationUpdateSchema } from "@/lib/validation/schemas"
 import { validateBody } from "@/lib/validation/validate"
 import { handleApiError } from "@/lib/api-error-handler"
 
-const demoNotifications = [
-  {
-    id: "notif-1",
-    title: "Visa Application Approved",
-    message: "Your employment visa application has been approved.",
-    type: "success",
-    isRead: false,
-    createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "notif-2",
-    title: "Document Expiring Soon",
-    message: "Trade license for ABC Corp expires in 30 days.",
-    type: "warning",
-    isRead: false,
-    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "notif-3",
-    title: "New Service Request",
-    message: "A new visa renewal request has been submitted.",
-    type: "info",
-    isRead: true,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-]
 
 export async function GET(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"

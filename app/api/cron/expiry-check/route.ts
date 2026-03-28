@@ -102,6 +102,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, timestamp: new Date().toISOString(), results })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
