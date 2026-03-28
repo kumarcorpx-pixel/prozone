@@ -1,15 +1,60 @@
 {
-  "name": "YABS PRO Services",
-  "short_name": "YABS PRO",
-  "description": "UAE PRO Services Management Platform",
-  "start_url": "/login",
+  "name": "Corporate PRO Services - YABS",
+  "short_name": "CorporatePRO",
+  "description": "Track your PRO services, documents, visas & compliance across Dubai, Abu Dhabi & Sharjah",
+  "start_url": "/",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#f4f5f7",
+  "background_color": "#1a3a6b",
   "theme_color": "#1a3a6b",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["business", "productivity"],
   "icons": [
+    { "src": "/icons/icon-72.png", "sizes": "72x72", "type": "image/png" },
+    { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "/icons/icon-144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "/icons/icon-152.png", "sizes": "152x152", "type": "image/png" },
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "/icons/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Corporate PRO Services Dashboard"
+    },
+    {
+      "src": "/icons/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Corporate PRO Mobile View"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Documents",
+      "url": "/dashboard/documents",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Company",
+      "url": "/dashboard/company",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Services & Requests",
+      "url": "/dashboard/requests",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

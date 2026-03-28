@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/auth-context"
 import { QueryProvider } from "@/components/providers/QueryProvider"
 import { ChatWidget } from "@/components/ChatWidget"
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar"
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt"
 import "./globals.css"
 
 const geistSans = localFont({
@@ -61,12 +62,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
         <meta name="theme-color" content="#1a3a6b" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="CorporatePRO" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192.png" />
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <QueryProvider>
         <AuthProvider>
           {children}
           <ChatWidget />
+          <PWAInstallPrompt />
           <Toaster />
           <ServiceWorkerRegistrar />
         </AuthProvider>

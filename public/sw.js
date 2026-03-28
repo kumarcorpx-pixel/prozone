@@ -1,35 +1,26 @@
-const CACHE_NAME = "yabs-v1";
+const CACHE_NAME = "yabs-v2";
+const OFFLINE_URL = "/offline";
 
 const PRECACHE_URLS = [
-  "/login",
-  "/dashboard",
+  "/",
   "/offline",
+  "/dashboard",
+  "/images/yabs-logo.gif",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
 ];
 
 const STATIC_EXTENSIONS = [
-  ".js",
-  ".css",
-  ".woff",
-  ".woff2",
-  ".ttf",
-  ".eot",
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".svg",
-  ".ico",
-  ".webp",
+  ".js", ".css", ".woff", ".woff2", ".ttf", ".eot",
+  ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp",
 ];
 
-// Install — precache key routes
+// Install — precache key routes + offline page
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_URLS);
-    }).catch(() => {
-      // Precaching may fail if pages aren't available yet; continue anyway
-    })
+    }).catch(() => {})
   );
   self.skipWaiting();
 });
@@ -48,37 +39,30 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch — network-first for API, cache-first for static assets
+// Fetch handler
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
   if (request.method !== "GET") return;
-
-  // Skip chrome-extension and other non-http(s) schemes
   if (!url.protocol.startsWith("http")) return;
 
-  // API calls — network-first strategy
+  // API calls — network-first
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone and cache successful API responses
           if (response.ok) {
             const cloned = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, cloned);
-            });
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
           }
           return response;
         })
         .catch(() => {
-          // Fall back to cache if network fails
           return caches.match(request).then((cached) => {
             if (cached) return cached;
             return new Response(
-              JSON.stringify({ error: "Offline", message: "No network connection" }),
+              JSON.stringify({ error: "Offline" }),
               { status: 503, headers: { "Content-Type": "application/json" } }
             );
           });
@@ -87,7 +71,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets — cache-first strategy
+  // Static assets — cache-first
   const isStatic = STATIC_EXTENSIONS.some((ext) => url.pathname.endsWith(ext)) ||
     url.pathname.startsWith("/_next/static/");
 
@@ -98,9 +82,7 @@ self.addEventListener("fetch", (event) => {
         return fetch(request).then((response) => {
           if (response.ok) {
             const cloned = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, cloned);
-            });
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
           }
           return response;
         });
@@ -115,24 +97,43 @@ self.addEventListener("fetch", (event) => {
       .then((response) => {
         if (response.ok) {
           const cloned = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, cloned);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
         }
         return response;
       })
       .catch(() => {
         return caches.match(request).then((cached) => {
           if (cached) return cached;
-          // Try the offline page as last resort
-          return caches.match("/offline").then((offlinePage) => {
-            if (offlinePage) return offlinePage;
-            return new Response(
-              "<!DOCTYPE html><html><head><title>Offline</title></head><body style='font-family:sans-serif;text-align:center;padding:4rem'><h1>You are offline</h1><p>Please check your internet connection and try again.</p></body></html>",
-              { headers: { "Content-Type": "text/html" } }
-            );
-          });
+          return caches.match(OFFLINE_URL);
         });
       })
+  );
+});
+
+// Push notification handler
+self.addEventListener("push", (event) => {
+  const data = event.data?.json() || {};
+  event.waitUntil(
+    self.registration.showNotification(data.title || "YABS PRO Services", {
+      body: data.message || data.body || "You have a new notification",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-96.png",
+      tag: data.tag || "yabs-notification",
+      data: { url: data.click || data.url || "/" },
+    })
+  );
+});
+
+// Notification click handler
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    clients.matchAll({ type: "window" }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(url) && "focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
   );
 });
