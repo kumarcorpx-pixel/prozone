@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, FileText, Users, Building2, Stamp, Shield, BarChart3, Clock, Globe, CheckCircle2, MessageCircle, Video } from "lucide-react"
+import { ArrowRight, FileText, Users, Building2, Stamp, Shield, BarChart3, Clock, Globe, CheckCircle2, MessageCircle, Video, Fingerprint, Sparkles } from "lucide-react"
 import { motion } from "framer-motion"
 
 const services = [
@@ -79,34 +79,58 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          {/* CTA Buttons */}
+          {/* Client Login — Premium Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-8"
+          >
+            <Link href="/login" className="group block bg-gradient-to-r from-[#1a3a6b] to-[#0f2340] rounded-2xl p-5 shadow-xl shadow-[#1a3a6b]/15 hover:shadow-2xl hover:-translate-y-0.5 transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
+                    <Fingerprint className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-white font-semibold text-base">Client Portal</p>
+                    <p className="text-blue-200/70 text-xs mt-0.5">Track your services in real-time</p>
+                  </div>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                  <ArrowRight className="h-5 w-5 text-white" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-4 text-[10px] text-blue-200/50 border-t border-white/10 pt-3">
+                <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> Encrypted</span>
+                <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> Existing clients only</span>
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> 24/7 Access</span>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Action Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-8 flex flex-col sm:flex-row gap-3 justify-center"
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mt-4 flex flex-col sm:flex-row gap-3 justify-center"
           >
-            <div className="flex flex-col items-center">
-              <Link href="/login" className="inline-flex items-center justify-center gap-2 px-10 py-3.5 bg-[#1a3a6b] hover:bg-[#15305a] text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-[#1a3a6b]/20 hover:shadow-xl hover:-translate-y-0.5">
-                Client Login <ArrowRight className="h-4 w-4" />
-              </Link>
-              <p className="text-xs text-gray-400 mt-2">Login is for existing clients only</p>
-            </div>
             <a href="https://wa.me/971565204844?text=Hi%20YABS%2C%20I%20need%20PRO%20services" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl text-sm transition-all shadow-lg">
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-green-600/20 hover:shadow-xl hover:-translate-y-0.5">
               <MessageCircle className="h-4 w-4" /> WhatsApp Us
             </a>
-            <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-all shadow-lg">
+            <Link href="/consultation"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-blue-600/20 hover:shadow-xl hover:-translate-y-0.5">
               <Video className="h-4 w-4" /> Free 30-Min Consultation
-            </a>
+            </Link>
           </motion.div>
 
           {/* Trust indicators */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
             className="mt-10 flex flex-wrap justify-center gap-6 text-xs text-gray-400"
           >
             <div className="flex items-center gap-1.5">
@@ -127,7 +151,7 @@ export default function HomePage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
             className="mt-8 flex flex-wrap justify-center gap-2 lg:hidden"
           >
             {services.map(s => (

@@ -159,16 +159,11 @@ export default function LoginPage() {
             </form>
 
             <p className="mt-6 text-center text-sm text-gray-500">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-[#1a3a6b] font-semibold hover:underline">
-                Sign Up
-              </Link>
-            </p>
-            <div className="mt-3 text-center">
-              <a href="/contact" className="text-sm text-gray-400 hover:text-[#1a3a6b] transition-colors">
-                Want to see a demo? <span className="font-semibold underline">Request a Demo</span>
+              Not a client yet?{" "}
+              <a href="https://wa.me/971565204844?text=Hi%20YABS%2C%20I%20need%20PRO%20services" target="_blank" rel="noopener noreferrer" className="text-green-600 font-semibold hover:underline">
+                Contact us on WhatsApp
               </a>
-            </div>
+            </p>
           </div>
 
           <p className="mt-6 text-center text-xs text-gray-400">
