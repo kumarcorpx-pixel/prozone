@@ -173,8 +173,13 @@ export default function AdminRequestDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Link href="/admin/requests" prefetch={false}
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a3a6b] transition-colors mb-4">
+        <ArrowLeft className="h-4 w-4" />
+        Back to Requests
+      </Link>
       <div className="flex items-center gap-3">
-        <Link href="/admin/requests" className="p-2 rounded-lg hover:bg-gray-100">
+        <Link href="/admin/requests" prefetch={false} className="p-2 rounded-lg hover:bg-gray-100">
           <ArrowLeft className="h-5 w-5 text-gray-500" />
         </Link>
         <div>
@@ -205,7 +210,7 @@ export default function AdminRequestDetailPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+      <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6">
         {activeTab === "overview" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

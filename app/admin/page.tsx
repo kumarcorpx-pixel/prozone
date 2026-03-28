@@ -429,10 +429,13 @@ export default function AdminDashboard() {
                 {requests.slice(0, 5).map((req) => (
                   <tr
                     key={req.id}
-                    className="border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50/50 transition-colors"
-                    onClick={() => window.location.href = `/admin/requests/${req.id}`}
+                    className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors"
                   >
-                    <td className="py-3 text-gray-900 font-medium">{req.company?.name || "N/A"}</td>
+                    <td className="py-3 text-gray-900 font-medium">
+                      <Link href={`/admin/requests/${req.id}`} prefetch={false} className="hover:text-[#1a3a6b]">
+                        {req.company?.name || "N/A"}
+                      </Link>
+                    </td>
                     <td className="py-3 text-gray-500">{req.service_type}</td>
                     <td className="py-3"><StatusBadge status={req.status} /></td>
                     <td className="py-3 text-gray-400 text-xs">{new Date(req.created_at).toLocaleDateString()}</td>

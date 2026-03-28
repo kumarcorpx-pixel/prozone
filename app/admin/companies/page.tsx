@@ -151,7 +151,7 @@ export default function CompaniesPage() {
       </div>
 
       {showAddForm && (
-        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">Add New Company</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
@@ -272,11 +272,12 @@ export default function CompaniesPage() {
             <Link
               key={company.id}
               href={`/admin/companies/${company.id}`}
-              className="block bg-white rounded-xl ring-1 ring-gray-200 p-5 hover:ring-[#1a3a6b]/30 hover:shadow-md transition-all"
+              prefetch={false}
+              className="block bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-10 w-10 rounded-lg bg-[#1a3a6b]/10 flex items-center justify-center flex-shrink-0">
+                  <div className="h-10 w-10 rounded-xl bg-[#1a3a6b]/10 flex items-center justify-center flex-shrink-0">
                     <Building2 className="h-5 w-5 text-[#1a3a6b]" />
                   </div>
                   <div className="min-w-0">

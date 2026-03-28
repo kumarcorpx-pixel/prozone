@@ -5,6 +5,7 @@ import { fetchRequests, fetchProfiles, fetchCompanies } from "@/lib/data-fetcher
 import { createServiceRequest } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, FileText, Plus, X, Loader2 } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
 
 const statusOptions = ["all", "pending", "in_progress", "under_review", "completed", "rejected"]
@@ -127,7 +128,7 @@ export default function RequestsPage() {
       </div>
 
       {showAddForm && (
-        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">Create New Service Request</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
@@ -255,7 +256,7 @@ export default function RequestsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -271,10 +272,18 @@ export default function RequestsPage() {
             </thead>
             <tbody>
               {filtered.map((req) => (
-                <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => window.location.href = `/admin/requests/${req.id}`}>
-                  <td className="px-6 py-4 text-gray-900 font-medium">{req.client?.full_name || "N/A"}</td>
+                <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 text-gray-900 font-medium">
+                    <Link href={`/admin/requests/${req.id}`} prefetch={false} className="hover:text-[#1a3a6b]">
+                      {req.client?.full_name || "N/A"}
+                    </Link>
+                  </td>
                   <td className="px-6 py-4 text-gray-600">{req.company?.name || "N/A"}</td>
-                  <td className="px-6 py-4 text-[#1a3a6b] font-medium underline">{req.service_type}</td>
+                  <td className="px-6 py-4">
+                    <Link href={`/admin/requests/${req.id}`} prefetch={false} className="text-[#1a3a6b] font-medium underline hover:text-[#15305a]">
+                      {req.service_type}
+                    </Link>
+                  </td>
                   <td className="px-6 py-4"><StatusBadge status={req.status} /></td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityColors[req.priority] || "bg-gray-100 text-gray-600"}`}>
