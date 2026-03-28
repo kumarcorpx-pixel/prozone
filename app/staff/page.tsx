@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { fetchRequests } from "@/lib/data-fetcher"
-import { demoChecklist } from "@/lib/demo-data"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { FileText, CheckCircle2, Clock, ClipboardList, ArrowRight } from "lucide-react"
@@ -31,7 +30,7 @@ export default function StaffDashboardPage() {
   )
   const inProgressCount = assignedRequests.filter((r) => r.status === "in_progress").length
   const completedToday = 2 // placeholder
-  const pendingChecklistItems = demoChecklist.filter((item) => !item.is_completed).length
+  const pendingChecklistItems = requests.filter(r => r.status === "pending" || r.status === "assigned").length
 
   const activeRequests = assignedRequests.filter(
     (r) => r.status !== "completed" && r.status !== "rejected"

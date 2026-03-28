@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { handleApiError } from "@/lib/api-error-handler"
 import {
   sendWelcomeEmail,
   sendRequestConfirmation,
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json({ success: false, error: result.error }, { status: 500 })
     }
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to send email" }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { chatWithAIStream } from "@/lib/ai-chat"
 import { rateLimit } from "@/lib/rate-limit"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
         Connection: "keep-alive",
       },
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Chat failed" }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

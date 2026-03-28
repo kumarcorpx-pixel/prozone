@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sendWhatsAppMessage, whatsappMessages } from "@/lib/whatsapp"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     const result = await sendWhatsAppMessage({ to, text })
     return NextResponse.json(result)
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

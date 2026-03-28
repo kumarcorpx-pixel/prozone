@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { fetchRequests } from "@/lib/data-fetcher"
-import { demoChecklist } from "@/lib/demo-data"
+import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 
 const priorityColors: Record<string, string> = {
@@ -46,11 +46,12 @@ export default function StaffRequestsPage() {
       ? allRequests
       : allRequests.filter((r) => r.status === activeTab)
 
-  function getChecklistProgress(requestId: string) {
-    const items = demoChecklist.filter((c) => c.request_id === requestId)
-    if (items.length === 0) return null
-    const completed = items.filter((c) => c.is_completed).length
-    return { completed, total: items.length }
+  function getChecklistProgress(request: any) {
+    const items = getChecklistForServiceType(request.service_type)
+    const total = items.length
+    if (total === 0) return null
+    const completed = 0 // No persistent checklist state yet
+    return { completed, total }
   }
 
   return (
@@ -82,7 +83,7 @@ export default function StaffRequestsPage() {
       {/* Request Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredRequests.map((request) => {
-          const progress = getChecklistProgress(request.id)
+          const progress = getChecklistProgress(request)
           return (
             <Link
               key={request.id}

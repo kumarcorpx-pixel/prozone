@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, loginRateLimit } from "@/lib/rate-limit"
 import { contactFormSchema, sanitize } from "@/lib/validation/schemas"
 import prisma from "@/lib/prisma"
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function POST(request: NextRequest) {
   // Rate limit: 5 per 15 min (reuse loginRateLimit config)
@@ -83,10 +84,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Thank you for contacting us. We will get back to you shortly.",
     })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to submit contact form" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

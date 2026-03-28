@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { handleApiError } from "@/lib/api-error-handler"
 import {
   notifyStatusUpdate, notifyDocumentReady, notifyExpiryWarning,
   notifyPaymentDue, notifyPaymentReceived, notifyRequestAssigned,
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Unknown type: ${type}` }, { status: 400 })
     }
     return NextResponse.json(result)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
