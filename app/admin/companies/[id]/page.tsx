@@ -361,22 +361,51 @@ export default function CompanyDetailPage() {
                     <p className="text-sm text-gray-500">No activities listed</p>
                   )}
                 </div>
-                <form onSubmit={async (e) => {
-                  e.preventDefault()
-                  const input = (e.target as any).activity as HTMLInputElement
-                  const val = input.value.trim()
-                  if (!val) return
-                  const updated = [...(company.activities || []), val]
-                  try {
-                    await fetch(`/api/data/companies/${companyId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activities: updated }) })
-                    setCompany({ ...company, activities: updated })
-                    input.value = ""
-                    toast.success("Activity added")
-                  } catch { toast.error("Failed to add activity") }
-                }} className="flex gap-2">
-                  <input name="activity" placeholder="Add business activity..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                  <button type="submit" className="px-3 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">Add</button>
-                </form>
+                <div className="relative">
+                  <input
+                    placeholder="Search DED activities by name or code..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    onChange={async (e) => {
+                      const q = e.target.value
+                      if (q.length < 2) return
+                      try {
+                        const res = await fetch(`/api/activities?q=${encodeURIComponent(q)}&limit=8`)
+                        if (res.ok) {
+                          const data = await res.json()
+                          const list = document.getElementById("activity-suggestions")
+                          if (list) {
+                            list.innerHTML = data.activities.map((a: any) =>
+                              `<button type="button" class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-50" data-name="${a.name}" data-code="${a.code}">
+                                <span class="font-medium">${a.name}</span>
+                                <span class="text-xs text-gray-400 ml-2">${a.code}</span>
+                                <span class="text-xs text-gray-300 ml-1">· ${a.group}</span>
+                              </button>`
+                            ).join("")
+                            list.style.display = data.activities.length ? "block" : "none"
+                            list.querySelectorAll("button").forEach((btn: any) => {
+                              btn.onclick = async () => {
+                                const name = btn.dataset.name
+                                const code = btn.dataset.code
+                                const label = `${name} (${code})`
+                                if ((company.activities || []).includes(label)) { toast.error("Already added"); return }
+                                const updated = [...(company.activities || []), label]
+                                try {
+                                  await fetch(`/api/data/companies/${companyId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activities: updated }) })
+                                  setCompany({ ...company, activities: updated })
+                                  toast.success("Activity added")
+                                  list.style.display = "none"
+                                  ;(e.target as HTMLInputElement).value = ""
+                                } catch { toast.error("Failed to add") }
+                              }
+                            })
+                          }
+                        }
+                      } catch {}
+                    }}
+                    onBlur={() => setTimeout(() => { const el = document.getElementById("activity-suggestions"); if (el) el.style.display = "none" }, 200)}
+                  />
+                  <div id="activity-suggestions" className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto" style={{ display: "none" }} />
+                </div>
               </div>
             </div>
 
