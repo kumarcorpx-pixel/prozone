@@ -5,12 +5,14 @@ import { ArrowRight, FileText, Users, Building2, Stamp, Shield, BarChart3, Clock
 import { motion } from "framer-motion"
 
 const services = [
-  { icon: FileText, label: "Trade License", color: "text-blue-500" },
+  { icon: FileText, label: "Trade License Renewal", color: "text-blue-500" },
   { icon: Users, label: "Visa Processing", color: "text-green-500" },
   { icon: Building2, label: "Company Formation", color: "text-purple-500" },
   { icon: Stamp, label: "Document Attestation", color: "text-amber-500" },
   { icon: BarChart3, label: "VAT & Accounting", color: "text-red-500" },
-  { icon: Shield, label: "Compliance", color: "text-cyan-500" },
+  { icon: Shield, label: "MOHRE & GDRFA", color: "text-cyan-500" },
+  { icon: Globe, label: "Emirates ID & Medical", color: "text-indigo-500" },
+  { icon: Clock, label: "PRO Typing Services", color: "text-orange-500" },
 ]
 
 function FloatingCard({ icon: Icon, label, color, delay, side }: { icon: any; label: string; color: string; delay: number; side: "left" | "right" }) {
@@ -43,14 +45,14 @@ export default function HomePage() {
 
         {/* Left floating service cards */}
         <div className="hidden lg:flex flex-col gap-4 absolute left-8 xl:left-16 top-1/2 -translate-y-1/2">
-          {services.slice(0, 3).map((s, i) => (
+          {services.slice(0, 4).map((s, i) => (
             <FloatingCard key={s.label} {...s} delay={0.2 + i * 0.15} side="left" />
           ))}
         </div>
 
         {/* Right floating service cards */}
         <div className="hidden lg:flex flex-col gap-4 absolute right-8 xl:right-16 top-1/2 -translate-y-1/2">
-          {services.slice(3, 6).map((s, i) => (
+          {services.slice(4, 8).map((s, i) => (
             <FloatingCard key={s.label} {...s} delay={0.3 + i * 0.15} side="right" />
           ))}
         </div>
@@ -73,7 +75,7 @@ export default function HomePage() {
               Corporate PRO Services
             </h1>
             <p className="mt-3 text-base text-gray-500 max-w-md mx-auto">
-              Your complete platform for managing government transactions, documents, and compliance across the UAE.
+              Your trusted partner for trade license renewal, visa processing, company formation &amp; all government services across Dubai, Abu Dhabi &amp; Sharjah.
             </p>
           </motion.div>
 
@@ -84,11 +86,11 @@ export default function HomePage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-8 flex flex-col sm:flex-row gap-3 justify-center"
           >
-            <Link href="/login" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#1a3a6b] hover:bg-[#15305a] text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-[#1a3a6b]/20 hover:shadow-xl hover:-translate-y-0.5">
-              Sign In <ArrowRight className="h-4 w-4" />
+            <Link href="/login" className="inline-flex items-center justify-center gap-2 px-10 py-3.5 bg-[#1a3a6b] hover:bg-[#15305a] text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-[#1a3a6b]/20 hover:shadow-xl hover:-translate-y-0.5">
+              Client Login <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/signup" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 border-[#1a3a6b]/20 text-[#1a3a6b] font-semibold rounded-xl text-sm hover:bg-[#1a3a6b] hover:text-white transition-all">
-              Create Account
+            <Link href="/contact" className="inline-flex items-center justify-center gap-2 px-10 py-3.5 border-2 border-[#1a3a6b]/20 text-[#1a3a6b] font-semibold rounded-xl text-sm hover:bg-[#1a3a6b] hover:text-white transition-all">
+              Get a Quote
             </Link>
           </motion.div>
 
