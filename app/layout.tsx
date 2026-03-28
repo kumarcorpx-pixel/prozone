@@ -28,8 +28,8 @@ export const metadata: Metadata = {
     default: "YABS | PRO Services in UAE",
     template: "%s | YABS PRO Services",
   },
-  description: "Cloud-based PRO services platform for Abu Dhabi, Dubai & Sharjah. Track, monitor and manage all your government transactions.",
-  keywords: ["PRO services UAE", "business setup Dubai", "visa services UAE", "trade license renewal", "YABS", "government transactions UAE"],
+  description: "YABS PRO Services — UAE's trusted partner for trade license renewal, visa processing, company formation, document attestation & government transactions in Dubai, Abu Dhabi & Sharjah. Track all PRO services online.",
+  keywords: ["PRO services UAE", "PRO services Dubai", "trade license renewal Dubai", "visa processing UAE", "company formation Dubai", "document attestation UAE", "business setup Dubai", "MOHRE services", "GDRFA visa", "corporate PRO services UAE", "government transactions Dubai", "YABS PRO", "UAE business services", "free zone company setup", "employment visa UAE", "trade license DED", "DMCC company formation"],
   authors: [{ name: "YABS Public Relations Management LLC" }],
   openGraph: {
     type: "website",
