@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useAuth } from "@/lib/auth-context"
 import { fetchCompanies, fetchEmployees, fetchDocuments, fetchRequests, fetchAdminStats } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import {
@@ -36,6 +37,7 @@ function getTimeOfDay(): string {
 }
 
 export default function AdminDashboard() {
+  const { user } = useAuth()
   const [companies, setCompanies] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [documents, setDocuments] = useState<any[]>([])
@@ -168,8 +170,8 @@ export default function AdminDashboard() {
           }} />
           <div className="relative">
             <p className="text-blue-200 text-sm font-medium">Good {getTimeOfDay()}</p>
-            <h1 className="text-3xl font-bold mt-1">Admin Dashboard</h1>
-            <p className="text-blue-200 mt-2">Managing {companies.length} companies &middot; {totalEmployees} employees</p>
+            <h1 className="text-3xl font-bold mt-1">Welcome, {user?.full_name || "Admin"}</h1>
+            <p className="text-blue-200 mt-2">YABS Public Relations Management LLC &middot; {companies.length} companies &middot; {totalEmployees} employees</p>
           </div>
         </div>
       </FadeIn>

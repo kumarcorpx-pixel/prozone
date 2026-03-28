@@ -160,8 +160,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </button>
             {/* Breadcrumb area */}
             <div className="hidden sm:block">
-              <h1 className="text-sm font-medium text-gray-500 tracking-wide uppercase">
-                {sidebarRole === "admin" ? "Admin Portal" : sidebarRole === "pro_staff" ? "PRO Staff Portal" : "Client Portal"}
+              <h1 className="text-sm font-medium text-gray-500 tracking-wide">
+                {sidebarRole === "admin" ? "YABS Public Relations Management LLC" : sidebarRole === "pro_staff" ? "YABS PRO Staff" : "Corporate PRO Services"}
               </h1>
             </div>
           </div>

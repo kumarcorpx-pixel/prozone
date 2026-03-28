@@ -118,9 +118,13 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
       <div className={`flex items-center justify-between px-4 py-5 ${isDark ? "border-b border-white/10" : "border-b border-gray-100/80 bg-gradient-to-b from-gray-50/50 to-white"}`}>
         <Link href={role === "admin" ? "/admin" : role === "pro_staff" ? "/staff" : "/dashboard"} prefetch={false} className="flex items-center overflow-hidden">
           {collapsed && !mobile ? (
-            <YabsLogo variant="icon" className="h-8 w-8" />
+            <div className={`h-8 w-8 rounded-lg ${isDark ? "bg-white" : "bg-gray-50"} flex items-center justify-center overflow-hidden`}>
+              <img src="/images/yabs-logo.gif" alt="YABS" className="h-7 w-auto" />
+            </div>
           ) : (
-            <YabsLogo variant="compact" className="h-8 w-auto" />
+            <div className={`${isDark ? "bg-white" : "bg-white"} rounded-lg px-2 py-1`}>
+              <img src="/images/yabs-logo.gif" alt="YABS PRO Services" className="h-8 w-auto" />
+            </div>
           )}
         </Link>
         {mobile && onClose && (
