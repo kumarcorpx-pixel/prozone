@@ -74,30 +74,6 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Dashboard Preview */}
-            <div className="mt-12 relative">
-              <div className="bg-white rounded-2xl shadow-2xl p-4 max-w-4xl mx-auto border border-gray-200">
-                <div className="flex items-center gap-2 mb-3 px-2">
-                  <div className="flex gap-1.5"><div className="h-3 w-3 rounded-full bg-red-400" /><div className="h-3 w-3 rounded-full bg-yellow-400" /><div className="h-3 w-3 rounded-full bg-green-400" /></div>
-                  <div className="flex-1 bg-gray-100 rounded-full h-6 flex items-center px-3"><span className="text-[10px] text-gray-400">corporatepro.cloud/admin</span></div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                  {[{label:"Companies",value:"21",color:"bg-blue-50 text-blue-700"},{label:"Employees",value:"93",color:"bg-green-50 text-green-700"},{label:"Documents",value:"120+",color:"bg-purple-50 text-purple-700"},{label:"Compliance",value:"85%",color:"bg-amber-50 text-amber-700"}].map(c=>(<div key={c.label} className={`${c.color} rounded-xl p-3 text-center`}><p className="text-2xl font-bold">{c.value}</p><p className="text-xs mt-0.5">{c.label}</p></div>))}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 bg-gray-50 rounded-xl p-4">
-                    <p className="text-sm font-semibold text-gray-800 mb-2">Recent Requests</p>
-                    {["Trade License Renewal","New Employment Visa","Document Attestation"].map((r,i)=>(<div key={i} className="flex items-center justify-between py-1.5 text-xs"><span className="text-gray-600">{r}</span><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${i===0?"bg-green-100 text-green-700":i===1?"bg-yellow-100 text-yellow-700":"bg-blue-100 text-blue-700"}`}>{i===0?"Completed":i===1?"In Progress":"Pending"}</span></div>))}
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-sm font-semibold text-gray-800 mb-2">Expiry Alerts</p>
-                    <div className="space-y-1.5"><div className="text-xs text-red-600">Trade License — 15d</div><div className="text-xs text-yellow-600">Ejari — 45d</div><div className="text-xs text-green-600">MOHRE Card — 120d</div></div>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-[#1a3a6b] text-white text-xs px-4 py-1.5 rounded-full shadow-lg">Live Dashboard Preview</div>
-            </div>
-
           </div>
         </div>
       </section>
