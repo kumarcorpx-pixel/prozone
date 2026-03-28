@@ -5,64 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
-import { FileText, Users, Building2, Stamp, Shield, BarChart3, Clock, Globe, CheckCircle2, MessageCircle, Video, Eye, EyeOff, Lock, Fingerprint, ArrowRight, Sparkles, X } from "lucide-react"
+import {
+  FileText, Users, Building2, Stamp, Shield, BarChart3, Clock, Globe,
+  CheckCircle2, MessageCircle, Eye, EyeOff, Lock, Fingerprint, ArrowRight,
+  Sparkles, X, Phone, Mail, MapPin, Video, ChevronRight, Star,
+  Briefcase, Scale, PenTool, Car, LandPlot, CreditCard, Upload, Headphones
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-
-import { Briefcase, Scale, PenTool, Car, LandPlot } from "lucide-react"
-
-// Floating cards — high-level categories (left + right sides)
-const services = [
-  { icon: Building2, label: "Mainland LLC Setup", color: "text-blue-600" },
-  { icon: FileText, label: "DMCC Free Zone", color: "text-blue-500" },
-  { icon: Users, label: "Golden Visa Processing", color: "text-green-500" },
-  { icon: Stamp, label: "MOFA Attestation", color: "text-amber-500" },
-  { icon: Scale, label: "Corporate Tax Filing", color: "text-red-500" },
-  { icon: PenTool, label: "Notary Public Dubai", color: "text-purple-500" },
-  { icon: Car, label: "Vehicle Registration", color: "text-cyan-500" },
-  { icon: LandPlot, label: "Health Card Permit", color: "text-orange-500" },
-]
-
-// Service section cards — specific sub-services (unique from floating cards)
-const allServices = [
-  { name: "Business Setup in UAE", desc: "Mainland LLC, IFZA, DMCC, RAKEZ, Meydan & Ajman free zone company formation" },
-  { name: "Corporate PRO Services", desc: "Establishment card, immigration card, labour card & all government liaison" },
-  { name: "Trade License Renewal", desc: "DED commercial, professional & industrial license renewal across all emirates" },
-  { name: "Visa & Immigration", desc: "Employment visa, investor visa, partner visa, family & dependent visa processing" },
-  { name: "Document Attestation", desc: "MOFA attestation, embassy legalization, certificate equivalency & translation" },
-  { name: "Auditing & Accounting", desc: "VAT return filing, corporate tax registration, annual audit & bookkeeping" },
-  { name: "Private Notary Services", desc: "Power of attorney, contract authentication, MOA & legal document notarization" },
-  { name: "RTA Related Works", desc: "Driving license, vehicle registration, ownership transfer & traffic fines clearance" },
-  { name: "Dubai Municipality", desc: "Building permits, food permits, health cards, signboard permits & NOC approvals" },
-  { name: "MOHRE Labour Services", desc: "Work permit issuance, WPS compliance, offer letter approval & labour contract" },
-  { name: "GDRFA Immigration", desc: "Entry permit, residence visa stamping, visa cancellation & status change" },
-  { name: "Emirates ID & Medical", desc: "EID new application, renewal, medical fitness test & health insurance card" },
-  { name: "Ejari & Tawtheeq", desc: "Tenancy contract registration, Ejari Dubai & Tawtheeq Abu Dhabi & Sharjah" },
-  { name: "Company Liquidation", desc: "Business closure, trade license cancellation, deregistration & final audit" },
-  { name: "PRO Typing Services", desc: "Arabic & English government forms, visa applications, legal document typing" },
-  { name: "Bank Account Opening", desc: "Corporate account, business current account & personal banking assistance" },
-]
-
-function FloatingCard({ icon: Icon, label, color, delay, side }: { icon: any; label: string; color: string; delay: number; side: "left" | "right" }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: side === "left" ? -60 : 60 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, delay, ease: "easeOut" }}
-      className="flex items-center gap-3 bg-white/90 backdrop-blur-sm rounded-xl px-4 py-3 shadow-lg border border-gray-100"
-    >
-      <div className={`h-10 w-10 rounded-lg bg-gray-50 flex items-center justify-center ${color}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-gray-800">{label}</p>
-        <div className="flex items-center gap-1 mt-0.5">
-          <CheckCircle2 className="h-3 w-3 text-green-500" />
-          <span className="text-[10px] text-gray-500">Available</span>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
 
 function ExpiredToast() {
   const searchParams = useSearchParams()
@@ -73,6 +22,35 @@ function ExpiredToast() {
   }, [searchParams])
   return null
 }
+
+const proServices = [
+  { icon: FileText, label: "Trade License", desc: "New & renewal" },
+  { icon: Users, label: "Visa Processing", desc: "All visa types" },
+  { icon: BarChart3, label: "VAT & Accounting", desc: "Tax compliance" },
+  { icon: Building2, label: "Company Formation", desc: "Mainland & free zone" },
+  { icon: Shield, label: "Cloud Compliance", desc: "Digital tracking" },
+  { icon: Briefcase, label: "PRO Services", desc: "Government liaison" },
+  { icon: CreditCard, label: "Banking Solutions", desc: "Account opening" },
+  { icon: LandPlot, label: "Office Solutions", desc: "Ejari & Tawtheeq" },
+]
+
+const wideServices = [
+  { icon: Users, name: "Employment Visas" },
+  { icon: Fingerprint, name: "Emirates ID" },
+  { icon: CreditCard, name: "Bank Account Opening" },
+  { icon: Building2, name: "Immigration Department" },
+  { icon: Stamp, name: "Document Attestation" },
+  { icon: FileText, name: "Labour Cards" },
+  { icon: Users, name: "Family Residency Visas" },
+  { icon: X, name: "Visa Cancellations" },
+]
+
+const whyChoose = [
+  { title: "Expert Guidance", desc: "Our experienced PRO officers handle complex government procedures with precision and speed." },
+  { title: "Transparent Costs", desc: "No hidden fees — clear pricing for every service with detailed breakdowns upfront." },
+  { title: "Dedicated Support", desc: "Personal PRO manager assigned to each client with WhatsApp & portal access 24/7." },
+  { title: "Digital Tracking", desc: "Track every document, visa and service request in real-time on corporatepro.cloud." },
+]
 
 export default function HomePage() {
   const [showLogin, setShowLogin] = useState(false)
@@ -109,291 +87,335 @@ export default function HomePage() {
       else if (role === "pro_staff") router.push("/staff")
       else router.push("/dashboard")
       toast.success("Welcome back!")
-    } catch (err: any) {
-      toast.error(err?.message || "Login failed")
-    } finally {
-      setLoading(false)
-    }
+    } catch (err: any) { toast.error(err?.message || "Login failed") }
+    finally { setLoading(false) }
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-white">
       <Suspense><ExpiredToast /></Suspense>
 
-      <div className="flex-1 flex items-center justify-center relative overflow-hidden py-10">
-
-        {/* Left floating cards */}
-        <div className="hidden xl:flex flex-col gap-4 absolute left-8 2xl:left-16 top-1/2 -translate-y-1/2">
-          {services.slice(0, 4).map((s, i) => (
-            <FloatingCard key={s.label} {...s} delay={0.2 + i * 0.15} side="left" />
-          ))}
+      {/* Top Bar */}
+      <div className="bg-[#1a3a6b] text-white text-xs py-2 px-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <p className="flex items-center gap-2">
+            <Video className="h-3.5 w-3.5 text-[#D4A843]" />
+            <span>FREE 30 Min Consultation with our Experts!</span>
+          </p>
+          <a href="tel:+971565204844" className="flex items-center gap-1.5 hover:text-[#D4A843] transition-colors">
+            <Phone className="h-3.5 w-3.5" /> +971 56 520 4844
+          </a>
         </div>
-
-        {/* Right floating cards */}
-        <div className="hidden xl:flex flex-col gap-4 absolute right-8 2xl:right-16 top-1/2 -translate-y-1/2">
-          {services.slice(4, 8).map((s, i) => (
-            <FloatingCard key={s.label} {...s} delay={0.3 + i * 0.15} side="right" />
-          ))}
-        </div>
-
-        {/* Center */}
-        <div className="relative text-center px-4 max-w-md mx-auto z-10 w-full">
-
-          {/* Logo */}
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, type: "spring" }} className="flex justify-center mb-5">
-            <img src="/images/yabs-logo.gif" alt="YABS PRO Services" className="h-24 w-auto" />
-          </motion.div>
-
-          {/* Tagline */}
-          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
-            <h1 className="text-3xl md:text-4xl font-bold text-[#1a3a6b] leading-tight">Corporate PRO Services</h1>
-            <p className="mt-3 text-base text-gray-500 max-w-sm mx-auto">
-              Your trusted partner for trade license, visa processing, company formation & all government services across UAE.
-            </p>
-          </motion.div>
-
-          {/* Login Button — shows when login form is hidden */}
-          <AnimatePresence mode="wait">
-            {!showLogin && (
-              <motion.div
-                key="login-button"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
-                className="mt-8"
-              >
-                <button
-                  onClick={() => setShowLogin(true)}
-                  className="group w-full bg-gradient-to-r from-[#1a3a6b] to-[#0f2340] rounded-2xl p-5 shadow-xl shadow-[#1a3a6b]/15 hover:shadow-2xl hover:-translate-y-0.5 transition-all text-left"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <motion.div
-                        animate={{ rotate: [0, -10, 10, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                        className="h-12 w-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center"
-                      >
-                        <Fingerprint className="h-6 w-6 text-white" />
-                      </motion.div>
-                      <div>
-                        <p className="text-white font-semibold text-base">Client Portal</p>
-                        <p className="text-blue-200/70 text-xs mt-0.5">Sign in to track your services</p>
-                      </div>
-                    </div>
-                    <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                      <ArrowRight className="h-5 w-5 text-white" />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center gap-4 text-[10px] text-blue-200/50 border-t border-white/10 pt-3">
-                    <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> Encrypted</span>
-                    <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> Existing clients only</span>
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> 24/7 Access</span>
-                  </div>
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Login Form — slides in when button is clicked */}
-          <AnimatePresence>
-            {showLogin && (
-              <motion.div
-                key="login-form"
-                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 30, scale: 0.95 }}
-                transition={{ duration: 0.4, type: "spring", bounce: 0.25 }}
-                className="mt-6"
-              >
-                <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 p-6 border border-gray-100 text-left relative">
-                  {/* Close button */}
-                  <button onClick={() => setShowLogin(false)} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500 transition-colors">
-                    <X className="h-5 w-5" />
-                  </button>
-
-                  <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1, type: "spring" }} className="flex items-center justify-center mb-4">
-                    <div className="h-11 w-11 rounded-full bg-[#1a3a6b]/10 flex items-center justify-center">
-                      <Lock className="h-5 w-5 text-[#1a3a6b]" />
-                    </div>
-                  </motion.div>
-
-                  <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="text-lg font-semibold text-gray-900 text-center mb-1">Welcome back</motion.h2>
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-xs text-gray-400 text-center mb-5">All roles (Admin, Staff, Client) use this login</motion.p>
-
-                  <form onSubmit={handleLogin} className="space-y-3">
-                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}>
-                      <label htmlFor="email" className="block text-xs font-medium text-gray-600 mb-1">Email</label>
-                      <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                        className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent transition-shadow" placeholder="you@example.com" autoFocus />
-                    </motion.div>
-
-                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-                      <label htmlFor="password" className="block text-xs font-medium text-gray-600 mb-1">Password</label>
-                      <div className="relative">
-                        <input id="password" type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
-                          className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent transition-shadow" placeholder="Enter password" />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors" tabIndex={-1}>
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                    </motion.div>
-
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="flex items-center justify-between">
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-3.5 w-3.5 rounded border-gray-300 text-[#1a3a6b]" />
-                        <span className="text-xs text-gray-500">Remember me</span>
-                      </label>
-                      <Link href="/forgot-password" className="text-xs text-[#1a3a6b] hover:underline">Forgot password?</Link>
-                    </motion.div>
-
-                    <motion.button
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
-                      type="submit" disabled={loading}
-                      className="w-full bg-[#1a3a6b] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#15305a] transition-all disabled:opacity-50 shadow-sm hover:shadow-md active:scale-[0.98]"
-                    >
-                      {loading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Signing in...
-                        </span>
-                      ) : "Sign In"}
-                    </motion.button>
-                  </form>
-
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="mt-4 text-center text-xs text-gray-400">
-                    Not a client? <a href="https://wa.me/971565204844?text=Hi%20YABS%2C%20I%20need%20PRO%20services" target="_blank" rel="noopener noreferrer" className="text-green-600 font-medium hover:underline">Contact us on WhatsApp</a>
-                  </motion.p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Action Cards */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
-            {/* WhatsApp Card */}
-            <a href="https://wa.me/971565204844?text=Hi%20YABS%2C%20I%20need%20PRO%20services" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-3 px-5 py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 group">
-              <div className="h-10 w-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-colors">
-                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.325 0-4.47-.764-6.206-2.056l-.434-.328-2.994 1.003 1.003-2.994-.328-.434A9.935 9.935 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-              </div>
-              <div className="text-left">
-                <p className="font-semibold text-sm">WhatsApp Us</p>
-                <p className="text-[11px] text-green-100">Chat with our PRO team instantly</p>
-              </div>
-            </a>
-
-            {/* Zoom Consultation Card */}
-            <Link href="/consultation"
-              className="flex items-center gap-3 px-5 py-3.5 bg-[#2D8CFF] hover:bg-[#2681F0] text-white rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 group">
-              <div className="h-10 w-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0 group-hover:bg-white/30 transition-colors">
-                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white"><path d="M4.585 4.585C2.37 4.585.585 6.37.585 8.585v6.83c0 2.214 1.785 4 4 4h8.83c2.214 0 4-1.786 4-4v-1.272l4.757 3.171c.393.263.828.271.828-.257V6.943c0-.529-.435-.52-.828-.257l-4.757 3.171V8.585c0-2.214-1.786-4-4-4H4.585z"/></svg>
-              </div>
-              <div className="text-left">
-                <p className="font-semibold text-sm">Free 30-Min Consultation</p>
-                <p className="text-[11px] text-blue-100">Book a Zoom call with our expert</p>
-              </div>
-            </Link>
-          </motion.div>
-
-          {/* Trust indicators */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.6 }} className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-gray-400">
-            <div className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5 text-green-500" /><span>Secure & Encrypted</span></div>
-            <div className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-blue-500" /><span>Dubai · Abu Dhabi · Sharjah</span></div>
-            <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-amber-500" /><span>Real-time Tracking</span></div>
-          </motion.div>
-
-          {/* Mobile service pills */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.7 }} className="mt-6 flex flex-wrap justify-center gap-2 xl:hidden">
-            {services.map(s => (
-              <div key={s.label} className="flex items-center gap-1.5 bg-white rounded-full px-3 py-1.5 shadow-sm border border-gray-100 text-xs text-gray-600">
-                <s.icon className={`h-3.5 w-3.5 ${s.color}`} />
-                {s.label}
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Decorative orbs */}
-        <div className="absolute top-20 left-20 w-72 h-72 bg-blue-100/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-amber-100/20 rounded-full blur-3xl" />
       </div>
 
-      {/* Services Section — SEO Keywords */}
-      <div className="bg-white py-16 px-6">
-        <div className="max-w-5xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#1a3a6b]">Our PRO Services in UAE</h2>
-            <p className="mt-3 text-gray-500 max-w-lg mx-auto">Complete government relations and corporate services across Dubai, Abu Dhabi & Sharjah</p>
-          </motion.div>
+      {/* Navigation */}
+      <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/images/yabs-logo.gif" alt="YABS PRO Services" className="h-10 w-auto" />
+          </Link>
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+            <a href="#services" className="hover:text-[#1a3a6b] transition-colors">Our Services</a>
+            <a href="#packages" className="hover:text-[#1a3a6b] transition-colors">Packages</a>
+            <a href="#why" className="hover:text-[#1a3a6b] transition-colors">Why Choose Us</a>
+            <Link href="/consultation" className="hover:text-[#1a3a6b] transition-colors">Free Consultation</Link>
+          </div>
+          <button onClick={() => setShowLogin(true)} className="px-5 py-2 bg-[#1a3a6b] text-white text-sm font-semibold rounded-lg hover:bg-[#15305a] transition-colors">
+            Login / Sign in
+          </button>
+        </div>
+      </nav>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {allServices.map((service, i) => (
-              <motion.div
-                key={service.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.05 }}
-                className="group bg-gray-50 hover:bg-[#1a3a6b] rounded-xl p-4 transition-all duration-300 hover:shadow-lg cursor-default"
-              >
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-[#1a3a6b] group-hover:text-[#D4A843] flex-shrink-0 mt-0.5 transition-colors" />
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900 group-hover:text-white transition-colors">{service.name}</h3>
-                    <p className="text-xs text-gray-500 group-hover:text-blue-200 mt-1 transition-colors">{service.desc}</p>
+      {/* Login Modal */}
+      <AnimatePresence>
+        {showLogin && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowLogin(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} transition={{ type: "spring", bounce: 0.25 }}
+              className="bg-white rounded-2xl shadow-2xl p-7 w-full max-w-sm mx-4 relative" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowLogin(false)} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500"><X className="h-5 w-5" /></button>
+              <div className="flex justify-center mb-4"><img src="/images/yabs-logo.gif" alt="YABS" className="h-14 w-auto" /></div>
+              <h2 className="text-lg font-bold text-gray-900 text-center mb-1">Client Portal Login</h2>
+              <p className="text-xs text-gray-400 text-center mb-5">Admin, Staff & Client — all roles</p>
+              <form onSubmit={handleLogin} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]" placeholder="you@example.com" autoFocus />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+                  <div className="relative">
+                    <input type={showPassword ? "text" : "password"} required value={password} onChange={e => setPassword(e.target.value)} className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]" placeholder="Enter password" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" tabIndex={-1}>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="h-3.5 w-3.5 rounded border-gray-300 text-[#1a3a6b]" /><span className="text-xs text-gray-500">Remember me</span></label>
+                  <Link href="/forgot-password" className="text-xs text-[#1a3a6b] hover:underline">Forgot password?</Link>
+                </div>
+                <button type="submit" disabled={loading} className="w-full bg-[#1a3a6b] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#15305a] disabled:opacity-50">
+                  {loading ? <span className="flex items-center justify-center gap-2"><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Signing in...</span> : "Sign In"}
+                </button>
+              </form>
+              <p className="mt-4 text-center text-xs text-gray-400">Not a client? <a href="https://wa.me/971565204844" target="_blank" rel="noopener noreferrer" className="text-green-600 font-medium hover:underline">Contact us on WhatsApp</a></p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hero Section */}
+      <section className="bg-gradient-to-b from-gray-50 to-white py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-3xl md:text-5xl font-bold text-[#1a3a6b] leading-tight">
+              One Platform for All Services
+            </motion.h1>
+            <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-4 text-gray-500 text-lg max-w-xl mx-auto">
+              PRO services in Abu Dhabi, Dubai, Sharjah — business setup, licensing, visa, attestation & more.
+            </motion.p>
+          </div>
+
+          {/* Service Grid + Client Portal */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 max-w-4xl mx-auto">
+            {proServices.slice(0, 4).map((s, i) => (
+              <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.05 }}
+                className="bg-white rounded-xl border border-gray-200 p-4 text-center hover:border-[#1a3a6b]/30 hover:shadow-md transition-all cursor-default">
+                <s.icon className="h-7 w-7 text-[#1a3a6b] mx-auto mb-2" />
+                <p className="text-xs font-semibold text-gray-800">{s.label}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">{s.desc}</p>
+              </motion.div>
+            ))}
+
+            {/* Client Portal Card — center */}
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, type: "spring" }}
+              className="bg-[#1a3a6b] rounded-xl p-5 text-center text-white row-span-2 flex flex-col items-center justify-center">
+              <Fingerprint className="h-10 w-10 mb-3 text-[#D4A843]" />
+              <p className="font-bold text-lg">Client Portal</p>
+              <button onClick={() => setShowLogin(true)} className="mt-3 px-5 py-2 bg-[#D4A843] text-[#1a3a6b] text-xs font-bold rounded-lg hover:bg-[#c9a040] transition-colors">
+                Client Portal
+              </button>
+            </motion.div>
+
+            {proServices.slice(4).map((s, i) => (
+              <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 + i * 0.05 }}
+                className="bg-white rounded-xl border border-gray-200 p-4 text-center hover:border-[#1a3a6b]/30 hover:shadow-md transition-all cursor-default">
+                <s.icon className="h-7 w-7 text-[#1a3a6b] mx-auto mb-2" />
+                <p className="text-xs font-semibold text-gray-800">{s.label}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">{s.desc}</p>
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* SEO Stats Bar */}
-          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.3 }} className="mt-12 bg-gradient-to-r from-[#1a3a6b] to-[#0f2340] rounded-2xl p-8 text-white">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-              <div>
-                <p className="text-3xl font-bold">500+</p>
-                <p className="text-sm text-blue-200 mt-1">Clients Served</p>
+      {/* Explore Our Services */}
+      <section id="services" className="py-16 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#1a3a6b]">Explore Our Services</h2>
+            <p className="mt-2 text-gray-500 max-w-lg mx-auto">Complete corporate solutions for businesses of all sizes</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { title: "Company Formation", desc: "Mainland LLC, DMCC, IFZA, RAKEZ, Meydan & offshore company formation with expert guidance.", points: ["Expert Guidance", "Transparent Costs", "Dedicated Support"], color: "bg-[#1a3a6b]" },
+              { title: "Cloud Compliance", desc: "Digital document management, compliance tracking & real-time monitoring via corporatepro.cloud portal.", points: ["Real-time Tracking", "Document OCR", "Expiry Alerts"], color: "bg-[#0f2340]" },
+              { title: "Restructuring", desc: "Business restructuring, company liquidation, ownership transfer & trade license amendment services.", points: ["Expert Guidance", "Complete Process", "Dedicated Support"], color: "bg-[#162d50]" },
+            ].map((card, i) => (
+              <motion.div key={card.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                className={`${card.color} rounded-2xl p-6 text-white`}>
+                <h3 className="text-xl font-bold mb-3">{card.title}</h3>
+                <p className="text-sm text-blue-200 mb-4">{card.desc}</p>
+                <ul className="space-y-2 mb-5">
+                  {card.points.map(p => (
+                    <li key={p} className="flex items-center gap-2 text-sm"><CheckCircle2 className="h-4 w-4 text-[#D4A843]" /> {p}</li>
+                  ))}
+                </ul>
+                <Link href="/consultation" className="inline-block px-5 py-2 bg-white text-[#1a3a6b] text-sm font-semibold rounded-lg hover:bg-gray-100 transition-colors">
+                  View Details
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Monthly PRO Packages */}
+      <section id="packages" className="py-16 px-4 bg-gray-50">
+        <div className="max-w-5xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+            <span className="text-xs font-semibold text-[#D4A843] bg-[#D4A843]/10 px-3 py-1 rounded-full">PRO Packages</span>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#1a3a6b] mt-3">Monthly PRO Services</h2>
+            <p className="mt-2 text-gray-500">Outsource your company&apos;s government transactions to our experienced PRO team</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { plan: "Small Business", features: ["New Employment visa", "Trade License Renewal", "Free Typing Services"], highlight: false },
+              { plan: "Medium Enterprise", features: ["New Employment visa", "Trade License Renewal", "Hedc License Renewal", "Free Services"], highlight: true },
+              { plan: "Corporate", features: ["New Employment visa", "Hedc License Renewal", "Trade License Renewal", "Free Services"], highlight: false },
+            ].map((pkg, i) => (
+              <motion.div key={pkg.plan} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                className={`rounded-2xl p-6 border-2 ${pkg.highlight ? "border-[#D4A843] bg-white shadow-lg scale-105" : "border-gray-200 bg-white"}`}>
+                {pkg.highlight && <span className="text-xs font-bold text-[#D4A843] bg-[#D4A843]/10 px-3 py-1 rounded-full">Most Popular</span>}
+                <h3 className={`text-xl font-bold mt-2 ${pkg.highlight ? "text-[#1a3a6b]" : "text-gray-800"}`}>{pkg.plan}</h3>
+                <p className="text-[#D4A843] font-bold text-sm mt-1">Call for Pricing</p>
+                <ul className="mt-4 space-y-2">
+                  {pkg.features.map(f => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-gray-600"><CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" /> {f}</li>
+                  ))}
+                </ul>
+                <a href="https://wa.me/971565204844?text=Hi%20YABS%2C%20I%20need%20pricing%20for%20the%20" target="_blank" rel="noopener noreferrer"
+                  className={`block w-full text-center mt-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${pkg.highlight ? "bg-[#1a3a6b] text-white hover:bg-[#15305a]" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
+                  Call for Pricing
+                </a>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Our Wide Range of PRO Services */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#1a3a6b]">Our Wide Range of PRO Services</h2>
+          </motion.div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {wideServices.map((s, i) => (
+              <motion.div key={s.name} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
+                className="bg-gray-50 rounded-xl p-5 text-center hover:bg-[#1a3a6b] hover:text-white group transition-all duration-300 cursor-default">
+                <s.icon className="h-8 w-8 mx-auto mb-3 text-[#1a3a6b] group-hover:text-[#D4A843] transition-colors" />
+                <p className="text-sm font-semibold text-gray-800 group-hover:text-white transition-colors">{s.name}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose Us */}
+      <section id="why" className="py-16 px-4 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+              <div className="bg-gradient-to-br from-[#1a3a6b] to-[#0f2340] rounded-2xl p-8 text-white">
+                <img src="/images/yabs-logo.gif" alt="YABS" className="h-16 w-auto mb-4" />
+                <h3 className="text-2xl font-bold">15+ Years of Trust</h3>
+                <p className="text-blue-200 mt-2">Serving 500+ businesses across Dubai, Abu Dhabi and Sharjah with dedicated PRO services.</p>
+                <div className="grid grid-cols-2 gap-4 mt-6">
+                  <div><p className="text-2xl font-bold text-[#D4A843]">500+</p><p className="text-xs text-blue-200">Clients</p></div>
+                  <div><p className="text-2xl font-bold text-[#D4A843]">21+</p><p className="text-xs text-blue-200">Companies</p></div>
+                  <div><p className="text-2xl font-bold text-[#D4A843]">3</p><p className="text-xs text-blue-200">Emirates</p></div>
+                  <div><p className="text-2xl font-bold text-[#D4A843]">24/7</p><p className="text-xs text-blue-200">Support</p></div>
+                </div>
               </div>
-              <div>
-                <p className="text-3xl font-bold">21+</p>
-                <p className="text-sm text-blue-200 mt-1">Companies Managed</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+              <h2 className="text-2xl md:text-3xl font-bold text-[#1a3a6b] mb-6">Why Choose Us for PRO Services</h2>
+              <div className="space-y-5">
+                {whyChoose.map((item, i) => (
+                  <div key={item.title} className="flex items-start gap-3">
+                    <CheckCircle2 className="h-6 w-6 text-[#D4A843] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{item.title}</h4>
+                      <p className="text-sm text-gray-500 mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div>
-                <p className="text-3xl font-bold">15+</p>
-                <p className="text-sm text-blue-200 mt-1">Years Experience</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold">3</p>
-                <p className="text-sm text-blue-200 mt-1">Emirates Covered</p>
-              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Outsource CTA */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#1a3a6b]">Outsource Your Company&apos;s PRO Services</h2>
+            <p className="mt-3 text-gray-500 max-w-lg mx-auto">Focus on your business while we handle all government transactions, licensing, visas and compliance.</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
+              <a href="https://wa.me/971565204844?text=Hi%20YABS%2C%20I%20want%20to%20outsource%20PRO%20services" target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl text-sm transition-all shadow-lg">
+                <MessageCircle className="h-5 w-5" /> WhatsApp for Free Consultation
+              </a>
+              <Link href="/consultation"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#2D8CFF] hover:bg-[#2681F0] text-white font-semibold rounded-xl text-sm transition-all shadow-lg">
+                <Video className="h-5 w-5" /> Book Zoom Call
+              </Link>
             </div>
           </motion.div>
-
-          {/* SEO Text — helps Google ranking */}
-          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-10 text-center">
-            <p className="text-sm text-gray-400 max-w-3xl mx-auto leading-relaxed">
-              <strong className="text-gray-500">YABS Public Relations Management LLC</strong> provides end-to-end corporate PRO services in Dubai, Abu Dhabi and Sharjah. Whether you need to set up a mainland LLC, register a DMCC or IFZA free zone company, renew your DED trade license, process employment or golden visas through GDRFA, get documents attested at MOFA, file your VAT returns and corporate tax with FTA, authenticate contracts at a private notary, handle RTA vehicle registration, obtain Dubai Municipality health cards and building permits, or manage MOHRE labour cards and WPS compliance — our team of experienced PRO officers handles it all under one roof at <strong className="text-gray-500">corporatepro.cloud</strong>.
-            </p>
-          </motion.div>
         </div>
-      </div>
+      </section>
 
       {/* Footer */}
-      <div className="bg-white border-t border-gray-100 py-4 px-6">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
-          <p>&copy; {new Date().getFullYear()} YABS Public Relations Management LLC</p>
-          <div className="flex items-center gap-4">
-            <a href="tel:+971565204844" className="hover:text-[#1a3a6b]">+971 56 520 4844</a>
-            <span className="text-gray-300">·</span>
-            <a href="mailto:info@yabs.ae" className="hover:text-[#1a3a6b]">info@yabs.ae</a>
-            <span className="text-gray-300">·</span>
-            <Link href="/privacy" className="hover:text-[#1a3a6b]">Privacy Policy</Link>
+      <footer className="bg-[#0f2340] text-white py-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <img src="/images/yabs-logo.gif" alt="YABS" className="h-14 w-auto mb-4" />
+              <p className="text-sm text-blue-200">Your trusted partner for all corporate PRO services across UAE.</p>
+              <div className="flex gap-3 mt-4">
+                <a href="https://wa.me/971565204844" target="_blank" rel="noopener noreferrer" className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                  <MessageCircle className="h-4 w-4" />
+                </a>
+                <a href="mailto:info@yabs.ae" className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                  <Mail className="h-4 w-4" />
+                </a>
+                <a href="tel:+971565204844" className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                  <Phone className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-3 text-[#D4A843]">Services</h4>
+              <ul className="space-y-2 text-sm text-blue-200">
+                <li>Business Setup</li>
+                <li>Trade License Renewal</li>
+                <li>Visa Processing</li>
+                <li>Document Attestation</li>
+                <li>Auditing & Accounting</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-3 text-[#D4A843]">Government</h4>
+              <ul className="space-y-2 text-sm text-blue-200">
+                <li>MOHRE & Labour</li>
+                <li>GDRFA & Immigration</li>
+                <li>Dubai Municipality</li>
+                <li>RTA Services</li>
+                <li>Private Notary</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-3 text-[#D4A843]">Official Info</h4>
+              <div className="space-y-3 text-sm text-blue-200">
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5 text-[#D4A843]" />
+                  <p>258, Central Plaza, Schon Business Park, DIP(1), Dubai, UAE</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-[#D4A843]" />
+                  <a href="tel:+971565204844" className="hover:text-white">+971 56 520 4844</a>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-[#D4A843]" />
+                  <a href="mailto:info@yabs.ae" className="hover:text-white">info@yabs.ae</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-white/10 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-blue-300">
+            <p>&copy; {new Date().getFullYear()} YABS Public Relations Management LLC. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
+              <span>·</span>
+              <a href="https://corporatepro.cloud" className="hover:text-white">corporatepro.cloud</a>
+            </div>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   )
 }
