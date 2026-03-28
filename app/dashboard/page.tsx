@@ -8,7 +8,7 @@ import Link from "next/link"
 import {
   FileText, CheckCircle2, FolderOpen, CreditCard, Bell, Info,
   AlertTriangle, AlertCircle, Users, Building2, ArrowRight, Calendar,
-  Search, Clock
+  Search, Clock, Shield, XCircle, HelpCircle, MessageSquare, Phone, Settings
 } from "lucide-react"
 import { FadeIn, StaggerContainer, StaggerItem, HoverScale } from "@/components/ui/motion"
 
@@ -225,6 +225,86 @@ export default function DashboardPage() {
         ))}
       </StaggerContainer>
 
+      {/* Compliance + Expiring Documents */}
+      {user?.role !== "admin" && company && (
+        <FadeIn delay={0.15}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Compliance Status */}
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-5">
+              <Shield className="h-5 w-5 text-[#1a3a6b]" /> Compliance Status
+            </h3>
+            {(() => {
+              const items = [
+                { label: "Trade License", ok: company.license_expiry ? new Date(company.license_expiry) > new Date() : false, missing: !company.license_expiry },
+                { label: "Establishment Card", ok: !!company.establishment_card_expiry && new Date(company.establishment_card_expiry) > new Date(), missing: !company.establishment_card_expiry },
+                { label: "Ejari / Tawtheeq", ok: !!company.ejari_tawtheeq_expiry && new Date(company.ejari_tawtheeq_expiry) > new Date(), missing: !company.ejari_tawtheeq_expiry },
+                { label: "Employee Visas", ok: myEmployees.length > 0 && myEmployees.filter(e => e.visa_expiry).length > 0, missing: myEmployees.length === 0 || myEmployees.filter(e => e.visa_expiry).length === 0 },
+                { label: "Emirates IDs", ok: myEmployees.length > 0 && myEmployees.filter(e => e.emirates_id_expiry).length > 0, missing: myEmployees.length === 0 || myEmployees.filter(e => e.emirates_id_expiry).length === 0 },
+                { label: "Labor Cards", ok: myEmployees.length > 0 && myEmployees.filter(e => e.labor_card_expiry).length > 0, missing: myEmployees.length === 0 || myEmployees.filter(e => e.labor_card_expiry).length === 0 },
+                { label: "Health Insurance", ok: myDocuments.filter(d => d.document_type === "medical_insurance").length > 0, missing: myDocuments.filter(d => d.document_type === "medical_insurance").length === 0 },
+              ]
+              const score = Math.round((items.filter(i => i.ok).length / items.length) * 100)
+              return (
+                <>
+                  <div className="flex items-center gap-5 mb-5">
+                    <div className={`text-4xl font-bold ${score >= 75 ? "text-green-600" : score >= 50 ? "text-yellow-600" : "text-red-600"}`}>{score}%</div>
+                    <div className="flex-1">
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div className={`h-2.5 rounded-full transition-all ${score >= 75 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${score}%` }} />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">{items.filter(i => i.ok).length} of {items.length} compliant</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {items.map(item => (
+                      <div key={item.label} className="flex items-center justify-between py-1.5">
+                        <span className="text-sm text-gray-700">{item.label}</span>
+                        {item.ok ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : item.missing ? <HelpCircle className="h-4 w-4 text-orange-400" /> : <XCircle className="h-4 w-4 text-red-500" />}
+                      </div>
+                    ))}
+                  </div>
+                  <Link href="/dashboard/company" className="block mt-4 text-sm text-[#1a3a6b] hover:underline font-medium text-center">View Full Compliance &rarr;</Link>
+                </>
+              )
+            })()}
+          </div>
+
+          {/* Expiring Documents */}
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-5">
+              <Calendar className="h-5 w-5 text-amber-500" /> Expiring Documents
+            </h3>
+            {expiringItems.length > 0 ? (
+              <div className="space-y-3">
+                {expiringItems.slice(0, 5).map(item => (
+                  <div key={`${item.sub}-${item.id}`} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{item.label}</p>
+                      <p className="text-xs text-gray-400">{item.sub}</p>
+                    </div>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ml-2 ${
+                      item.days <= 7 ? "bg-red-100 text-red-700" : item.days <= 30 ? "bg-orange-100 text-orange-700" : item.days <= 60 ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                    }`}>
+                      {item.days}d left
+                    </span>
+                  </div>
+                ))}
+                <Link href="/dashboard/documents" className="block mt-2 text-sm text-[#1a3a6b] hover:underline font-medium text-center">View All Documents &rarr;</Link>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <AlertTriangle className="h-8 w-8 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-500">No expiry dates configured yet</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">Contact your PRO manager to set up document expiry tracking for renewal reminders.</p>
+                <Link href="/dashboard/documents" className="inline-block mt-3 text-xs text-[#1a3a6b] font-medium hover:underline">View Documents &rarr;</Link>
+              </div>
+            )}
+          </div>
+        </div>
+        </FadeIn>
+      )}
+
       {/* Recent Requests + Notifications */}
       <FadeIn delay={0.2}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -291,9 +371,13 @@ export default function DashboardPage() {
           </div>
           <div className="divide-y divide-gray-50">
             {recentNotifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-400">
+              <div className="p-8 text-center">
                 <Bell className="h-8 w-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm">No notifications</p>
+                <p className="text-sm font-medium text-gray-600">All Caught Up</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-[200px] mx-auto">You&apos;ll receive notifications when documents are updated, requests change status, or licenses are expiring.</p>
+                <Link href="/dashboard/settings" className="inline-flex items-center gap-1 mt-3 text-xs text-[#1a3a6b] hover:underline">
+                  <Settings className="h-3 w-3" /> Manage preferences
+                </Link>
               </div>
             ) : (
               recentNotifications.map((notification) => {
@@ -325,25 +409,31 @@ export default function DashboardPage() {
       </div>
       </FadeIn>
 
-      {/* Expiring Documents / Visas */}
-      {expiringItems.length > 0 && (
+      {/* Contact Your PRO */}
+      {user?.role !== "admin" && (
         <FadeIn delay={0.3}>
-        <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
-          <h3 className="font-semibold text-amber-900 flex items-center gap-2 mb-4">
-            <AlertTriangle className="h-5 w-5" /> Expiring Soon
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {expiringItems.map(item => (
-              <div key={`${item.sub}-${item.id}`} className="bg-white rounded-xl p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{item.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{item.sub}</p>
-                </div>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${item.days <= 30 ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
-                  {item.days}d left
-                </span>
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-[#1a3a6b] flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-lg font-bold">Y</span>
               </div>
-            ))}
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Your PRO Team at YABS</p>
+                <p className="text-xs text-gray-500 mt-0.5">YABS Public Relations Management LLC</p>
+                <a href="tel:+971565204844" className="text-xs text-[#1a3a6b] hover:underline flex items-center gap-1 mt-1">
+                  <Phone className="h-3 w-3" /> +971 56 520 4844
+                </a>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard/messages" className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]">
+                <MessageSquare className="h-4 w-4" /> Send Message
+              </Link>
+              <a href="https://wa.me/971565204844" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
+                WhatsApp
+              </a>
+            </div>
           </div>
         </div>
         </FadeIn>

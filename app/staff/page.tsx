@@ -9,6 +9,7 @@ import {
   AlertTriangle, Upload, Calendar, Activity, Loader2, FolderOpen
 } from "lucide-react"
 import Link from "next/link"
+import { UpdateStatusModal, UploadDocumentModal } from "@/components/dashboard/quick-action-modals"
 
 function getDaysUntil(dateStr: string): number {
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -22,6 +23,8 @@ export default function StaffDashboardPage() {
   const [documents, setDocuments] = useState<any[]>([])
   const [activityFeed, setActivityFeed] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [statusModalOpen, setStatusModalOpen] = useState(false)
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -238,20 +241,20 @@ export default function StaffDashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm">
           <h3 className="font-semibold text-gray-900 mb-5">Quick Actions</h3>
           <div className="space-y-3">
-            <Link href="/staff/requests" className="flex items-center gap-3 p-3 rounded-xl bg-[#1a3a6b] text-white hover:bg-[#15305a] transition-colors">
+            <button onClick={() => setStatusModalOpen(true)} className="flex items-center gap-3 p-3 rounded-xl bg-[#1a3a6b] text-white hover:bg-[#15305a] transition-colors w-full text-left">
               <Clock className="h-5 w-5" />
               <div>
                 <p className="text-sm font-medium">Update Status</p>
                 <p className="text-xs text-blue-200">Change request status</p>
               </div>
-            </Link>
-            <Link href="/staff/documents" className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+            </button>
+            <button onClick={() => setUploadModalOpen(true)} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors w-full text-left">
               <Upload className="h-5 w-5 text-gray-500" />
               <div>
                 <p className="text-sm font-medium text-gray-900">Upload Document</p>
                 <p className="text-xs text-gray-400">Add company or employee docs</p>
               </div>
-            </Link>
+            </button>
             <Link href="/staff/schedule" className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
               <Calendar className="h-5 w-5 text-gray-500" />
               <div>
@@ -299,6 +302,10 @@ export default function StaffDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Quick Action Modals */}
+      <UpdateStatusModal isOpen={statusModalOpen} onClose={() => setStatusModalOpen(false)} requests={activeRequests} />
+      <UploadDocumentModal isOpen={uploadModalOpen} onClose={() => setUploadModalOpen(false)} companies={companies} employees={employees} />
     </div>
   )
 }

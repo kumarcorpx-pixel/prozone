@@ -154,7 +154,9 @@ export default function AdminDashboard() {
   const pendingDocs = documents.filter(
     (d) => d.status === "expiring_soon" || d.status === "expired"
   )
-  const complianceRate = 85
+  // Calculate actual compliance rate from employee visa data
+  const empsWithVisa = employees.filter(e => e.visa_expiry && new Date(e.visa_expiry) > new Date())
+  const complianceRate = employees.length > 0 ? Math.round((empsWithVisa.length / employees.length) * 100) : 0
 
   return (
     <div className="space-y-6 bg-[#f8f9fb] min-h-screen -m-6 p-6">
