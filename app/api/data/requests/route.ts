@@ -5,7 +5,7 @@ import { withAuth } from "@/lib/auth-middleware"
 import { serviceRequestSchema } from "@/lib/validation/schemas"
 import { validateBody } from "@/lib/validation/validate"
 import { handleApiError } from "@/lib/api-error-handler"
-import { cached, CK, TTL, onRequestChange } from "@/lib/cache"
+import { onRequestChange } from "@/lib/cache"
 
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff", "client"])
@@ -66,18 +66,27 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff", "client"])
   if (!auth.success) return auth.response
-  const user = auth.user
 
   try {
+    const user = auth.user
     const isAdminOrStaff = user.role === "admin" || user.role === "pro_staff"
+    const where = isAdminOrStaff ? {} : { clientId: user.id }
 
-    const includeRelations = { company: { select: { name: true } } }
+    let requests: any[] = []
+    try {
+      requests = await prisma.serviceRequest.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      })
+    } catch {
+      // Table might not exist
+      return NextResponse.json([])
+    }
 
-    const mapRequest = (r: any) => ({
+    const mapped = requests.map((r: any) => ({
       id: r.id,
       client_id: r.clientId,
       company_id: r.companyId,
-      company_name: r.company?.name || "Unknown",
       service_type: r.serviceType,
       description: r.description,
       status: r.status,
@@ -88,40 +97,7 @@ export async function GET(request: NextRequest) {
       completed_date: r.completedDate,
       created_at: r.createdAt,
       updated_at: r.updatedAt,
-    })
-
-    if (isAdminOrStaff) {
-      const mapped = await cached(CK.requests(), TTL.REQUESTS, async () => {
-        try {
-          const requests = await prisma.serviceRequest.findMany({
-            orderBy: { createdAt: "desc" },
-            include: includeRelations,
-          })
-          return requests.map(mapRequest)
-        } catch {
-          // Fallback without includes
-          const requests = await prisma.serviceRequest.findMany({ orderBy: { createdAt: "desc" } })
-          return requests.map(mapRequest)
-        }
-      })
-      return NextResponse.json(mapped)
-    }
-
-    const clientFilter = user.role === "client" ? { clientId: user.id } : undefined
-    let requests: any[]
-    try {
-      requests = await prisma.serviceRequest.findMany({
-        where: clientFilter,
-        orderBy: { createdAt: "desc" },
-        include: includeRelations,
-      })
-    } catch {
-      requests = await prisma.serviceRequest.findMany({
-        where: clientFilter,
-        orderBy: { createdAt: "desc" },
-      })
-    }
-    const mapped = requests.map(mapRequest)
+    }))
 
     return NextResponse.json(mapped)
   } catch (error) {

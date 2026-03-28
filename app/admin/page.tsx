@@ -429,21 +429,27 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {requests.slice(0, 5).map((req) => (
-                  <tr
-                    key={req.id}
-                    className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors"
-                  >
-                    <td className="py-3 text-gray-900 font-medium">
-                      <Link href={`/admin/requests/${req.id}`} prefetch={false} className="hover:text-[#1a3a6b]">
-                        {req.company_name || "N/A"}
-                      </Link>
-                    </td>
-                    <td className="py-3 text-gray-500">{req.service_type}</td>
-                    <td className="py-3"><StatusBadge status={req.status} /></td>
-                    <td className="py-3 text-gray-400 text-xs">{new Date(req.created_at).toLocaleDateString()}</td>
+                {requests.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-sm text-gray-400">No requests yet</td>
                   </tr>
-                ))}
+                ) : (
+                  requests.slice(0, 5).map((req) => (
+                    <tr
+                      key={req.id}
+                      className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="py-3 text-gray-900 font-medium">
+                        <Link href={`/admin/requests/${req.id}`} prefetch={false} className="hover:text-[#1a3a6b]">
+                          {req.company_name || "N/A"}
+                        </Link>
+                      </td>
+                      <td className="py-3 text-gray-500">{req.service_type}</td>
+                      <td className="py-3"><StatusBadge status={req.status} /></td>
+                      <td className="py-3 text-gray-400 text-xs">{new Date(req.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
