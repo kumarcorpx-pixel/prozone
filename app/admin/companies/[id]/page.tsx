@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   AlertTriangle,
+  Download,
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -432,7 +433,7 @@ export default function CompanyDetailPage() {
                       const wpsOk = emp.wps_status === "active" || emp.wps_status === "covered"
                       return (
                         <tr key={emp.id} className="border-b border-gray-50 hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-900">{emp.full_name}</td>
+                          <td className="px-4 py-3"><Link href={`/admin/employees/${emp.id}`} prefetch={false} className="font-medium text-[#1a3a6b] hover:underline">{emp.full_name}</Link></td>
                           <td className="px-4 py-3 text-gray-600">{emp.designation || "-"}</td>
                           <td className="px-4 py-3 text-gray-600">{emp.nationality || "-"}</td>
                           <td className="px-4 py-3">
@@ -580,12 +581,14 @@ export default function CompanyDetailPage() {
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <span className={`text-xs ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
                           <StatusBadge status={doc.status} />
-                          {doc.file_url && (
-                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
-                              className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
-                              <FileText className="h-4 w-4" />
-                            </a>
-                          )}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {doc.file_url && (
+                              <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                                className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100" title="Download">
+                                <Download className="h-4 w-4" />
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )
@@ -615,12 +618,14 @@ export default function CompanyDetailPage() {
                         <div className="flex items-center gap-4 flex-shrink-0">
                           <span className={`text-sm ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
                           <StatusBadge status={doc.status} />
-                          {doc.file_url && (
-                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
-                              className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
-                              <FileText className="h-4 w-4" />
-                            </a>
-                          )}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {doc.file_url && (
+                              <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                                className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100" title="Download">
+                                <Download className="h-4 w-4" />
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )

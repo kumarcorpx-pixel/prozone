@@ -11,26 +11,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    let activities: any[] = []
     try {
-      activities = await prisma.activityLog.findMany({
+      const activities = await prisma.activityLog.findMany({
         orderBy: { createdAt: "desc" },
-        take: 10,
-        include: { user: { select: { fullName: true } } },
+        take: 20,
       })
+      // Don't include user relation - might not exist on VPS
+      const mapped = activities.map((a: any) => ({
+        id: a.id,
+        message: `${a.action || "Action"}${a.entityType ? ` on ${a.entityType}` : ""}`,
+        time: getRelativeTime(a.createdAt),
+        action: a.action,
+      }))
+      return NextResponse.json({ activities: mapped })
     } catch {
-      // If the query fails (e.g. relation mismatch on VPS), return empty
+      // Table might not exist or be empty
       return NextResponse.json({ activities: [] })
     }
-
-    const mapped = activities.map((a: any) => ({
-      id: a.id,
-      message: `${a.user?.fullName || "System"} ${a.action}${a.entityType ? ` ${a.entityType}` : ""}`,
-      time: getRelativeTime(a.createdAt),
-      action: a.action,
-    }))
-
-    return NextResponse.json({ activities: mapped })
   } catch (error) {
     return handleApiError(error)
   }

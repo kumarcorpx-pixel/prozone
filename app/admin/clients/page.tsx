@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { fetchProfiles } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, Users, Loader2, Plus, X } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
 
 const defaultClientForm = {
@@ -191,7 +192,7 @@ export default function ClientsPage() {
                           {profile.full_name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                         </span>
                       </div>
-                      <span className="font-medium text-gray-900">{profile.full_name}</span>
+                      <Link href={`/admin/clients/${profile.id}`} prefetch={false} className="font-medium text-[#1a3a6b] hover:underline">{profile.full_name}</Link>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-gray-600">{profile.email}</td>
