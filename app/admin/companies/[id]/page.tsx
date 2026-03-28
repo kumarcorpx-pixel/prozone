@@ -136,8 +136,7 @@ export default function CompanyDetailPage() {
         jurisdiction: c.jurisdiction || "", legal_form: c.legal_form || "", emirate: c.emirate || "",
         free_zone_authority: c.free_zone_authority || "",
         phone: c.phone || "", email: c.email || "", address: c.address || "", industry: c.industry || "",
-        capital: c.capital || "",
-        status: c.status || "active", visa_quota_total: c.visa_quota_total || 0, visa_quota_used: c.visa_quota_used || 0,
+        status: c.status || "active",
         mohre_company_number: c.mohre_company_number || "", mol_number: c.mol_number || "",
         establishment_card_number: c.establishment_card_number || "",
         establishment_card_expiry: c.establishment_card_expiry?.split("T")[0] || "",
@@ -149,6 +148,8 @@ export default function CompanyDetailPage() {
         sponsor_name: c.sponsor_name || "", sponsor_eid: c.sponsor_eid || "",
         local_service_agent: c.local_service_agent || "",
         poa_status: c.poa_status || "", poa_expiry: c.poa_expiry?.split("T")[0] || "",
+        owner_name: c.owner_name || "", owner_email: c.owner_email || "",
+        owner_phone: c.owner_phone || "", owner_emirates_id: c.owner_emirates_id || "",
         created_by: c.created_by || "",
       })
       setEmployees(e)
@@ -283,13 +284,40 @@ export default function CompanyDetailPage() {
               <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
                 <h3 className="font-semibold text-[#1a3a6b] mb-4">Contact Information</h3>
                 <div className="space-y-3 text-sm">
+                  {ec.owner_name && (
+                    <div className="flex items-center gap-3">
+                      <Users className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-900 font-medium">{ec.owner_name}</span>
+                      <span className="text-xs text-gray-400">Owner / Manager</span>
+                    </div>
+                  )}
+                  {ec.owner_email && (
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <a href={`mailto:${ec.owner_email}`} className="text-[#1a3a6b] hover:underline">{ec.owner_email}</a>
+                    </div>
+                  )}
+                  {ec.owner_phone && (
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <a href={`tel:${ec.owner_phone}`} className="text-[#1a3a6b] hover:underline">{ec.owner_phone}</a>
+                    </div>
+                  )}
+                  {ec.owner_emirates_id && (
+                    <div className="flex items-center gap-3">
+                      <Shield className="h-4 w-4 text-gray-400" />
+                      <a href={`https://smartservices.ica.gov.ae/echannels/web/client/default.html#/fileVal498702702498702702Request`} target="_blank" rel="noopener noreferrer" className="font-mono text-[#1a3a6b] hover:underline">{ec.owner_emirates_id}</a>
+                      <span className="text-xs text-gray-400">Emirates ID</span>
+                    </div>
+                  )}
+                  <hr className="border-gray-100" />
                   <div className="flex items-center gap-3">
                     <Phone className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-700">{company.phone || "No phone"}</span>
+                    <a href={`tel:${company.phone}`} className="text-gray-700 hover:text-[#1a3a6b]">{company.phone || "No phone"}</a>
                   </div>
                   <div className="flex items-center gap-3">
                     <Mail className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-700">{company.email || "No email"}</span>
+                    <a href={`mailto:${company.email}`} className="text-gray-700 hover:text-[#1a3a6b]">{company.email || "No email"}</a>
                   </div>
                   <div className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
@@ -326,7 +354,6 @@ export default function CompanyDetailPage() {
                 <LabelValue label="Legal Form" value={ec.legal_form} />
                 <LabelValue label="DED/Free Zone Authority" value={ec.free_zone_authority || ec.jurisdiction} />
                 <LabelValue label="Status" value={<StatusBadge status={ec.status} />} />
-                <LabelValue label="Capital" value={ec.capital ? `AED ${ec.capital.toLocaleString()}` : "-"} />
                 <LabelValue label="Emirate" value={ec.emirate} />
                 <LabelValue label="Jurisdiction" value={ec.jurisdiction} />
               </div>
@@ -336,9 +363,9 @@ export default function CompanyDetailPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <LabelValue label="Establishment Card #" value={ec.establishment_card_number} className="font-mono" />
                 <LabelValue label="Establishment Card Expiry" value={<span className={getExpiryColor(ec.establishment_card_expiry)}>{formatDate(ec.establishment_card_expiry)}</span>} />
-                <LabelValue label="Immigration File #" value={ec.immigration_file_number} className="font-mono" />
-                <LabelValue label="Computer Card #" value={ec.computer_card_number} className="font-mono" />
+                <LabelValue label="Immigration File # (GDRFA)" value={ec.immigration_file_number} className="font-mono" />
                 <LabelValue label="MOHRE Company #" value={ec.mohre_company_number} className="font-mono" />
+                <LabelValue label="MOL Number" value={ec.mol_number} className="font-mono" />
               </div>
             </CollapsibleSection>
 
@@ -378,44 +405,6 @@ export default function CompanyDetailPage() {
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection title="Visa Quota">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">
-                    Used {ec.visa_quota_used || 0} of {ec.visa_quota_total || 0} ({(ec.visa_quota_total || 0) - (ec.visa_quota_used || 0)} remaining)
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {ec.visa_quota_total > 0 ? Math.round(((ec.visa_quota_used || 0) / ec.visa_quota_total) * 100) : 0}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full transition-all ${
-                      ec.visa_quota_total > 0 && (ec.visa_quota_used || 0) / ec.visa_quota_total > 0.9
-                        ? "bg-red-500"
-                        : ec.visa_quota_total > 0 && (ec.visa_quota_used || 0) / ec.visa_quota_total > 0.7
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
-                    }`}
-                    style={{ width: `${ec.visa_quota_total > 0 ? Math.min(((ec.visa_quota_used || 0) / ec.visa_quota_total) * 100, 100) : 0}%` }}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500">Total (MOL Approved)</p>
-                    <p className="text-lg font-bold text-[#1a3a6b]">{ec.visa_quota_total || 0}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500">Used</p>
-                    <p className="text-lg font-bold text-orange-600">{ec.visa_quota_used || 0}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500">Available</p>
-                    <p className="text-lg font-bold text-green-600">{(ec.visa_quota_total || 0) - (ec.visa_quota_used || 0)}</p>
-                  </div>
-                </div>
-              </div>
-            </CollapsibleSection>
 
             {/* Notes */}
             {company.notes && (
@@ -985,7 +974,22 @@ export default function CompanyDetailPage() {
         {/* ──── Edit Tab ──── */}
         {activeTab === "edit" && (
           <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
-            <h3 className="font-semibold text-[#1a3a6b] mb-4">Edit Company Details</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-[#1a3a6b]">Edit Company Details</h3>
+              {editData.sponsor_name && (
+                <button
+                  type="button"
+                  onClick={() => setEditData({
+                    ...editData,
+                    owner_name: editData.owner_name || editData.sponsor_name,
+                    owner_emirates_id: editData.owner_emirates_id || editData.sponsor_eid,
+                  })}
+                  className="text-xs px-3 py-1.5 bg-blue-50 text-[#1a3a6b] rounded-lg hover:bg-blue-100 transition-colors font-medium"
+                >
+                  Auto-fill Owner from Sponsor
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { key: "name", label: "Company Name *", type: "text" },
@@ -1001,15 +1005,11 @@ export default function CompanyDetailPage() {
                 { key: "email", label: "Email", type: "email" },
                 { key: "address", label: "Address", type: "text" },
                 { key: "industry", label: "Industry", type: "text" },
-                { key: "capital", label: "Capital (AED)", type: "text" },
-                { key: "visa_quota_total", label: "Visa Quota Total (MOL Approved)", type: "number" },
-                { key: "visa_quota_used", label: "Visa Quota Used", type: "number" },
                 { key: "mohre_company_number", label: "MOHRE Company Number", type: "text" },
                 { key: "mol_number", label: "MOL Number", type: "text" },
                 { key: "establishment_card_number", label: "Establishment Card Number", type: "text" },
                 { key: "establishment_card_expiry", label: "Establishment Card Expiry", type: "date" },
                 { key: "immigration_file_number", label: "Immigration File Number (GDRFA)", type: "text" },
-                { key: "computer_card_number", label: "Computer Card Number", type: "text" },
                 { key: "chamber_commerce_number", label: "Chamber of Commerce Number", type: "text" },
                 { key: "ejari_tawtheeq_number", label: "Ejari/Tawtheeq Number", type: "text" },
                 { key: "ejari_tawtheeq_type", label: "Ejari/Tawtheeq Type", type: "select", options: ["Ejari", "Tawtheeq"] },
@@ -1022,7 +1022,11 @@ export default function CompanyDetailPage() {
                 { key: "local_service_agent", label: "Local Service Agent", type: "text" },
                 { key: "poa_status", label: "POA Status", type: "select", options: ["Active", "Inactive", "Expired"] },
                 { key: "poa_expiry", label: "POA Expiry", type: "date" },
-                { key: "created_by", label: "Client / Owner", type: "select-client" },
+                { key: "owner_name", label: "Owner / Manager Name", type: "text" },
+                { key: "owner_email", label: "Owner / Manager Email", type: "email" },
+                { key: "owner_phone", label: "Owner / Manager Phone", type: "text" },
+                { key: "owner_emirates_id", label: "Owner / Manager Emirates ID", type: "text" },
+                { key: "created_by", label: "Client / Owner (Portal Access)", type: "select-client" },
               ].map(field => (
                 <div key={field.key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>

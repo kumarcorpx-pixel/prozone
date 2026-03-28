@@ -150,9 +150,89 @@ export function extractVisa(text: string) {
   }
 }
 
+export function extractEstablishmentCard(text: string) {
+  return {
+    companyName: findField(text, [
+      /(?:Establishment Name|Company Name|المنشأة)[:\s]*(.+)/i,
+    ]),
+    cardNumber: findField(text, [
+      /(?:Card No|Establishment Card No|رقم البطاقة)[:\s]*(\S+)/i,
+      /(\d{8,})/,
+    ]),
+    molNumber: findField(text, [
+      /(?:MOL No|MOL Number|وزارة العمل)[:\s]*(\S+)/i,
+    ]),
+    expiryDate: findDate(text, [
+      /(?:Expiry|Valid Until|انتهاء)[:\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ]),
+    sponsorName: findField(text, [
+      /(?:Owner|Sponsor|Manager|صاحب)[:\s]*(.+)/i,
+    ]),
+    sponsorEid: findField(text, [
+      /(784[-\s]?\d{4}[-\s]?\d{7}[-\s]?\d)/,
+    ]),
+    emirate: findField(text, [
+      /(?:Dubai|Abu Dhabi|Sharjah|Ajman|RAK|Fujairah|UAQ)/i,
+    ]),
+  }
+}
+
+export function extractEjari(text: string) {
+  return {
+    contractNumber: findField(text, [
+      /(?:Contract No|Ejari No|Tawtheeq No|رقم العقد)[:\s]*(\S+)/i,
+      /(\d{16,})/,
+    ]),
+    tenantName: findField(text, [
+      /(?:Tenant|Lessee|المستأجر)[:\s]*(.+)/i,
+    ]),
+    landlordName: findField(text, [
+      /(?:Landlord|Lessor|المؤجر)[:\s]*(.+)/i,
+    ]),
+    startDate: findDate(text, [
+      /(?:Start Date|From|من)[:\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ]),
+    expiryDate: findDate(text, [
+      /(?:End Date|Expiry|To|إلى|انتهاء)[:\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ]),
+    annualRent: findField(text, [
+      /(?:Annual Rent|Rent Amount|الإيجار)[:\s]*([\d,\.]+)/i,
+    ]),
+    propertyAddress: findField(text, [
+      /(?:Property|Location|Address|العنوان)[:\s]*(.+)/i,
+    ]),
+  }
+}
+
+export function extractLaborCard(text: string) {
+  return {
+    employeeName: findField(text, [
+      /(?:Name|Employee|العامل|الاسم)[:\s]*(.+)/i,
+    ]),
+    cardNumber: findField(text, [
+      /(?:Card No|Labour Card No|Labor Card No|رقم البطاقة)[:\s]*(\S+)/i,
+    ]),
+    personalNumber: findField(text, [
+      /(?:Personal No|Person No)[:\s]*(\S+)/i,
+    ]),
+    occupation: findField(text, [
+      /(?:Occupation|Job Title|المهنة|الوظيفة)[:\s]*(.+)/i,
+    ]),
+    expiryDate: findDate(text, [
+      /(?:Expiry|Valid Until|انتهاء)[:\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ]),
+    companyName: findField(text, [
+      /(?:Employer|Company|Establishment|المنشأة)[:\s]*(.+)/i,
+    ]),
+  }
+}
+
 export function autoDetectDocumentType(text: string): string {
   const lower = text.toLowerCase()
   if (lower.includes("trade license") || lower.includes("رخصة تجارية") || lower.includes("ded") || lower.includes("license no")) return "trade-license"
+  if (lower.includes("establishment card") || lower.includes("بطاقة المنشأة") || lower.includes("mol no")) return "establishment-card"
+  if (lower.includes("ejari") || lower.includes("tawtheeq") || lower.includes("tenancy") || lower.includes("إيجاري")) return "ejari"
+  if (lower.includes("labour card") || lower.includes("labor card") || lower.includes("بطاقة عمل") || lower.includes("work permit")) return "labor-card"
   if (lower.includes("passport") || lower.includes("جواز") || text.includes("P<")) return "passport"
   if ((lower.includes("emirates") && lower.includes("identity")) || /784[-\s]?\d{4}/.test(text)) return "emirates-id"
   if (lower.includes("visa") || lower.includes("entry permit") || lower.includes("residence") || lower.includes("تأشيرة")) return "visa"
@@ -170,6 +250,9 @@ export async function processDocument(fileBuffer: Buffer, documentType: string) 
   let extractedData
   switch (detectedType) {
     case "trade-license": extractedData = extractTradeLicense(rawText); break
+    case "establishment-card": extractedData = extractEstablishmentCard(rawText); break
+    case "ejari": extractedData = extractEjari(rawText); break
+    case "labor-card": extractedData = extractLaborCard(rawText); break
     case "passport": extractedData = extractPassport(rawText); break
     case "emirates-id": extractedData = extractEmiratesID(rawText); break
     case "visa": extractedData = extractVisa(rawText); break

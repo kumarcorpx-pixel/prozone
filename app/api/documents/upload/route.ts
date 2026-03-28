@@ -5,6 +5,98 @@ import { withAuth } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
 import { onDocumentChange } from "@/lib/cache"
 import { logAudit } from "@/lib/audit"
+import { processDocument } from "@/lib/ocr"
+
+async function runOcrAndUpdate(buffer: Buffer, docType: string, companyId: string, employeeId: string | null, expiryDate: string | null) {
+  try {
+    const { extractedData, documentType: detectedType } = await processDocument(buffer, "auto-detect")
+    if (!extractedData) return { extractedData: null, detectedType }
+
+    const updates: Record<string, any> = {}
+
+    // Auto-populate company fields from OCR
+    if (companyId && companyId !== "general") {
+      if (detectedType === "trade-license") {
+        const d = extractedData as any
+        if (d.licenseNumber?.value) updates.licenseNumber = d.licenseNumber.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) updates.licenseExpiry = p } catch {}
+        }
+        if (d.legalForm?.value) updates.legalForm = d.legalForm.value
+      }
+      if (detectedType === "establishment-card") {
+        const d = extractedData as any
+        if (d.cardNumber?.value) updates.establishmentCardNumber = d.cardNumber.value
+        if (d.molNumber?.value) updates.molNumber = d.molNumber.value
+        if (d.sponsorName?.value) updates.sponsorName = d.sponsorName.value
+        if (d.sponsorEid?.value) updates.sponsorEid = d.sponsorEid.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) updates.establishmentCardExpiry = p } catch {}
+        }
+      }
+      if (detectedType === "ejari") {
+        const d = extractedData as any
+        if (d.contractNumber?.value) updates.ejariTawtheeqNumber = d.contractNumber.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) updates.ejariTawtheeqExpiry = p } catch {}
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await prisma.company.update({ where: { id: companyId }, data: updates }).catch(() => {})
+      }
+    }
+
+    // Auto-populate employee fields from OCR
+    if (employeeId) {
+      const empUpdates: Record<string, any> = {}
+      if (detectedType === "passport") {
+        const d = extractedData as any
+        if (d.passportNumber?.value) empUpdates.passportNumber = d.passportNumber.value
+        if (d.nationality?.value) empUpdates.nationality = d.nationality.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) empUpdates.passportExpiry = p } catch {}
+        }
+      }
+      if (detectedType === "emirates-id") {
+        const d = extractedData as any
+        if (d.idNumber?.value) empUpdates.emiratesId = d.idNumber.value
+        if (d.nationality?.value) empUpdates.nationality = d.nationality.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) empUpdates.emiratesIdExpiry = p } catch {}
+        }
+      }
+      if (detectedType === "visa") {
+        const d = extractedData as any
+        if (d.visaNumber?.value) empUpdates.visaNumber = d.visaNumber.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) empUpdates.visaExpiry = p } catch {}
+        }
+      }
+      if (Object.keys(empUpdates).length > 0) {
+        await prisma.employee.update({ where: { id: employeeId }, data: empUpdates }).catch(() => {})
+      }
+    }
+
+    return { extractedData, detectedType }
+  } catch (err) {
+    console.error("[OCR] Processing failed:", err)
+    return { extractedData: null, detectedType: docType }
+  }
+}
+
+function parseFlexDate(dateStr: string): Date | null {
+  // Handle DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+  const parts = dateStr.split(/[\/\-\.]/)
+  if (parts.length === 3) {
+    const [d, m, y] = parts.map(Number)
+    if (y > 100) return new Date(y, m - 1, d)
+    if (y > 25) return new Date(1900 + y, m - 1, d)
+    return new Date(2000 + y, m - 1, d)
+  }
+  const parsed = new Date(dateStr)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
 
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin", "pro_staff", "client"])
@@ -181,6 +273,20 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Run OCR in background to extract document data
+      const ocrResult = await runOcrAndUpdate(buffer, documentType, companyId, employeeId, expiryDate)
+
+      // If OCR found an expiry date and none was provided, update the document record
+      if (ocrResult.extractedData && !expiryDate) {
+        const ed = ocrResult.extractedData as any
+        if (ed.expiryDate?.value) {
+          try {
+            const parsed = parseFlexDate(ed.expiryDate.value)
+            if (parsed) await prisma.document.update({ where: { id: doc.id }, data: { expiryDate: parsed } }).catch(() => {})
+          } catch {}
+        }
+      }
+
       await onDocumentChange()
       logAudit(auth.user.id, "UPLOAD", "document", doc.id, { name, documentType, companyId }).catch(() => {})
       return NextResponse.json({
@@ -195,6 +301,8 @@ export async function POST(request: NextRequest) {
         compressionSaved: `${compressionSaved}%`,
         mimeType: uploadMime,
         storage: "minio",
+        ocrData: ocrResult.extractedData,
+        detectedType: ocrResult.detectedType,
       })
     } catch (minioErr) {
       console.error("[Upload] MinIO failed, falling back to local:", minioErr)
@@ -270,6 +378,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Run OCR to extract document data
+    const ocrResult = await runOcrAndUpdate(buffer, documentType, companyId, employeeId, expiryDate)
+
+    if (ocrResult.extractedData && !expiryDate) {
+      const ed = ocrResult.extractedData as any
+      if (ed.expiryDate?.value) {
+        try {
+          const parsed = parseFlexDate(ed.expiryDate.value)
+          if (parsed) await prisma.document.update({ where: { id: doc.id }, data: { expiryDate: parsed } }).catch(() => {})
+        } catch {}
+      }
+    }
+
     await onDocumentChange()
     logAudit(auth.user.id, "UPLOAD", "document", doc.id, { name, documentType, companyId }).catch(() => {})
     return NextResponse.json({
@@ -284,6 +405,8 @@ export async function POST(request: NextRequest) {
       compressionSaved: `${compressionSaved}%`,
       mimeType: uploadMime,
       storage: "local",
+      ocrData: ocrResult.extractedData,
+      detectedType: ocrResult.detectedType,
     })
   } catch (error) {
     return handleApiError(error)
