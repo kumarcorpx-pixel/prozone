@@ -468,6 +468,44 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* DED Activities Master Data */}
+      <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Database className="h-5 w-5 text-[#1a3a6b]" />
+          <h3 className="font-semibold text-[#1a3a6b]">DED Business Activities Master Data</h3>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">Upload the Dubai DED activity codes TSV file. This populates the searchable activities dropdown on company pages.</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a]">
+            <FileText className="h-4 w-4" />
+            Upload TSV/CSV File
+            <input type="file" className="hidden" accept=".tsv,.csv,.txt" onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              try {
+                const fd = new FormData()
+                fd.append("file", file)
+                const res = await fetch("/api/activities", { method: "POST", body: fd })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data.error || "Upload failed")
+                toast.success(`Imported ${data.imported} activities (${data.deduplicated} unique)`)
+              } catch (err: any) { toast.error(err.message || "Upload failed") }
+              e.target.value = ""
+            }} />
+          </label>
+          <button onClick={async () => {
+            try {
+              const res = await fetch("/api/activities?limit=1")
+              const data = await res.json()
+              toast.success(`${data.total} activities currently loaded`)
+            } catch { toast.error("Failed to check") }
+          }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+            Check Count
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">Expected columns: activity_name_en, activity_code, activity_category_en, activity_group_en</p>
+      </div>
     </div>
   )
 }

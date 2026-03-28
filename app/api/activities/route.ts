@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
+import { readFile, writeFile, mkdir } from "fs/promises"
+import path from "path"
 
 // DED Activity Master Data — searchable by name or code
 // This serves as a lightweight lookup for the business activities dropdown
 // Full dataset loaded from the master list provided by Dubai DED
+//
+// GET  /api/activities?q=search&limit=20  — search activities
+// POST /api/activities                     — upload TSV data (bulk import)
 
-const ACTIVITIES_SAMPLE = [
+interface Activity {
+  code: string
+  name: string
+  category: string
+  group: string
+  description?: string
+  isic4?: string
+}
+
+const DATA_FILE = path.join(process.cwd(), "data", "ded-activities.json")
+
+// Fallback sample data — used when no uploaded data exists
+const ACTIVITIES_SAMPLE: Activity[] = [
   { code: "851250", name: "Podiatry Center", category: "Health & Social Work", group: "Medical Clinic" },
   { code: "851928", name: "Special Need Center", category: "Social & Personal Services", group: "CDA activities" },
   { code: "742183", name: "District Cooling Plants Engineering", category: "Real Estate,Renting,Bus Servic", group: "CDA activities" },
@@ -100,20 +117,190 @@ const ACTIVITIES_SAMPLE = [
   { code: "100465", name: "Online Seller", category: "Real Estate,Renting,Bus Servic", group: "Information Technology" },
 ]
 
+/**
+ * Load uploaded activities from the JSON data file.
+ * Returns an empty array if the file doesn't exist yet.
+ */
+async function loadUploadedActivities(): Promise<Activity[]> {
+  try {
+    const raw = await readFile(DATA_FILE, "utf-8")
+    const data = JSON.parse(raw)
+    return Array.isArray(data) ? data : []
+  } catch {
+    // File doesn't exist or is invalid — return empty
+    return []
+  }
+}
+
+/**
+ * Get the full merged activity list: uploaded data takes priority,
+ * sample data fills in any codes not already present.
+ */
+async function getAllActivities(): Promise<Activity[]> {
+  const uploaded = await loadUploadedActivities()
+
+  if (uploaded.length > 0) {
+    // If we have uploaded data, use it as the primary source.
+    // Merge in sample entries whose codes aren't in the uploaded set.
+    const uploadedCodes = new Set(uploaded.map((a) => a.code))
+    const extras = ACTIVITIES_SAMPLE.filter((a) => !uploadedCodes.has(a.code))
+    return [...uploaded, ...extras]
+  }
+
+  // No uploaded data yet — fall back to sample
+  return ACTIVITIES_SAMPLE
+}
+
+/**
+ * Parse TSV text into Activity objects.
+ * Expected columns: activity_desc_en, activity_name_en, activity_category_en,
+ *                   activity_code_isic_4, activity_code, activity_group_en
+ */
+function parseTSV(tsv: string): Activity[] {
+  const lines = tsv.split(/\r?\n/).filter((line) => line.trim() !== "")
+  if (lines.length < 2) return []
+
+  // Parse header to find column indices
+  const headerLine = lines[0]
+  const sep = headerLine.includes("\t") ? "\t" : ","
+  const headers = headerLine.split(sep).map((h) => h.trim().toLowerCase())
+
+  const colMap: Record<string, number> = {}
+  headers.forEach((h, i) => {
+    colMap[h] = i
+  })
+
+  // Support both exact column names and common variations
+  const descIdx = colMap["activity_desc_en"] ?? colMap["description"] ?? -1
+  const nameIdx = colMap["activity_name_en"] ?? colMap["name"] ?? -1
+  const catIdx = colMap["activity_category_en"] ?? colMap["category"] ?? -1
+  const isic4Idx = colMap["activity_code_isic_4"] ?? colMap["isic4"] ?? -1
+  const codeIdx = colMap["activity_code"] ?? colMap["code"] ?? -1
+  const groupIdx = colMap["activity_group_en"] ?? colMap["group"] ?? -1
+
+  if (nameIdx === -1 || codeIdx === -1) {
+    throw new Error(
+      "TSV must contain at least 'activity_name_en' and 'activity_code' columns. " +
+        `Found headers: ${headers.join(", ")}`
+    )
+  }
+
+  const activities: Activity[] = []
+  const seenCodes = new Set<string>()
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(sep)
+    const code = cols[codeIdx]?.trim()
+    const name = cols[nameIdx]?.trim()
+
+    if (!code || !name) continue
+    if (seenCodes.has(code)) continue
+    seenCodes.add(code)
+
+    activities.push({
+      code,
+      name,
+      category: catIdx >= 0 ? cols[catIdx]?.trim() || "" : "",
+      group: groupIdx >= 0 ? cols[groupIdx]?.trim() || "" : "",
+      description: descIdx >= 0 ? cols[descIdx]?.trim() || "" : "",
+      isic4: isic4Idx >= 0 ? cols[isic4Idx]?.trim() || "" : "",
+    })
+  }
+
+  return activities
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/activities?q=search&limit=20
+// ---------------------------------------------------------------------------
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.toLowerCase() || ""
   const limit = Number(request.nextUrl.searchParams.get("limit") || "20")
+  const all = await getAllActivities()
 
   if (!q || q.length < 2) {
-    return NextResponse.json({ activities: ACTIVITIES_SAMPLE.slice(0, limit) })
+    return NextResponse.json({
+      activities: all.slice(0, limit),
+      total: all.length,
+    })
   }
 
-  const results = ACTIVITIES_SAMPLE.filter(a =>
-    a.name.toLowerCase().includes(q) ||
-    a.code.includes(q) ||
-    a.category.toLowerCase().includes(q) ||
-    a.group.toLowerCase().includes(q)
-  ).slice(0, limit)
+  const results = all
+    .filter(
+      (a) =>
+        a.name.toLowerCase().includes(q) ||
+        a.code.includes(q) ||
+        a.category.toLowerCase().includes(q) ||
+        a.group.toLowerCase().includes(q)
+    )
+    .slice(0, limit)
 
-  return NextResponse.json({ activities: results })
+  return NextResponse.json({ activities: results, total: all.length })
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/activities  — upload TSV/CSV bulk data
+// Body can be:
+//   1. multipart/form-data with a "file" field (TSV/CSV file upload)
+//   2. application/json with { "tsv": "..." } containing raw TSV text
+// ---------------------------------------------------------------------------
+export async function POST(request: NextRequest) {
+  try {
+    let tsvText = ""
+
+    const contentType = request.headers.get("content-type") || ""
+
+    if (contentType.includes("multipart/form-data")) {
+      // File upload
+      const formData = await request.formData()
+      const file = formData.get("file")
+      if (!file || !(file instanceof Blob)) {
+        return NextResponse.json(
+          { error: "No file provided. Send a TSV/CSV file in the 'file' field." },
+          { status: 400 }
+        )
+      }
+      tsvText = await file.text()
+    } else if (contentType.includes("application/json")) {
+      // Raw TSV in JSON body
+      const body = await request.json()
+      tsvText = body.tsv || body.data || ""
+    } else {
+      // Try reading as plain text
+      tsvText = await request.text()
+    }
+
+    if (!tsvText.trim()) {
+      return NextResponse.json(
+        { error: "Empty data. Provide TSV/CSV content with a header row." },
+        { status: 400 }
+      )
+    }
+
+    const activities = parseTSV(tsvText)
+
+    if (activities.length === 0) {
+      return NextResponse.json(
+        { error: "No valid activities found in the uploaded data." },
+        { status: 400 }
+      )
+    }
+
+    // Ensure the data directory exists
+    const dataDir = path.dirname(DATA_FILE)
+    await mkdir(dataDir, { recursive: true })
+
+    // Write deduplicated activities to JSON file
+    await writeFile(DATA_FILE, JSON.stringify(activities, null, 2), "utf-8")
+
+    return NextResponse.json({
+      success: true,
+      count: activities.length,
+      message: `Imported ${activities.length} unique activities.`,
+      sample: activities.slice(0, 5),
+    })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
