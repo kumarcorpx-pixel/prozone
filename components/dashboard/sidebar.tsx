@@ -142,6 +142,9 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
             >
               <item.icon className={`h-[18px] w-[18px] ${active ? "text-white" : "text-gray-400"}`} />
               {item.label}
+              {(item.label === "Documents" || item.label === "Invoicing" || item.label === "Reports") && !active && (
+                <span className="ml-auto h-2 w-2 rounded-full bg-[#c9a96e] animate-pulse-dot" />
+              )}
             </Link>
           )
         })}

@@ -400,6 +400,7 @@ export default function AdminDashboard() {
       </FadeIn>
 
       {/* Recent Requests + Activity Feed */}
+      <FadeIn delay={0.3}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Requests */}
         <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -469,6 +470,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+      </FadeIn>
     </div>
   )
 }

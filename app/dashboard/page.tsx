@@ -145,54 +145,67 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-br from-[#1a3a6b] to-[#0d2847] rounded-2xl p-8 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-blue-200 text-sm">Welcome back</p>
-            <h1 className="text-2xl font-bold mt-1">{user?.full_name}</h1>
-            {company && (
-              <p className="text-blue-300 text-sm mt-1">{company.name}{company.emirate ? ` \u00b7 ${company.emirate}` : ""}</p>
-            )}
-          </div>
-          <div className="hidden sm:flex items-center gap-6 text-center">
+      <FadeIn>
+        <div className="bg-gradient-to-br from-[#1a3a6b] to-[#0d2847] rounded-2xl p-8 text-white">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold">{activeRequests.length}</p>
-              <p className="text-xs text-blue-200">Active</p>
+              <p className="text-blue-200 text-sm">Welcome back</p>
+              <h1 className="text-2xl font-bold mt-1">{user?.full_name}</h1>
+              {user?.role === "admin" ? (
+                <p className="text-blue-300 text-sm mt-1">YABS PRO Services &middot; Managing {companies.length} companies</p>
+              ) : company ? (
+                <p className="text-blue-300 text-sm mt-1">{company.name}{company.emirate ? ` \u00b7 ${company.emirate}` : ""}{company.license_number ? ` \u00b7 License: ${company.license_number}` : ""}</p>
+              ) : (
+                <p className="text-blue-300 text-sm mt-1">YABS PRO Services</p>
+              )}
             </div>
-            <div className="w-px h-10 bg-white/20" />
-            <div>
-              <p className="text-2xl font-bold">{myDocuments.length}</p>
-              <p className="text-xs text-blue-200">Documents</p>
-            </div>
-            <div className="w-px h-10 bg-white/20" />
-            <div>
-              <p className="text-2xl font-bold">{myEmployees.length}</p>
-              <p className="text-xs text-blue-200">Employees</p>
+            <div className="hidden sm:flex items-center gap-6 text-center">
+              <div>
+                <p className="text-2xl font-bold">{activeRequests.length}</p>
+                <p className="text-xs text-blue-200">Active</p>
+              </div>
+              <div className="w-px h-10 bg-white/20" />
+              <div>
+                <p className="text-2xl font-bold">{myDocuments.length}</p>
+                <p className="text-xs text-blue-200">Documents</p>
+              </div>
+              <div className="w-px h-10 bg-white/20" />
+              <div>
+                <p className="text-2xl font-bold">{myEmployees.length}</p>
+                <p className="text-xs text-blue-200">Employees</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </FadeIn>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <StaggerContainer className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "New Request", count: `${requests.length} total`, icon: FileText, href: "/dashboard/requests", color: "bg-blue-50 text-blue-600" },
           { label: "Documents", count: `${documents.length} files`, icon: FolderOpen, href: "/dashboard/documents", color: "bg-purple-50 text-purple-600" },
           { label: "Track Progress", count: `${activeRequests.length} active`, icon: Search, href: "/dashboard/tracking", color: "bg-green-50 text-green-600" },
           { label: "Payments", count: `${payments.length} invoices`, icon: CreditCard, href: "/dashboard/payments", color: "bg-amber-50 text-amber-600" },
         ].map(item => (
-          <Link key={item.label} href={item.href} prefetch={false}
-            className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group">
-            <div className={`h-10 w-10 rounded-xl ${item.color} flex items-center justify-center mb-3`}>
-              <item.icon className="h-5 w-5" />
-            </div>
-            <p className="font-semibold text-gray-900 group-hover:text-[#1a3a6b]">{item.label}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{item.count}</p>
-          </Link>
+          <StaggerItem key={item.label}>
+            <Link href={item.href} prefetch={false}
+              className="block">
+              <HoverScale>
+                <div className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group">
+                  <div className={`h-10 w-10 rounded-xl ${item.color} flex items-center justify-center mb-3`}>
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <p className="font-semibold text-gray-900 group-hover:text-[#1a3a6b]">{item.label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{item.count}</p>
+                </div>
+              </HoverScale>
+            </Link>
+          </StaggerItem>
         ))}
-      </div>
+      </StaggerContainer>
 
       {/* Recent Requests + Notifications */}
+      <FadeIn delay={0.2}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Requests (2/3) */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -285,9 +298,11 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      </FadeIn>
 
       {/* Expiring Documents / Visas */}
       {expiringItems.length > 0 && (
+        <FadeIn delay={0.3}>
         <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
           <h3 className="font-semibold text-amber-900 flex items-center gap-2 mb-4">
             <AlertTriangle className="h-5 w-5" /> Expiring Soon
@@ -306,6 +321,7 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+        </FadeIn>
       )}
     </div>
   )
