@@ -10,34 +10,36 @@ import { motion, AnimatePresence } from "framer-motion"
 
 import { Briefcase, Scale, PenTool, Car, LandPlot } from "lucide-react"
 
+// Floating cards — high-level categories (left + right sides)
 const services = [
-  { icon: Building2, label: "Business Setup in UAE", color: "text-blue-600" },
-  { icon: FileText, label: "Trade License Renewal", color: "text-blue-500" },
-  { icon: Users, label: "Visa & Immigration", color: "text-green-500" },
-  { icon: Stamp, label: "Document Attestation", color: "text-amber-500" },
-  { icon: Scale, label: "Auditing & Accounting", color: "text-red-500" },
-  { icon: PenTool, label: "Private Notary Services", color: "text-purple-500" },
-  { icon: Car, label: "RTA Related Works", color: "text-cyan-500" },
-  { icon: LandPlot, label: "Dubai Municipality Works", color: "text-orange-500" },
+  { icon: Building2, label: "Mainland LLC Setup", color: "text-blue-600" },
+  { icon: FileText, label: "DMCC Free Zone", color: "text-blue-500" },
+  { icon: Users, label: "Golden Visa Processing", color: "text-green-500" },
+  { icon: Stamp, label: "MOFA Attestation", color: "text-amber-500" },
+  { icon: Scale, label: "Corporate Tax Filing", color: "text-red-500" },
+  { icon: PenTool, label: "Notary Public Dubai", color: "text-purple-500" },
+  { icon: Car, label: "Vehicle Registration", color: "text-cyan-500" },
+  { icon: LandPlot, label: "Health Card Permit", color: "text-orange-500" },
 ]
 
+// Service section cards — specific sub-services (unique from floating cards)
 const allServices = [
-  { name: "Business Setup in UAE", desc: "Company formation, mainland & free zone licensing" },
-  { name: "Corporate PRO Services", desc: "Government liaison, typing & document clearing" },
-  { name: "Trade License Renewal", desc: "DED, free zone & offshore license renewal" },
-  { name: "Visa & Immigration Services", desc: "Employment visa, family visa, golden visa processing" },
-  { name: "Document Attestation", desc: "MOFA, embassy & notary attestation services" },
-  { name: "Auditing & Accounting", desc: "VAT filing, corporate tax, financial auditing" },
-  { name: "Private Notary Services", desc: "Contract authentication, POA & legal documents" },
-  { name: "RTA Related Works", desc: "Vehicle registration, driving license, fines clearance" },
-  { name: "Dubai Municipality Works", desc: "Building permits, health cards, food permits" },
-  { name: "MOHRE & Labour Services", desc: "Work permits, labour cards, WPS compliance" },
-  { name: "GDRFA & Immigration", desc: "Entry permits, residence visa, status change" },
-  { name: "Emirates ID & Medical", desc: "EID application, medical fitness, health insurance" },
-  { name: "Ejari & Tawtheeq", desc: "Tenancy contracts, lease registration" },
-  { name: "Company Liquidation", desc: "Business closure, deregistration & cancellation" },
-  { name: "PRO Typing Services", desc: "Arabic & English typing for all government forms" },
-  { name: "Bank Account Opening", desc: "Corporate & personal bank account assistance" },
+  { name: "Business Setup in UAE", desc: "Mainland LLC, IFZA, DMCC, RAKEZ, Meydan & Ajman free zone company formation" },
+  { name: "Corporate PRO Services", desc: "Establishment card, immigration card, labour card & all government liaison" },
+  { name: "Trade License Renewal", desc: "DED commercial, professional & industrial license renewal across all emirates" },
+  { name: "Visa & Immigration", desc: "Employment visa, investor visa, partner visa, family & dependent visa processing" },
+  { name: "Document Attestation", desc: "MOFA attestation, embassy legalization, certificate equivalency & translation" },
+  { name: "Auditing & Accounting", desc: "VAT return filing, corporate tax registration, annual audit & bookkeeping" },
+  { name: "Private Notary Services", desc: "Power of attorney, contract authentication, MOA & legal document notarization" },
+  { name: "RTA Related Works", desc: "Driving license, vehicle registration, ownership transfer & traffic fines clearance" },
+  { name: "Dubai Municipality", desc: "Building permits, food permits, health cards, signboard permits & NOC approvals" },
+  { name: "MOHRE Labour Services", desc: "Work permit issuance, WPS compliance, offer letter approval & labour contract" },
+  { name: "GDRFA Immigration", desc: "Entry permit, residence visa stamping, visa cancellation & status change" },
+  { name: "Emirates ID & Medical", desc: "EID new application, renewal, medical fitness test & health insurance card" },
+  { name: "Ejari & Tawtheeq", desc: "Tenancy contract registration, Ejari Dubai & Tawtheeq Abu Dhabi & Sharjah" },
+  { name: "Company Liquidation", desc: "Business closure, trade license cancellation, deregistration & final audit" },
+  { name: "PRO Typing Services", desc: "Arabic & English government forms, visa applications, legal document typing" },
+  { name: "Bank Account Opening", desc: "Corporate account, business current account & personal banking assistance" },
 ]
 
 function FloatingCard({ icon: Icon, label, color, delay, side }: { icon: any; label: string; color: string; delay: number; side: "left" | "right" }) {
@@ -373,7 +375,7 @@ export default function HomePage() {
           {/* SEO Text — helps Google ranking */}
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-10 text-center">
             <p className="text-sm text-gray-400 max-w-3xl mx-auto leading-relaxed">
-              <strong className="text-gray-500">YABS Public Relations Management LLC</strong> is a leading corporate PRO services provider in Dubai, offering business setup, trade license renewal, visa processing, document attestation, auditing and accounting, private notary services, RTA related works, Dubai Municipality approvals, MOHRE labour services, GDRFA immigration, Emirates ID processing, Ejari registration, and complete company formation services across UAE mainland and free zones.
+              <strong className="text-gray-500">YABS Public Relations Management LLC</strong> provides end-to-end corporate PRO services in Dubai, Abu Dhabi and Sharjah. Whether you need to set up a mainland LLC, register a DMCC or IFZA free zone company, renew your DED trade license, process employment or golden visas through GDRFA, get documents attested at MOFA, file your VAT returns and corporate tax with FTA, authenticate contracts at a private notary, handle RTA vehicle registration, obtain Dubai Municipality health cards and building permits, or manage MOHRE labour cards and WPS compliance — our team of experienced PRO officers handles it all under one roof at <strong className="text-gray-500">corporatepro.cloud</strong>.
             </p>
           </motion.div>
         </div>
