@@ -8,15 +8,36 @@ import { toast } from "sonner"
 import { FileText, Users, Building2, Stamp, Shield, BarChart3, Clock, Globe, CheckCircle2, MessageCircle, Video, Eye, EyeOff, Lock, Fingerprint, ArrowRight, Sparkles, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
+import { Briefcase, Scale, PenTool, Car, LandPlot } from "lucide-react"
+
 const services = [
+  { icon: Building2, label: "Business Setup in UAE", color: "text-blue-600" },
   { icon: FileText, label: "Trade License Renewal", color: "text-blue-500" },
-  { icon: Users, label: "Visa Processing", color: "text-green-500" },
-  { icon: Building2, label: "Company Formation", color: "text-purple-500" },
+  { icon: Users, label: "Visa & Immigration", color: "text-green-500" },
   { icon: Stamp, label: "Document Attestation", color: "text-amber-500" },
-  { icon: BarChart3, label: "VAT & Accounting", color: "text-red-500" },
-  { icon: Shield, label: "MOHRE & GDRFA", color: "text-cyan-500" },
-  { icon: Globe, label: "Emirates ID & Medical", color: "text-indigo-500" },
-  { icon: Clock, label: "PRO Typing Services", color: "text-orange-500" },
+  { icon: Scale, label: "Auditing & Accounting", color: "text-red-500" },
+  { icon: PenTool, label: "Private Notary Services", color: "text-purple-500" },
+  { icon: Car, label: "RTA Related Works", color: "text-cyan-500" },
+  { icon: LandPlot, label: "Dubai Municipality Works", color: "text-orange-500" },
+]
+
+const allServices = [
+  { name: "Business Setup in UAE", desc: "Company formation, mainland & free zone licensing" },
+  { name: "Corporate PRO Services", desc: "Government liaison, typing & document clearing" },
+  { name: "Trade License Renewal", desc: "DED, free zone & offshore license renewal" },
+  { name: "Visa & Immigration Services", desc: "Employment visa, family visa, golden visa processing" },
+  { name: "Document Attestation", desc: "MOFA, embassy & notary attestation services" },
+  { name: "Auditing & Accounting", desc: "VAT filing, corporate tax, financial auditing" },
+  { name: "Private Notary Services", desc: "Contract authentication, POA & legal documents" },
+  { name: "RTA Related Works", desc: "Vehicle registration, driving license, fines clearance" },
+  { name: "Dubai Municipality Works", desc: "Building permits, health cards, food permits" },
+  { name: "MOHRE & Labour Services", desc: "Work permits, labour cards, WPS compliance" },
+  { name: "GDRFA & Immigration", desc: "Entry permits, residence visa, status change" },
+  { name: "Emirates ID & Medical", desc: "EID application, medical fitness, health insurance" },
+  { name: "Ejari & Tawtheeq", desc: "Tenancy contracts, lease registration" },
+  { name: "Company Liquidation", desc: "Business closure, deregistration & cancellation" },
+  { name: "PRO Typing Services", desc: "Arabic & English typing for all government forms" },
+  { name: "Bank Account Opening", desc: "Corporate & personal bank account assistance" },
 ]
 
 function FloatingCard({ icon: Icon, label, color, delay, side }: { icon: any; label: string; color: string; delay: number; side: "left" | "right" }) {
@@ -296,6 +317,66 @@ export default function HomePage() {
         {/* Decorative orbs */}
         <div className="absolute top-20 left-20 w-72 h-72 bg-blue-100/30 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-amber-100/20 rounded-full blur-3xl" />
+      </div>
+
+      {/* Services Section — SEO Keywords */}
+      <div className="bg-white py-16 px-6">
+        <div className="max-w-5xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#1a3a6b]">Our PRO Services in UAE</h2>
+            <p className="mt-3 text-gray-500 max-w-lg mx-auto">Complete government relations and corporate services across Dubai, Abu Dhabi & Sharjah</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {allServices.map((service, i) => (
+              <motion.div
+                key={service.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.05 }}
+                className="group bg-gray-50 hover:bg-[#1a3a6b] rounded-xl p-4 transition-all duration-300 hover:shadow-lg cursor-default"
+              >
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-[#1a3a6b] group-hover:text-[#D4A843] flex-shrink-0 mt-0.5 transition-colors" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 group-hover:text-white transition-colors">{service.name}</h3>
+                    <p className="text-xs text-gray-500 group-hover:text-blue-200 mt-1 transition-colors">{service.desc}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* SEO Stats Bar */}
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.3 }} className="mt-12 bg-gradient-to-r from-[#1a3a6b] to-[#0f2340] rounded-2xl p-8 text-white">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              <div>
+                <p className="text-3xl font-bold">500+</p>
+                <p className="text-sm text-blue-200 mt-1">Clients Served</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold">21+</p>
+                <p className="text-sm text-blue-200 mt-1">Companies Managed</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold">15+</p>
+                <p className="text-sm text-blue-200 mt-1">Years Experience</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold">3</p>
+                <p className="text-sm text-blue-200 mt-1">Emirates Covered</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* SEO Text — helps Google ranking */}
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-10 text-center">
+            <p className="text-sm text-gray-400 max-w-3xl mx-auto leading-relaxed">
+              <strong className="text-gray-500">YABS Public Relations Management LLC</strong> is a leading corporate PRO services provider in Dubai, offering business setup, trade license renewal, visa processing, document attestation, auditing and accounting, private notary services, RTA related works, Dubai Municipality approvals, MOHRE labour services, GDRFA immigration, Emirates ID processing, Ejari registration, and complete company formation services across UAE mainland and free zones.
+            </p>
+          </motion.div>
+        </div>
       </div>
 
       {/* Footer */}

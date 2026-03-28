@@ -25,11 +25,11 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "YABS | PRO Services in UAE",
-    template: "%s | YABS PRO Services",
+    default: "Corporate PRO Services Dubai | Business Setup UAE | YABS",
+    template: "%s | YABS Corporate PRO Services",
   },
-  description: "YABS PRO Services — UAE's trusted partner for trade license renewal, visa processing, company formation, document attestation & government transactions in Dubai, Abu Dhabi & Sharjah. Track all PRO services online.",
-  keywords: ["PRO services UAE", "PRO services Dubai", "trade license renewal Dubai", "visa processing UAE", "company formation Dubai", "document attestation UAE", "business setup Dubai", "MOHRE services", "GDRFA visa", "corporate PRO services UAE", "government transactions Dubai", "YABS PRO", "UAE business services", "free zone company setup", "employment visa UAE", "trade license DED", "DMCC company formation"],
+  description: "YABS Corporate PRO Services — Dubai's trusted partner for business setup, trade license renewal, visa processing, document attestation, auditing & accounting, private notary, RTA works, Dubai Municipality permits & all government services across UAE.",
+  keywords: ["corporate PRO services Dubai", "business setup Dubai", "business setup UAE", "trade license renewal Dubai", "visa processing UAE", "company formation Dubai", "document attestation Dubai", "auditing and accounting services Dubai", "private notary services Dubai", "RTA related works Dubai", "Dubai Municipality works", "MOHRE services", "GDRFA visa", "PRO services UAE", "government transactions Dubai", "YABS PRO", "free zone company setup", "employment visa UAE", "corporate tax UAE", "VAT filing Dubai", "Ejari registration", "Emirates ID processing", "golden visa UAE", "company liquidation Dubai", "PRO typing services Dubai"],
   authors: [{ name: "YABS Public Relations Management LLC" }],
   openGraph: {
     type: "website",
