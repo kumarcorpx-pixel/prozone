@@ -6,29 +6,6 @@ import prisma from "@/lib/prisma"
 import { runNewRequestWorkflow } from "@/lib/workflow-engine"
 import { handleApiError } from "@/lib/api-error-handler"
 
-const demoRequests = [
-  {
-    id: "req-c1",
-    serviceType: "Visa Renewal",
-    status: "in_progress",
-    priority: "high",
-    companyName: "My Trading LLC",
-    description: "Renewal for 2 employees",
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "req-c2",
-    serviceType: "Trade License Renewal",
-    status: "pending",
-    priority: "medium",
-    companyName: "My Trading LLC",
-    description: "Annual license renewal",
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-]
-
 export async function GET(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"
   const rl = rateLimit(`client-requests:${ip}`, apiRateLimit)
@@ -41,25 +18,34 @@ export async function GET(request: NextRequest) {
     const user = token ? await getUserFromToken(token) : null
 
     if (!user) {
-      return NextResponse.json({ requests: demoRequests, demo: true })
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    const requests = await prisma.serviceRequest.findMany({
-      where: { clientId: user.id },
-      include: {
-        company: { select: { name: true } },
-        assignedTo: { select: { fullName: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    })
+    try {
+      const requests = await prisma.serviceRequest.findMany({
+        where: { clientId: user.id },
+        orderBy: { createdAt: "desc" },
+      })
 
-    return NextResponse.json({
-      requests: requests.map((r: any) => ({
-        ...r,
-        companyName: r.company?.name,
-        assignedToName: r.assignedTo?.fullName,
-      })),
-    })
+      const mapped = requests.map((r: any) => ({
+        id: r.id,
+        client_id: r.clientId,
+        company_id: r.companyId,
+        service_type: r.serviceType,
+        description: r.description,
+        status: r.status,
+        priority: r.priority,
+        assigned_to: r.assignedToId,
+        notes: r.notes,
+        due_date: r.dueDate,
+        created_at: r.createdAt,
+        updated_at: r.updatedAt,
+      }))
+
+      return NextResponse.json(mapped)
+    } catch {
+      return NextResponse.json([])
+    }
   } catch (error) {
     return handleApiError(error)
   }
@@ -89,18 +75,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const newRequest = await prisma.serviceRequest.create({
-      data: {
-        serviceType: sanitize(result.data.serviceType),
-        description: result.data.description ? sanitize(result.data.description) : null,
-        priority: result.data.priority,
-        companyId: result.data.companyId || null,
-        clientId: user.id,
-        status: "pending",
-      },
+    const createData: any = {
+      serviceType: sanitize(result.data.serviceType),
+      description: result.data.description ? sanitize(result.data.description) : null,
+      priority: result.data.priority,
+      status: "pending",
+    }
+
+    // Use connect for relations
+    if (user.id) createData.client = { connect: { id: user.id } }
+    if (result.data.companyId) createData.company = { connect: { id: result.data.companyId } }
+
+    const newRequest = await prisma.serviceRequest.create({ data: createData }).catch(async (err: any) => {
+      // Retry with direct IDs if connect fails
+      if (err.message?.includes("client") || err.message?.includes("company")) {
+        return prisma.serviceRequest.create({
+          data: {
+            serviceType: createData.serviceType,
+            description: createData.description,
+            priority: createData.priority,
+            status: "pending",
+            clientId: user.id,
+            companyId: result.data.companyId || null,
+          },
+        })
+      }
+      throw err
     })
 
-    // Trigger automated workflow (auto-assign, notify, etc.)
     runNewRequestWorkflow(newRequest.id).catch((err: any) =>
       console.error("[Workflow] Background error:", err.message)
     )
