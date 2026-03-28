@@ -164,6 +164,11 @@ export default function LoginPage() {
                 Sign Up
               </Link>
             </p>
+            <div className="mt-3 text-center">
+              <a href="/contact" className="text-sm text-gray-400 hover:text-[#1a3a6b] transition-colors">
+                Want to see a demo? <span className="font-semibold underline">Request a Demo</span>
+              </a>
+            </div>
           </div>
 
           <p className="mt-6 text-center text-xs text-gray-400">

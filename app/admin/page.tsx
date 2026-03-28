@@ -241,6 +241,17 @@ export default function AdminDashboard() {
         </StaggerItem>
       </StaggerContainer>
 
+      {/* Revenue Setup Prompt */}
+      {revenue.total === 0 && revenue.paid === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-amber-800">Revenue tracking not set up</p>
+            <p className="text-xs text-amber-600 mt-0.5">Create invoices in the <a href="/admin/invoices" className="underline font-medium">Invoicing</a> page to track revenue, or connect Zoho Invoice in <a href="/admin/settings" className="underline font-medium">Settings</a>.</p>
+          </div>
+        </div>
+      )}
+
       {/* Company Portfolio Row */}
       <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StaggerItem>

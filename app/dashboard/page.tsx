@@ -174,6 +174,32 @@ export default function DashboardPage() {
         </div>
       </FadeIn>
 
+      {/* Welcome Checklist */}
+      {user?.role !== "admin" && (stats.companies === 0 || stats.documents === 0) && (
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <h3 className="font-semibold text-[#1a3a6b] mb-1">Getting Started</h3>
+          <p className="text-sm text-gray-500 mb-4">Complete these steps to set up your account</p>
+          <div className="space-y-3">
+            {[
+              { label: "Create your account", done: true, href: "#" },
+              { label: "Company assigned by admin", done: stats.companies > 0, href: "/dashboard/company" },
+              { label: "Upload trade license", done: stats.documents > 0, href: "/dashboard/documents" },
+              { label: "Submit your first request", done: requests.length > 0, href: "/dashboard/requests" },
+            ].map((step, i) => (
+              <a key={i} href={step.href} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${step.done ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>
+                  {step.done ? "✓" : i + 1}
+                </div>
+                <span className={`text-sm ${step.done ? "text-gray-500 line-through" : "text-gray-900 font-medium"}`}>{step.label}</span>
+              </a>
+            ))}
+          </div>
+          <div className="mt-4 bg-blue-50 rounded-xl p-3">
+            <p className="text-xs text-blue-700">Need help? Contact your PRO administrator at <strong>support@yabs.ae</strong> or call <strong>+971 56 520 4844</strong></p>
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions */}
       <StaggerContainer className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
