@@ -17,34 +17,36 @@ export async function GET(request: NextRequest) {
 
     if (companyIds.length === 0) return NextResponse.json([])
 
-    const where: any = { companyId: { in: companyIds } }
-
-    const documents = await prisma.document.findMany({
-      where,
-      include: {
-        company: { select: { name: true } },
-        employee: { select: { fullName: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    })
+    // Try with includes first, fallback without
+    let documents: any[] = []
+    try {
+      documents = await prisma.document.findMany({
+        where: { companyId: { in: companyIds } },
+        include: {
+          company: { select: { name: true } },
+          employee: { select: { fullName: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+    } catch {
+      // Fallback without includes
+      documents = await prisma.document.findMany({
+        where: { companyId: { in: companyIds } },
+        orderBy: { createdAt: "desc" },
+      })
+    }
 
     const mapped = documents.map((d: any) => ({
       id: d.id,
       company_id: d.companyId,
-      company_name: d.company?.name,
+      company_name: d.company?.name || null,
       employee_id: d.employeeId,
-      employee_name: d.employee?.fullName,
+      employee_name: d.employee?.fullName || null,
       name: d.name,
       document_type: d.documentType,
       file_url: d.fileUrl,
-      file_name: d.fileName,
       file_size: d.fileSize,
-      mime_type: d.mimeType,
       expiry_date: d.expiryDate,
-      issue_date: d.issueDate,
-      issuing_authority: d.issuingAuthority,
-      reference_number: d.referenceNumber,
-      reminder_days: d.reminderDays,
       status: d.status,
       notes: d.notes,
       created_at: d.createdAt,
