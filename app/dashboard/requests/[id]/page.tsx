@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
-import { fetchRequests, fetchDocuments } from "@/lib/data-fetcher"
 import { addTimelineEntry, getRequestTimeline } from "@/lib/api"
 import { toast } from "sonner"
 import { StatusBadge } from "@/components/dashboard/status-badge"
@@ -25,30 +24,36 @@ export default function ClientRequestDetailPage() {
 
   useEffect(() => {
     async function load() {
-      const requests = await fetchRequests()
-      const found = requests.find((r: any) => r.id === requestId)
-      const req = found || requests[0]
-      setRequest(req)
-      if (req) {
-        // Load documents for this request's company
-        try {
-          const docs = await fetchDocuments(req.company_id)
-          setReqDocs(docs.filter((d: any) => d.request_id === req.id || d.company_id === req.company_id))
-        } catch {}
-        // Load timeline/messages
-        try {
-          const tl = await getRequestTimeline(requestId)
-          setTimeline(tl)
-        } catch {}
-        // Load fees
-        try {
-          const feeRes = await fetch(`/api/data/requests/${requestId}`)
-          if (feeRes.ok) {
-            const feeData = await feeRes.json()
-            if (feeData.government_fees) setFees(feeData.government_fees)
-          }
-        } catch {}
-      }
+      try {
+        const requestsRes = await fetch("/api/client/requests")
+        const requests = requestsRes.ok ? await requestsRes.json() : []
+        const found = requests.find((r: any) => r.id === requestId)
+        const req = found || requests[0]
+        setRequest(req)
+        if (req) {
+          // Load documents for this request's company
+          try {
+            const docsRes = await fetch("/api/client/documents")
+            if (docsRes.ok) {
+              const docs = await docsRes.json()
+              setReqDocs(docs.filter((d: any) => d.request_id === req.id || d.company_id === req.company_id))
+            }
+          } catch {}
+          // Load timeline/messages
+          try {
+            const tl = await getRequestTimeline(requestId)
+            setTimeline(tl)
+          } catch {}
+          // Load fees
+          try {
+            const feeRes = await fetch(`/api/client/requests/${requestId}`)
+            if (feeRes.ok) {
+              const feeData = await feeRes.json()
+              if (feeData.government_fees) setFees(feeData.government_fees)
+            }
+          } catch {}
+        }
+      } catch {}
       setLoading(false)
     }
     load()

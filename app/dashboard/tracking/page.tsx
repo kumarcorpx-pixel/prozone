@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { fetchRequests } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { CheckCircle2, Circle, Clock, User, MessageSquare } from "lucide-react"
@@ -12,8 +11,10 @@ export default function TrackingPage() {
 
   useEffect(() => {
     async function load() {
-      const r = await fetchRequests()
-      setRequests(r)
+      try {
+        const res = await fetch("/api/client/requests")
+        if (res.ok) setRequests(await res.json())
+      } catch {}
       setLoading(false)
     }
     load()

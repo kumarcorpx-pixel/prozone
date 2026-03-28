@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { fetchDocuments, fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
 import { documentCategories } from "@/lib/company-data"
 import { toast } from "sonner"
 import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2 } from "lucide-react"
@@ -55,8 +54,8 @@ export default function DocumentsPage() {
       if (res.ok) {
         toast.success("Document uploaded successfully")
         // Reload documents
-        const d = await fetchDocuments(user?.company_id || undefined)
-        setDocuments(d)
+        const updatedRes = await fetch("/api/client/documents")
+        if (updatedRes.ok) setDocuments(await updatedRes.json())
       } else {
         toast.error(data.error || "Upload failed")
       }
@@ -70,14 +69,16 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     async function load() {
-      const [d, c, e] = await Promise.all([
-        fetchDocuments(user?.company_id || undefined),
-        fetchCompanies(),
-        fetchEmployees(),
-      ])
-      setDocuments(d)
-      setCompanies(c)
-      setEmployees(e)
+      try {
+        const [documentsRes, companiesRes, employeesRes] = await Promise.all([
+          fetch("/api/client/documents"),
+          fetch("/api/client/companies"),
+          fetch("/api/client/employees"),
+        ])
+        if (documentsRes.ok) setDocuments(await documentsRes.json())
+        if (companiesRes.ok) setCompanies(await companiesRes.json())
+        if (employeesRes.ok) setEmployees(await employeesRes.json())
+      } catch {}
       setLoading(false)
     }
     load()

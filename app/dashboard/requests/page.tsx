@@ -50,12 +50,14 @@ export default function ClientRequestsPage() {
 
   useEffect(() => {
     async function load() {
-      const [r, c] = await Promise.all([
-        fetchRequests(),
-        fetchCompanies(),
-      ])
-      setRequests(r)
-      setCompanies(c)
+      try {
+        const [requestsRes, companiesRes] = await Promise.all([
+          fetch("/api/client/requests"),
+          fetch("/api/client/companies"),
+        ])
+        if (requestsRes.ok) setRequests(await requestsRes.json())
+        if (companiesRes.ok) setCompanies(await companiesRes.json())
+      } catch {}
       setLoading(false)
     }
     load()
@@ -90,8 +92,8 @@ export default function ClientRequestsPage() {
       toast.success("Request submitted successfully")
       setShowAddForm(false)
       setFormData(defaultRequestForm)
-      const updated = await fetchRequests()
-      setRequests(updated)
+      const updatedRes = await fetch("/api/client/requests")
+      if (updatedRes.ok) setRequests(await updatedRes.json())
     } catch (err: any) {
       toast.error(err?.message || "Failed to submit request")
     } finally {
