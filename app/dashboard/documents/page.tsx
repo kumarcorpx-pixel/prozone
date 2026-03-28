@@ -47,7 +47,8 @@ export default function DocumentsPage() {
       const formData = new FormData()
       formData.append("file", file)
       formData.append("name", file.name)
-      if (user?.company_id) formData.append("companyId", user.company_id)
+      if (companies.length > 0) formData.append("companyId", companies[0].id)
+      else if (user?.company_id) formData.append("companyId", user.company_id)
       formData.append("documentType", "other")
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData })
       const data = await res.json()
@@ -82,19 +83,20 @@ export default function DocumentsPage() {
       setLoading(false)
     }
     load()
-  }, [user?.company_id])
+  }, [])
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
-  const myCompany = companies.find(c => c.id === user?.company_id)
-  const myEmployees = employees.filter(e => e.company_id === user?.company_id)
+  // Since /api/client/* already filters server-side, use ALL returned documents
+  const companyIds = companies.map((c: any) => c.id)
+  const myCompany = companies[0] || null
 
-  // Company documents
-  const myCompanyDocs = documents.filter(d => d.company_id === user?.company_id && !d.employee_id)
+  // Company documents (no employee linked)
+  const myCompanyDocs = documents.filter(d => !d.employee_id)
   // Employee documents
-  const myEmployeeDocs = documents.filter(d => d.company_id === user?.company_id && d.employee_id)
-  // Request-linked documents (real docs linked to requests)
-  const myRequestDocs = documents.filter(d => d.company_id === user?.company_id && d.request_id)
+  const myEmployeeDocs = documents.filter(d => d.employee_id)
+  // Request-linked documents
+  const myRequestDocs = documents.filter(d => d.request_id)
 
   const getTabDocs = () => {
     switch (activeTab) {
