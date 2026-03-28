@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, FileText, Users, Building2, Stamp, Shield, BarChart3, Clock, Globe, CheckCircle2 } from "lucide-react"
+import { ArrowRight, FileText, Users, Building2, Stamp, Shield, BarChart3, Clock, Globe, CheckCircle2, MessageCircle, Video } from "lucide-react"
 import { motion } from "framer-motion"
 
 const services = [
@@ -86,12 +86,20 @@ export default function HomePage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-8 flex flex-col sm:flex-row gap-3 justify-center"
           >
-            <Link href="/login" className="inline-flex items-center justify-center gap-2 px-10 py-3.5 bg-[#1a3a6b] hover:bg-[#15305a] text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-[#1a3a6b]/20 hover:shadow-xl hover:-translate-y-0.5">
-              Client Login <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/contact" className="inline-flex items-center justify-center gap-2 px-10 py-3.5 border-2 border-[#1a3a6b]/20 text-[#1a3a6b] font-semibold rounded-xl text-sm hover:bg-[#1a3a6b] hover:text-white transition-all">
-              Get a Quote
-            </Link>
+            <div className="flex flex-col items-center">
+              <Link href="/login" className="inline-flex items-center justify-center gap-2 px-10 py-3.5 bg-[#1a3a6b] hover:bg-[#15305a] text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-[#1a3a6b]/20 hover:shadow-xl hover:-translate-y-0.5">
+                Client Login <ArrowRight className="h-4 w-4" />
+              </Link>
+              <p className="text-xs text-gray-400 mt-2">Login is for existing clients only</p>
+            </div>
+            <a href="https://wa.me/971565204844?text=Hi%20YABS%2C%20I%20need%20PRO%20services" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl text-sm transition-all shadow-lg">
+              <MessageCircle className="h-4 w-4" /> WhatsApp Us
+            </a>
+            <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-all shadow-lg">
+              <Video className="h-4 w-4" /> Free 30-Min Consultation
+            </a>
           </motion.div>
 
           {/* Trust indicators */}
@@ -147,6 +155,8 @@ export default function HomePage() {
             <a href="mailto:info@yabs.ae" className="hover:text-[#1a3a6b] transition-colors">info@yabs.ae</a>
             <span className="text-gray-300">·</span>
             <Link href="/contact" className="hover:text-[#1a3a6b] transition-colors">Contact</Link>
+            <span className="text-gray-300">·</span>
+            <Link href="/privacy" className="hover:text-[#1a3a6b] transition-colors">Privacy Policy</Link>
           </div>
         </div>
       </div>
