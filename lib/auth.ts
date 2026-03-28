@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs")
 import prisma from "./prisma"
 
 const JWT_SECRET = process.env.JWT_SECRET || "yabs-pro-2026-secret-key-change-this"
-const JWT_EXPIRES = "24h"
+const JWT_EXPIRES = "2h"
 
 export interface JWTPayload {
   userId: string

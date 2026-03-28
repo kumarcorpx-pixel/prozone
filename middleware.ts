@@ -117,7 +117,7 @@ export async function middleware(request: NextRequest) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24,
+    // No maxAge = session cookie — dies when browser closes
   })
 
   // Add CORS headers to API responses
