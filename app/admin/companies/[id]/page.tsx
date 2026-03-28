@@ -93,7 +93,7 @@ const tabs = [
   { id: "documents", label: "Documents", icon: FileText },
   { id: "compliance", label: "Compliance", icon: ClipboardCheck },
   { id: "fees", label: "Fees", icon: AedIcon },
-  { id: "wps", label: "WPS", icon: Shield },
+  { id: "wps", label: "Wage Protection System", icon: Shield },
   { id: "uploads", label: "Monthly Uploads", icon: Upload },
   { id: "shareholders", label: "Shareholders", icon: UserCheck },
 ]
@@ -137,7 +137,7 @@ export default function CompanyDetailPage() {
         free_zone_authority: c.free_zone_authority || "",
         phone: c.phone || "", email: c.email || "", address: c.address || "", industry: c.industry || "",
         capital: c.capital || "",
-        status: c.status || "active", visa_quota_total: c.visa_quota_total || 0,
+        status: c.status || "active", visa_quota_total: c.visa_quota_total || 0, visa_quota_used: c.visa_quota_used || 0,
         mohre_company_number: c.mohre_company_number || "", mol_number: c.mol_number || "",
         establishment_card_number: c.establishment_card_number || "",
         establishment_card_expiry: c.establishment_card_expiry?.split("T")[0] || "",
@@ -379,44 +379,42 @@ export default function CompanyDetailPage() {
             </CollapsibleSection>
 
             <CollapsibleSection title="Visa Quota">
-              {(() => {
-                const quotaTotal = ec.visa_quota_total || 0
-                const quotaUsed = employees.filter((e: any) => e.visa_expiry && new Date(e.visa_expiry) > new Date()).length
-                const quotaPercent = quotaTotal > 0 ? Math.round((quotaUsed / quotaTotal) * 100) : 0
-                return (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">
-                        Used {quotaUsed} of {quotaTotal} ({Math.max(quotaTotal - quotaUsed, 0)} remaining)
-                      </span>
-                      <span className="font-medium text-gray-900">{quotaPercent}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className={`h-3 rounded-full transition-all ${
-                          quotaPercent > 90 ? "bg-red-500" : quotaPercent > 70 ? "bg-yellow-500" : "bg-green-500"
-                        }`}
-                        style={{ width: `${Math.min(quotaPercent, 100)}%` }}
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-500">Total (MOL)</p>
-                        <p className="text-lg font-bold text-[#1a3a6b]">{quotaTotal}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-500">Active Visas</p>
-                        <p className="text-lg font-bold text-orange-600">{quotaUsed}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-500">Available</p>
-                        <p className="text-lg font-bold text-green-600">{Math.max(quotaTotal - quotaUsed, 0)}</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-400">Auto-calculated from {employees.length} employees with active visas</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">
+                    Used {ec.visa_quota_used || 0} of {ec.visa_quota_total || 0} ({(ec.visa_quota_total || 0) - (ec.visa_quota_used || 0)} remaining)
+                  </span>
+                  <span className="font-medium text-gray-900">
+                    {ec.visa_quota_total > 0 ? Math.round(((ec.visa_quota_used || 0) / ec.visa_quota_total) * 100) : 0}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full transition-all ${
+                      ec.visa_quota_total > 0 && (ec.visa_quota_used || 0) / ec.visa_quota_total > 0.9
+                        ? "bg-red-500"
+                        : ec.visa_quota_total > 0 && (ec.visa_quota_used || 0) / ec.visa_quota_total > 0.7
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                    style={{ width: `${ec.visa_quota_total > 0 ? Math.min(((ec.visa_quota_used || 0) / ec.visa_quota_total) * 100, 100) : 0}%` }}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500">Total (MOL Approved)</p>
+                    <p className="text-lg font-bold text-[#1a3a6b]">{ec.visa_quota_total || 0}</p>
                   </div>
-                )
-              })()}
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500">Used</p>
+                    <p className="text-lg font-bold text-orange-600">{ec.visa_quota_used || 0}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500">Available</p>
+                    <p className="text-lg font-bold text-green-600">{(ec.visa_quota_total || 0) - (ec.visa_quota_used || 0)}</p>
+                  </div>
+                </div>
+              </div>
             </CollapsibleSection>
 
             {/* Notes */}
@@ -524,11 +522,11 @@ export default function CompanyDetailPage() {
                   <option value="trade_license">Trade License</option>
                   <option value="establishment_card">Establishment Card</option>
                   <option value="ejari">Ejari / Tawtheeq</option>
-                  <option value="moa">MOA</option>
+                  <option value="moa">Memorandum of Association</option>
                   <option value="poa">Power of Attorney</option>
                   <option value="immigration_card">Immigration Card</option>
-                  <option value="wps">WPS / SIF</option>
-                  <option value="noc">NOC</option>
+                  <option value="wps">Wage Protection System / Salary Information File</option>
+                  <option value="noc">No Objection Certificate</option>
                   <option value="contract">Contract</option>
                   <option value="financial">Financial</option>
                   <option value="legal">Legal</option>
@@ -583,7 +581,7 @@ export default function CompanyDetailPage() {
                     <option value="contract">Contract</option>
                     <option value="medical_insurance">Medical Insurance</option>
                     <option value="offer_letter">Offer Letter</option>
-                    <option value="noc">NOC</option>
+                    <option value="noc">No Objection Certificate</option>
                     <option value="photo">Photo</option>
                     <option value="other">Other</option>
                   </select>
@@ -1004,7 +1002,8 @@ export default function CompanyDetailPage() {
                 { key: "address", label: "Address", type: "text" },
                 { key: "industry", label: "Industry", type: "text" },
                 { key: "capital", label: "Capital (AED)", type: "text" },
-                { key: "visa_quota_total", label: "Visa Quota (MOL Approved)", type: "number" },
+                { key: "visa_quota_total", label: "Visa Quota Total (MOL Approved)", type: "number" },
+                { key: "visa_quota_used", label: "Visa Quota Used", type: "number" },
                 { key: "mohre_company_number", label: "MOHRE Company Number", type: "text" },
                 { key: "mol_number", label: "MOL Number", type: "text" },
                 { key: "establishment_card_number", label: "Establishment Card Number", type: "text" },

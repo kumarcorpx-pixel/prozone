@@ -117,9 +117,9 @@ export function ComplianceScore({ company, employees, documents }: ComplianceSco
     : insuredCount === 0 ? "unknown"
     : "expired"
 
-  // Visa quota — auto-count from employees
+  // Visa quota — manual values from company record
   const quotaTotal = company.visa_quota_total || 0
-  const quotaUsed = employees.filter((e: any) => e.visa_expiry && getExpiryStatus(e.visa_expiry) !== "expired").length
+  const quotaUsed = company.visa_quota_used || 0
   const quotaPercent = quotaTotal > 0 ? Math.round((quotaUsed / quotaTotal) * 100) : 0
 
   // Build checklist
@@ -275,7 +275,7 @@ export function ComplianceScore({ company, employees, documents }: ComplianceSco
               style={{ width: `${Math.min(quotaPercent, 100)}%` }}
             />
           </div>
-          <p className="text-xs text-gray-400 mt-2">Auto-calculated from {employees.length} employees with active visas</p>
+          <p className="text-xs text-gray-400 mt-2">Set via Edit Company Details → Visa Quota fields</p>
         </div>
       )}
     </div>
