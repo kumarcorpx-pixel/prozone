@@ -19,6 +19,7 @@
     "framer-motion": "^12.38.0",
     "google-auth-library": "^10.6.2",
     "googleapis": "^171.4.0",
+    "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.7.0",
     "minio": "^8.0.7",
