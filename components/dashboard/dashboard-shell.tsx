@@ -145,7 +145,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar */}
-        <header className="flex items-center justify-between h-16 px-4 lg:px-6 bg-white border-b border-gray-200 flex-shrink-0">
+        <header className="flex items-center justify-between h-16 px-4 lg:px-6 bg-white shadow-[0_1px_3px_0_rgb(0,0,0,0.04)] flex-shrink-0">
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
             <button
@@ -156,7 +156,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </button>
             {/* Breadcrumb area */}
             <div className="hidden sm:block">
-              <h1 className="text-lg font-semibold text-gray-900">
+              <h1 className="text-sm font-medium text-gray-500 tracking-wide uppercase">
                 {sidebarRole === "admin" ? "Admin Portal" : sidebarRole === "pro_staff" ? "PRO Staff Portal" : "Client Portal"}
               </h1>
             </div>
@@ -168,7 +168,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setNotifOpen(!notifOpen)}
                 aria-label="Notifications"
-                className="relative p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                className="relative p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all active:scale-95"
               >
                 <Bell className="h-5 w-5" />
                 {notifications.some(n => !n.isRead) && (
@@ -221,7 +221,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setAvatarOpen(!avatarOpen)}
                 aria-label="Open profile menu"
-                className="h-8 w-8 rounded-full bg-[#1a3a6b] flex items-center justify-center cursor-pointer"
+                className="h-8 w-8 rounded-full bg-[#1a3a6b] flex items-center justify-center cursor-pointer hover:shadow-md active:scale-95 transition-all"
               >
                 <span className="text-white text-xs font-medium">
                   {user.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "U"}
@@ -230,7 +230,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               {avatarOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setAvatarOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg ring-1 ring-gray-200 z-50 py-1">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl ring-1 ring-gray-100 z-50 py-1">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>

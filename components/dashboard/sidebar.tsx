@@ -102,12 +102,15 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
 
   return (
     <aside
-      className={`flex flex-col h-full bg-white border-r border-gray-200 ${
+      className={`flex flex-col h-full bg-white border-r border-gray-200 relative ${
         mobile ? "w-72" : "w-64"
       }`}
     >
+      {/* Gold accent line at top */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#c9a96e] via-[#dfc08a] to-[#c9a96e]" />
+
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-5 border-b border-gray-100">
+      <div className="flex items-center justify-between px-5 py-5 border-b border-gray-100/80 bg-gradient-to-b from-gray-50/50 to-white">
         <Link href={role === "admin" ? "/admin" : role === "pro_staff" ? "/staff" : "/dashboard"} prefetch={false} className="flex items-center">
           <YabsLogo variant="compact" className="h-8 w-auto" />
         </Link>
@@ -133,11 +136,11 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
               onClick={mobile ? onClose : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 active
-                  ? "bg-[#1a3a6b] text-white"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  ? "bg-[#1a3a6b] text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               }`}
             >
-              <item.icon className={`h-5 w-5 ${active ? "text-white" : "text-gray-400"}`} />
+              <item.icon className={`h-[18px] w-[18px] ${active ? "text-white" : "text-gray-400"}`} />
               {item.label}
             </Link>
           )
@@ -145,7 +148,7 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
       </nav>
 
       {/* User info at bottom */}
-      <div className="border-t border-gray-100 px-4 py-4">
+      <div className="border-t border-gray-100 px-4 py-4 bg-gradient-to-t from-gray-50/60 to-transparent">
         <div className="flex items-center gap-3">
           {/* Avatar placeholder */}
           <div className="h-9 w-9 rounded-full bg-[#1a3a6b] flex items-center justify-center flex-shrink-0">

@@ -8,7 +8,8 @@ import { StatusBadge } from "@/components/dashboard/status-badge"
 import Link from "next/link"
 import {
   FileText, CheckCircle2, FolderOpen, CreditCard, Bell, Info,
-  AlertTriangle, AlertCircle, Users, Building2, ArrowRight, Calendar
+  AlertTriangle, AlertCircle, Users, Building2, ArrowRight, Calendar,
+  Search, Clock
 } from "lucide-react"
 
 const notificationIcons: Record<string, typeof Info> = {
@@ -111,178 +112,200 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 4)
 
+  const expiringItems = [
+    ...expiringDocs.map(doc => ({
+      id: doc.id,
+      label: doc.name,
+      sub: "Document",
+      days: Math.ceil((new Date(doc.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+    })),
+    ...expiringVisas.map(emp => ({
+      id: emp.id,
+      label: emp.full_name,
+      sub: "Visa expiry",
+      days: Math.ceil((new Date(emp.visa_expiry!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+    })),
+  ].sort((a, b) => a.days - b.days)
+
+  function timeAgo(dateStr: string) {
+    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+    if (seconds < 60) return "just now"
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return `${minutes}m ago`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    if (days < 7) return `${days}d ago`
+    return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+  }
+
+  const company = myCompanies[0] ?? null
+
   return (
     <div className="space-y-6">
-      {/* Welcome + Company Info */}
-      <div className="bg-gradient-to-r from-[#1a3a6b] to-[#0f2340] rounded-2xl p-6 text-white">
-        <h1 className="text-2xl font-bold">
-          Welcome back, {user?.full_name}
-        </h1>
-        {myCompanies.length > 0 && (
-          <p className="text-gray-300 mt-1">
-            {myCompanies[0].name}{myCompanies[0].emirate ? ` · ${myCompanies[0].emirate}` : ""}{myCompanies[0].license_number ? ` · License: ${myCompanies[0].license_number}` : ""}
-          </p>
-        )}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-br from-[#1a3a6b] to-[#0d2847] rounded-2xl p-8 text-white">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="text-2xl font-bold">{activeRequests.length}</div>
-            <div className="text-xs text-gray-400">Active Requests</div>
+            <p className="text-blue-200 text-sm">Welcome back</p>
+            <h1 className="text-2xl font-bold mt-1">{user?.full_name}</h1>
+            {company && (
+              <p className="text-blue-300 text-sm mt-1">{company.name}{company.emirate ? ` \u00b7 ${company.emirate}` : ""}</p>
+            )}
           </div>
-          <div>
-            <div className="text-2xl font-bold">{myDocuments.length}</div>
-            <div className="text-xs text-gray-400">Documents</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{myEmployees.length}</div>
-            <div className="text-xs text-gray-400">Employees</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{expiringDocs.length + expiringVisas.length}</div>
-            <div className="text-xs text-gray-400">Expiring Soon</div>
+          <div className="hidden sm:flex items-center gap-6 text-center">
+            <div>
+              <p className="text-2xl font-bold">{activeRequests.length}</p>
+              <p className="text-xs text-blue-200">Active</p>
+            </div>
+            <div className="w-px h-10 bg-white/20" />
+            <div>
+              <p className="text-2xl font-bold">{myDocuments.length}</p>
+              <p className="text-xs text-blue-200">Documents</p>
+            </div>
+            <div className="w-px h-10 bg-white/20" />
+            <div>
+              <p className="text-2xl font-bold">{myEmployees.length}</p>
+              <p className="text-xs text-blue-200">Employees</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Action Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Link href="/dashboard/requests" className="bg-white rounded-xl ring-1 ring-gray-200 p-4 hover:ring-[#1a3a6b] hover:shadow-md transition-all group">
-          <FileText className="h-6 w-6 text-[#1a3a6b] mb-2" />
-          <p className="text-sm font-medium">My Requests</p>
-          <p className="text-xs text-gray-500 mt-0.5">{myRequests.length} total</p>
-        </Link>
-        <Link href="/dashboard/documents" className="bg-white rounded-xl ring-1 ring-gray-200 p-4 hover:ring-[#1a3a6b] hover:shadow-md transition-all group">
-          <FolderOpen className="h-6 w-6 text-[#1a3a6b] mb-2" />
-          <p className="text-sm font-medium">Documents</p>
-          <p className="text-xs text-gray-500 mt-0.5">{myDocuments.length} files</p>
-        </Link>
-        <Link href="/dashboard/tracking" className="bg-white rounded-xl ring-1 ring-gray-200 p-4 hover:ring-[#1a3a6b] hover:shadow-md transition-all group">
-          <CheckCircle2 className="h-6 w-6 text-green-600 mb-2" />
-          <p className="text-sm font-medium">Track Progress</p>
-          <p className="text-xs text-gray-500 mt-0.5">{activeRequests.length} active</p>
-        </Link>
-        <Link href="/dashboard/payments" className="bg-white rounded-xl ring-1 ring-gray-200 p-4 hover:ring-[#1a3a6b] hover:shadow-md transition-all group">
-          <CreditCard className="h-6 w-6 text-orange-500 mb-2" />
-          <p className="text-sm font-medium">Payments</p>
-          <p className="text-xs text-gray-500 mt-0.5">{pendingPayments.length} pending</p>
-        </Link>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "New Request", count: `${requests.length} total`, icon: FileText, href: "/dashboard/requests", color: "bg-blue-50 text-blue-600" },
+          { label: "Documents", count: `${documents.length} files`, icon: FolderOpen, href: "/dashboard/documents", color: "bg-purple-50 text-purple-600" },
+          { label: "Track Progress", count: `${activeRequests.length} active`, icon: Search, href: "/dashboard/tracking", color: "bg-green-50 text-green-600" },
+          { label: "Payments", count: `${payments.length} invoices`, icon: CreditCard, href: "/dashboard/payments", color: "bg-amber-50 text-amber-600" },
+        ].map(item => (
+          <Link key={item.label} href={item.href} prefetch={false}
+            className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group">
+            <div className={`h-10 w-10 rounded-xl ${item.color} flex items-center justify-center mb-3`}>
+              <item.icon className="h-5 w-5" />
+            </div>
+            <p className="font-semibold text-gray-900 group-hover:text-[#1a3a6b]">{item.label}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{item.count}</p>
+          </Link>
+        ))}
       </div>
 
+      {/* Recent Requests + Notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Requests */}
-        <div className="lg:col-span-2 bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        {/* Recent Requests (2/3) */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Recent Requests</h2>
-            <Link href="/dashboard/requests" className="text-sm text-[#1a3a6b] hover:underline flex items-center gap-1">
-              View All <ArrowRight className="h-3 w-3" />
+            <Link href="/dashboard/requests" prefetch={false} className="text-sm text-[#1a3a6b] hover:text-[#c9a96e] transition-colors flex items-center gap-1">
+              View All <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-50">
             {recentRequests.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                <p>No requests yet</p>
+              <div className="p-10 text-center text-gray-400">
+                <FileText className="h-10 w-10 text-gray-200 mx-auto mb-3" />
+                <p className="font-medium">No requests yet</p>
+                <p className="text-sm mt-1">Submit your first service request to get started</p>
               </div>
             ) : (
               recentRequests.map((request) => (
-                <Link key={request.id} href={`/dashboard/requests/${request.id}`} className="block px-6 py-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
+                <Link key={request.id} href={`/dashboard/requests/${request.id}`} prefetch={false}
+                  className="flex items-center justify-between px-6 py-4 hover:bg-[#f8f9fb] transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                      <FileText className="h-4.5 w-4.5" />
+                    </div>
                     <div>
                       <p className="font-medium text-gray-900">{request.service_type}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-gray-500">
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-gray-400">
                           {new Date(request.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                         </span>
                         {request.assignee && (
                           <span className="text-xs text-gray-400">
-                            &middot; Handled by {request.assignee.full_name}
+                            &middot; {request.assignee.full_name}
                           </span>
                         )}
                       </div>
                     </div>
-                    <StatusBadge status={request.status} />
                   </div>
+                  <StatusBadge status={request.status} />
                 </Link>
               ))
             )}
           </div>
         </div>
 
-        {/* Sidebar: Notifications + Expiry Alerts */}
-        <div className="space-y-6">
-          {/* Expiry Alerts */}
-          {(expiringDocs.length > 0 || expiringVisas.length > 0) && (
-            <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                <h2 className="text-sm font-semibold text-gray-900">Expiring Soon</h2>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {expiringDocs.map(doc => {
-                  const days = Math.ceil((new Date(doc.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                  return (
-                    <div key={doc.id} className="px-6 py-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-900">{doc.name}</p>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${days <= 30 ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-600'}`}>
-                          {days}d left
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-                {expiringVisas.map(emp => {
-                  const days = Math.ceil((new Date(emp.visa_expiry!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                  return (
-                    <div key={emp.id} className="px-6 py-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-900">{emp.full_name}</p>
-                          <p className="text-xs text-gray-500">Visa expiring</p>
-                        </div>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${days <= 30 ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-600'}`}>
-                          {days}d left
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+        {/* Notifications (1/3) */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4.5 w-4.5 text-gray-400" />
+              <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
             </div>
-          )}
-
-          {/* Notifications */}
-          <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-              <Bell className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-900">Notifications</h2>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {recentNotifications.map((notification) => {
+            {notifications.length > 4 && (
+              <Link href="/dashboard/notifications" prefetch={false} className="text-sm text-[#1a3a6b] hover:text-[#c9a96e] transition-colors flex items-center gap-1">
+                View All <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
+          </div>
+          <div className="divide-y divide-gray-50">
+            {recentNotifications.length === 0 ? (
+              <div className="p-8 text-center text-gray-400">
+                <Bell className="h-8 w-8 text-gray-200 mx-auto mb-2" />
+                <p className="text-sm">No notifications</p>
+              </div>
+            ) : (
+              recentNotifications.map((notification) => {
                 const IconComponent = notificationIcons[notification.type] || Info
                 const colorClass = notificationColors[notification.type] || notificationColors.info
                 return (
-                  <div key={notification.id} className="px-6 py-3 hover:bg-gray-50 transition-colors">
+                  <div key={notification.id} className="px-6 py-4 hover:bg-[#f8f9fb] transition-colors">
                     <div className="flex gap-3">
-                      <div className={`flex-shrink-0 h-7 w-7 rounded-full flex items-center justify-center ${colorClass}`}>
-                        <IconComponent className="h-3.5 w-3.5" />
+                      <div className={`flex-shrink-0 h-8 w-8 rounded-xl flex items-center justify-center ${colorClass}`}>
+                        <IconComponent className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900">{notification.title}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {new Date(notification.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        <p className="text-sm font-medium text-gray-900 leading-snug">{notification.title}</p>
+                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {timeAgo(notification.created_at)}
                         </p>
                       </div>
                       {!notification.is_read && (
-                        <span className="h-2 w-2 rounded-full bg-blue-500 mt-1.5" />
+                        <span className="h-2 w-2 rounded-full bg-[#1a3a6b] mt-2 flex-shrink-0" />
                       )}
                     </div>
                   </div>
                 )
-              })}
-            </div>
+              })
+            )}
           </div>
         </div>
       </div>
+
+      {/* Expiring Documents / Visas */}
+      {expiringItems.length > 0 && (
+        <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
+          <h3 className="font-semibold text-amber-900 flex items-center gap-2 mb-4">
+            <AlertTriangle className="h-5 w-5" /> Expiring Soon
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {expiringItems.map(item => (
+              <div key={`${item.sub}-${item.id}`} className="bg-white rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{item.sub}</p>
+                </div>
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${item.days <= 30 ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
+                  {item.days}d left
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
