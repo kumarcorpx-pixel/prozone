@@ -452,7 +452,7 @@ export default function CompanyDetailPage() {
                       const wpsOk = emp.wps_status === "active" || emp.wps_status === "covered"
                       return (
                         <tr key={emp.id} className="border-b border-gray-50 hover:bg-gray-50">
-                          <td className="px-4 py-3"><Link href={`/admin/employees/${emp.id}`} prefetch={false} className="font-medium text-[#1a3a6b] hover:underline">{emp.full_name}</Link></td>
+                          <td className="px-4 py-3"><a href={`/admin/employees/${emp.id}`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">{emp.full_name}</a></td>
                           <td className="px-4 py-3 text-gray-600">{emp.designation || "-"}</td>
                           <td className="px-4 py-3 text-gray-600">{emp.nationality || "-"}</td>
                           <td className="px-4 py-3">
@@ -602,15 +602,27 @@ export default function CompanyDetailPage() {
                           <StatusBadge status={doc.status} />
                           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                             {doc.file_url ? (
-                              <>
-                                <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
-                                  className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="View/Download">
-                                  <Download className="h-4 w-4" />
-                                </a>
-                              </>
+                              <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                                className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
+                                <Download className="h-4 w-4" />
+                              </a>
                             ) : (
-                              <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">No file</span>
+                              <label className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors cursor-pointer" title="Upload file">
+                                <Upload className="h-4 w-4" />
+                                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={async (ev) => {
+                                  const f = ev.target.files?.[0]; if (!f) return
+                                  const fd = new FormData(); fd.append("file", f); fd.append("name", doc.name); fd.append("companyId", companyId); fd.append("documentType", doc.document_type || "other")
+                                  try { const r = await fetch("/api/documents/upload", { method: "POST", body: fd }); if (r.ok) { toast.success("File attached"); const d = await fetchDocuments(companyId); setDocuments(d) } else toast.error("Upload failed") } catch { toast.error("Upload failed") }
+                                  ev.target.value = ""
+                                }} />
+                              </label>
                             )}
+                            <button onClick={async () => {
+                              if (!confirm("Delete this document?")) return
+                              try { await fetch(`/api/documents/${doc.id}`, { method: "DELETE" }); toast.success("Deleted"); const d = await fetchDocuments(companyId); setDocuments(d) } catch { toast.error("Delete failed") }
+                            }} className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
+                              <X className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -643,15 +655,28 @@ export default function CompanyDetailPage() {
                           <StatusBadge status={doc.status} />
                           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                             {doc.file_url ? (
-                              <>
-                                <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
-                                  className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="View/Download">
-                                  <Download className="h-4 w-4" />
-                                </a>
-                              </>
+                              <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                                className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
+                                <Download className="h-4 w-4" />
+                              </a>
                             ) : (
-                              <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">No file</span>
+                              <label className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors cursor-pointer" title="Upload file">
+                                <Upload className="h-4 w-4" />
+                                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={async (ev) => {
+                                  const f = ev.target.files?.[0]; if (!f) return
+                                  const fd = new FormData(); fd.append("file", f); fd.append("name", doc.name); fd.append("companyId", companyId); fd.append("documentType", doc.document_type || "other")
+                                  if (doc.employee_id) fd.append("employeeId", doc.employee_id)
+                                  try { const r = await fetch("/api/documents/upload", { method: "POST", body: fd }); if (r.ok) { toast.success("File attached"); const d = await fetchDocuments(companyId); setDocuments(d) } else toast.error("Upload failed") } catch { toast.error("Upload failed") }
+                                  ev.target.value = ""
+                                }} />
+                              </label>
                             )}
+                            <button onClick={async () => {
+                              if (!confirm("Delete?")) return
+                              try { await fetch(`/api/documents/${doc.id}`, { method: "DELETE" }); toast.success("Deleted"); const d = await fetchDocuments(companyId); setDocuments(d) } catch { toast.error("Failed") }
+                            }} className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
+                              <X className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
                       </div>
