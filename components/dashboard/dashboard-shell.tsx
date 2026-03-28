@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "./sidebar"
 import { NotificationSubscribe } from "@/components/NotificationSubscribe"
 import { Menu, Bell, AlertTriangle, Info, CheckCircle, FileText } from "lucide-react"
+import { ErrorBoundary } from "@/components/error-boundary"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { useNotifications } from "@/hooks/queries"
@@ -251,7 +252,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           {user?.role !== "admin" && <NotificationSubscribe />}
-          <div className="mt-4">{children}</div>
+          <div className="mt-4"><ErrorBoundary>{children}</ErrorBoundary></div>
         </main>
       </div>
     </div>

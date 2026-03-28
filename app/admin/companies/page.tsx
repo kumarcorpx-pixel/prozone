@@ -30,6 +30,7 @@ const defaultCompanyForm = {
 
 export default function CompaniesPage() {
   const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [companies, setCompanies] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -127,12 +128,20 @@ export default function CompaniesPage() {
     )
   }
 
-  const filtered = companies.filter(
-    (c) =>
+  const filtered = companies.filter((c) => {
+    const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       (c.trade_name && c.trade_name.toLowerCase().includes(search.toLowerCase())) ||
       (c.emirate && c.emirate.toLowerCase().includes(search.toLowerCase()))
-  )
+    const matchesStatus = statusFilter === "all" || c.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (!a.license_expiry) return 1
+    if (!b.license_expiry) return -1
+    return new Date(a.license_expiry).getTime() - new Date(b.license_expiry).getTime()
+  })
 
   return (
     <div className="space-y-6">
@@ -252,19 +261,32 @@ export default function CompaniesPage() {
         </div>
       )}
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search by company name, trade name, or emirate..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
-        />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by company name, trade name, or emirate..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white"
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+          <option value="pending">Pending</option>
+          <option value="closed">Closed</option>
+        </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtered.map((company) => {
+        {sorted.map((company) => {
           const employeeCount = employees.filter((e) => e.company_id === company.id).length
           const expiry = getExpiryLabel(company.license_expiry)
 
@@ -327,7 +349,7 @@ export default function CompaniesPage() {
           )
         })}
 
-        {filtered.length === 0 && (
+        {sorted.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-500">
             <Building2 className="h-8 w-8 text-gray-300 mb-2" />
             No companies found matching your search.

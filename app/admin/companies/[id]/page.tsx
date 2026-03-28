@@ -113,6 +113,12 @@ export default function CompanyDetailPage() {
   const [editData, setEditData] = useState<any>({})
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<any[]>([])
+  const [fees, setFees] = useState<any[]>([])
+  const [showFeeForm, setShowFeeForm] = useState(false)
+  const [feeForm, setFeeForm] = useState({ description: "", amount: "", date: "", status: "pending", receipt_number: "" })
+  const [shareholders, setShareholders] = useState<any[]>([])
+  const [showShareholderForm, setShowShareholderForm] = useState(false)
+  const [shareholderForm, setShareholderForm] = useState({ name: "", nationality: "", share_percentage: "", passport_number: "" })
 
   useEffect(() => {
     async function load() {
@@ -136,6 +142,12 @@ export default function CompanyDetailPage() {
       })
       setEmployees(e)
       setDocuments(d)
+
+      try {
+        const notesData = c?.notes ? JSON.parse(c.notes) : {}
+        if (notesData.fees) setFees(notesData.fees)
+        if (notesData.shareholders) setShareholders(notesData.shareholders)
+      } catch {}
 
       try {
         const clientsRes = await fetch("/api/data/users?role=client")
@@ -176,8 +188,7 @@ export default function CompanyDetailPage() {
     employeeDocGroups[name].push(doc)
   })
 
-  const fees: any[] = []
-  const feesTotal = fees.reduce((sum: number, f: any) => sum + f.amount, 0)
+  const feesTotal = fees.reduce((sum: number, f: any) => sum + Number(f.amount), 0)
 
   return (
     <div className="space-y-6">
@@ -667,66 +678,143 @@ export default function CompanyDetailPage() {
         {/* ──── Fees Tab ──── */}
         {activeTab === "fees" && (
           <div className="space-y-4">
-            {fees.length > 0 ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500">{fees.length} fee record(s)</p>
-                </div>
-                <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="text-left px-4 py-3 text-gray-500 font-medium">Service</th>
-                          <th className="text-left px-4 py-3 text-gray-500 font-medium">Fee Type</th>
-                          <th className="text-right px-4 py-3 text-gray-500 font-medium">Amount (AED)</th>
-                          <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
-                          <th className="text-left px-4 py-3 text-gray-500 font-medium">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {fees.map((fee: any, i: number) => (
-                          <tr key={fee.id || i} className="border-b border-gray-50 hover:bg-gray-50">
-                            <td className="px-4 py-3 text-gray-900">{fee.service || fee.fee_type}</td>
-                            <td className="px-4 py-3 text-gray-600">{fee.fee_type}</td>
-                            <td className="px-4 py-3 text-right font-medium text-gray-900 font-mono">{Number(fee.amount).toLocaleString()}</td>
-                            <td className="px-4 py-3">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${feeStatusColors[fee.status] || "bg-gray-100 text-gray-600"}`}>
-                                {fee.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-gray-600">{fee.date ? formatDate(fee.date) : "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="bg-gray-50 border-t border-gray-200">
-                          <td colSpan={2} className="px-4 py-3 font-semibold text-gray-900">Total</td>
-                          <td className="px-4 py-3 text-right font-bold text-[#1a3a6b] font-mono">{feesTotal.toLocaleString()}</td>
-                          <td colSpan={2} />
-                        </tr>
-                      </tfoot>
-                    </table>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">{fees.length} fee(s) recorded</p>
+              <button onClick={() => setShowFeeForm(!showFeeForm)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
+                <Plus className="h-4 w-4" /> {showFeeForm ? "Cancel" : "Add Fee"}
+              </button>
+            </div>
+
+            {showFeeForm && (
+              <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+                <h3 className="font-semibold text-gray-900">Add Government Fee</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                    <select value={feeForm.description} onChange={e => setFeeForm({...feeForm, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                      <option value="">Select fee type...</option>
+                      <option value="Trade License Renewal">Trade License Renewal</option>
+                      <option value="Establishment Card">Establishment Card</option>
+                      <option value="Chamber of Commerce">Chamber of Commerce</option>
+                      <option value="Ejari/Tawtheeq">Ejari/Tawtheeq</option>
+                      <option value="MOHRE Fee">MOHRE Fee</option>
+                      <option value="GDRFA Fee">GDRFA Fee</option>
+                      <option value="Visa Fee">Visa Fee</option>
+                      <option value="Medical Test">Medical Test</option>
+                      <option value="Emirates ID">Emirates ID</option>
+                      <option value="Typing Fee">Typing Fee</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount (AED) *</label>
+                    <input type="number" value={feeForm.amount} onChange={e => setFeeForm({...feeForm, amount: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="0.00" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" value={feeForm.date} onChange={e => setFeeForm({...feeForm, date: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Receipt #</label>
+                    <input type="text" value={feeForm.receipt_number} onChange={e => setFeeForm({...feeForm, receipt_number: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Receipt number" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select value={feeForm.status} onChange={e => setFeeForm({...feeForm, status: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                      <option value="pending">Pending</option>
+                      <option value="paid">Paid</option>
+                      <option value="overdue">Overdue</option>
+                    </select>
                   </div>
                 </div>
-              </>
-            ) : (
-              <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
-                <AedIcon className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">No fees recorded yet</h3>
-                <p className="text-sm text-gray-500">Government fee records will appear here once added.</p>
+                <button onClick={async () => {
+                  if (!feeForm.description || !feeForm.amount) { toast.error("Description and amount required"); return }
+                  try {
+                    const newFee = { ...feeForm, amount: Number(feeForm.amount), id: Date.now().toString(), date: feeForm.date || new Date().toISOString().split("T")[0] }
+                    const updatedFees = [...fees, newFee]
+                    setFees(updatedFees)
+                    let existingNotes: any = {}
+                    try { existingNotes = company.notes ? JSON.parse(company.notes) : {} } catch {}
+                    await fetch(`/api/data/companies/${companyId}`, {
+                      method: "PATCH", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ notes: JSON.stringify({ ...existingNotes, fees: updatedFees }) }),
+                    })
+                    toast.success("Fee added")
+                    setShowFeeForm(false)
+                    setFeeForm({ description: "", amount: "", date: "", status: "pending", receipt_number: "" })
+                  } catch { toast.error("Failed to add fee") }
+                }} className="px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
+                  Save Fee
+                </button>
               </div>
+            )}
+
+            {fees.length > 0 ? (
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead><tr className="bg-gray-50 border-b">
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Description</th>
+                    <th className="text-right px-4 py-3 text-gray-500 font-medium">Amount (AED)</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Date</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Receipt #</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
+                  </tr></thead>
+                  <tbody>
+                    {fees.map((fee: any) => (
+                      <tr key={fee.id} className="border-b border-gray-50">
+                        <td className="px-4 py-3 font-medium">{fee.description}</td>
+                        <td className="px-4 py-3 text-right font-semibold">{Number(fee.amount).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-gray-500">{fee.date}</td>
+                        <td className="px-4 py-3 text-gray-500 font-mono text-xs">{fee.receipt_number || "\u2014"}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${fee.status === "paid" ? "bg-green-100 text-green-800" : fee.status === "overdue" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}`}>{fee.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot><tr className="bg-gray-50 font-semibold">
+                    <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3 text-right">AED {fees.reduce((s: number, f: any) => s + Number(f.amount), 0).toLocaleString()}</td>
+                    <td colSpan={3} />
+                  </tr></tfoot>
+                </table>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-500">No fees recorded yet. Click &quot;Add Fee&quot; to track government fees.</div>
             )}
           </div>
         )}
 
         {/* ──── WPS Tab ──── */}
         {activeTab === "wps" && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
-              <Shield className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">No WPS data yet</h3>
-              <p className="text-sm text-gray-500">WPS salary protection data will appear here once configured.</p>
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h3 className="font-semibold text-[#1a3a6b] mb-4">Wage Protection System</h3>
+            <p className="text-sm text-gray-500 mb-4">Upload monthly WPS/SIF files to track salary payments.</p>
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a]">
+              <Upload className="h-4 w-4" /> Upload WPS File
+              <input type="file" className="hidden" accept=".sif,.csv,.xlsx" onChange={async (e) => {
+                const file = e.target.files?.[0]; if (!file) return
+                const fd = new FormData(); fd.append("file", file); fd.append("name", `WPS ${new Date().toLocaleDateString("en-GB", {month:"short", year:"numeric"})}`); fd.append("companyId", companyId); fd.append("documentType", "wps")
+                try { const res = await fetch("/api/documents/upload", { method: "POST", body: fd }); if (res.ok) { toast.success("WPS file uploaded"); const d = await fetchDocuments(companyId); setDocuments(d) } else toast.error("Upload failed") } catch { toast.error("Upload failed") }
+                e.target.value = ""
+              }} />
+            </label>
+            <div className="mt-6 space-y-2">
+              {documents.filter((d: any) => d.document_type === "wps").length > 0 ? (
+                documents.filter((d: any) => d.document_type === "wps").map((doc: any) => (
+                  <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div><p className="text-sm font-medium">{doc.name}</p><p className="text-xs text-gray-500">{new Date(doc.created_at).toLocaleDateString("en-GB")}</p></div>
+                    {doc.file_url && <a href={`/api/documents/${doc.id}/download`} target="_blank" className="text-[#1a3a6b] hover:underline text-sm">Download</a>}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-4">No WPS files uploaded yet</p>
+              )}
             </div>
           </div>
         )}
@@ -744,17 +832,91 @@ export default function CompanyDetailPage() {
 
         {/* ──── Shareholders Tab ──── */}
         {activeTab === "shareholders" && (
-          <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
-            <UserCheck className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">No shareholders added yet</h3>
-            <p className="text-sm text-gray-500 mb-4">Shareholder information will appear here once added.</p>
-            <button
-              onClick={() => toast.info("Coming soon")}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Add Shareholder
-            </button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">{shareholders.length} shareholder(s)</p>
+              <button onClick={() => setShowShareholderForm(!showShareholderForm)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
+                <Plus className="h-4 w-4" /> {showShareholderForm ? "Cancel" : "Add Shareholder"}
+              </button>
+            </div>
+
+            {showShareholderForm && (
+              <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+                <h3 className="font-semibold text-gray-900">Add Shareholder</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                    <input type="text" value={shareholderForm.name} onChange={e => setShareholderForm({...shareholderForm, name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Full name" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
+                    <input type="text" value={shareholderForm.nationality} onChange={e => setShareholderForm({...shareholderForm, nationality: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="e.g. UAE" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Share % *</label>
+                    <input type="number" value={shareholderForm.share_percentage} onChange={e => setShareholderForm({...shareholderForm, share_percentage: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="0" min="0" max="100" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Passport #</label>
+                    <input type="text" value={shareholderForm.passport_number} onChange={e => setShareholderForm({...shareholderForm, passport_number: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Passport number" />
+                  </div>
+                </div>
+                <button onClick={async () => {
+                  if (!shareholderForm.name || !shareholderForm.share_percentage) { toast.error("Name and share % required"); return }
+                  try {
+                    const newShareholder = { ...shareholderForm, share_percentage: Number(shareholderForm.share_percentage), id: Date.now().toString() }
+                    const updatedShareholders = [...shareholders, newShareholder]
+                    setShareholders(updatedShareholders)
+                    let existingNotes: any = {}
+                    try { existingNotes = company.notes ? JSON.parse(company.notes) : {} } catch {}
+                    await fetch(`/api/data/companies/${companyId}`, {
+                      method: "PATCH", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ notes: JSON.stringify({ ...existingNotes, shareholders: updatedShareholders }) }),
+                    })
+                    toast.success("Shareholder added")
+                    setShowShareholderForm(false)
+                    setShareholderForm({ name: "", nationality: "", share_percentage: "", passport_number: "" })
+                  } catch { toast.error("Failed to add shareholder") }
+                }} className="px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
+                  Save Shareholder
+                </button>
+              </div>
+            )}
+
+            {shareholders.length > 0 ? (
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead><tr className="bg-gray-50 border-b">
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Name</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Nationality</th>
+                    <th className="text-right px-4 py-3 text-gray-500 font-medium">Share %</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Passport #</th>
+                  </tr></thead>
+                  <tbody>
+                    {shareholders.map((sh: any) => (
+                      <tr key={sh.id} className="border-b border-gray-50">
+                        <td className="px-4 py-3 font-medium">{sh.name}</td>
+                        <td className="px-4 py-3 text-gray-500">{sh.nationality || "\u2014"}</td>
+                        <td className="px-4 py-3 text-right font-semibold">{sh.share_percentage}%</td>
+                        <td className="px-4 py-3 text-gray-500 font-mono text-xs">{sh.passport_number || "\u2014"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot><tr className="bg-gray-50 font-semibold">
+                    <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3" />
+                    <td className="px-4 py-3 text-right">{shareholders.reduce((s: number, sh: any) => s + Number(sh.share_percentage), 0)}%</td>
+                    <td className="px-4 py-3" />
+                  </tr></tfoot>
+                </table>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-500">No shareholders added yet. Click &quot;Add Shareholder&quot; to get started.</div>
+            )}
           </div>
         )}
 

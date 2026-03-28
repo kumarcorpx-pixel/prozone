@@ -218,3 +218,12 @@ body {
   background: #c9a96e;
   animation: pulse-dot 2s ease-in-out infinite;
 }
+
+/* Mobile fixes */
+@media (max-width: 640px) {
+  .space-y-6 > * + * { margin-top: 1rem; }
+
+  /* Fix table overflow */
+  table { font-size: 0.8125rem; }
+  th, td { padding: 0.5rem 0.75rem; }
+}
