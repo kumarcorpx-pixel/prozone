@@ -13,9 +13,7 @@ export default function HomePage() {
         <div className="relative text-center px-6 py-16 max-w-2xl mx-auto">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-              <YabsLogo variant="full" className="h-16 w-auto" light />
-            </div>
+            <img src="/images/yabs-logo.gif" alt="YABS PRO Services" className="h-20 w-auto" />
           </div>
 
           {/* Tagline */}
