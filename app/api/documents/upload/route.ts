@@ -125,6 +125,25 @@ export async function POST(request: NextRequest) {
         throw err
       })
 
+      // Auto-populate expiry fields
+      if (expiryDate && companyId && companyId !== "general") {
+        if (documentType === "trade_license") {
+          await prisma.company.update({ where: { id: companyId }, data: { licenseExpiry: new Date(expiryDate) } }).catch(() => {})
+        }
+      }
+      if (expiryDate && employeeId) {
+        const expiryField: Record<string, string> = {
+          visa: "visaExpiry",
+          emirates_id: "emiratesIdExpiry",
+          passport: "passportExpiry",
+          labor_card: "laborCardExpiry",
+        }
+        const field = expiryField[documentType]
+        if (field) {
+          await prisma.employee.update({ where: { id: employeeId }, data: { [field]: new Date(expiryDate) } }).catch(() => {})
+        }
+      }
+
       await onDocumentChange()
       return NextResponse.json({
         success: true,
@@ -193,6 +212,25 @@ export async function POST(request: NextRequest) {
       }
       throw err
     })
+
+    // Auto-populate expiry fields
+    if (expiryDate && companyId && companyId !== "general") {
+      if (documentType === "trade_license") {
+        await prisma.company.update({ where: { id: companyId }, data: { licenseExpiry: new Date(expiryDate) } }).catch(() => {})
+      }
+    }
+    if (expiryDate && employeeId) {
+      const expiryField: Record<string, string> = {
+        visa: "visaExpiry",
+        emirates_id: "emiratesIdExpiry",
+        passport: "passportExpiry",
+        labor_card: "laborCardExpiry",
+      }
+      const field = expiryField[documentType]
+      if (field) {
+        await prisma.employee.update({ where: { id: employeeId }, data: { [field]: new Date(expiryDate) } }).catch(() => {})
+      }
+    }
 
     await onDocumentChange()
     return NextResponse.json({

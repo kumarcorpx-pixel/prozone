@@ -283,6 +283,9 @@ export default function CompaniesPage() {
                   <div className="min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">{company.name}</h3>
                     <p className="text-xs text-gray-500 truncate">{company.trade_name || company.name}</p>
+                    {company.owner_name && (
+                      <p className="text-[11px] text-gray-400 truncate">Owner: {company.owner_name}</p>
+                    )}
                   </div>
                 </div>
                 <StatusBadge status={company.status} />

@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/dashboard/status-badge"
 import { toast } from "sonner"
 import {
   ArrowLeft, User, Building2, FileText, Clock, Shield,
-  Phone, Mail, MapPin, Calendar, CreditCard, Save, Edit2, X
+  Phone, Mail, MapPin, Calendar, CreditCard, Save, Edit2, X, Upload, Download
 } from "lucide-react"
 
 function getExpiryInfo(date: string | null) {

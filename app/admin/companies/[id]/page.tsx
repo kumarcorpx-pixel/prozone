@@ -615,6 +615,12 @@ export default function CompanyDetailPage() {
                         <div className="flex items-center gap-4 flex-shrink-0">
                           <span className={`text-sm ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
                           <StatusBadge status={doc.status} />
+                          {doc.file_url && (
+                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                              className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
+                              <FileText className="h-4 w-4" />
+                            </a>
+                          )}
                         </div>
                       </div>
                     )

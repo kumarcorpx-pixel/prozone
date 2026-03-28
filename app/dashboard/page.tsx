@@ -82,8 +82,8 @@ export default function DashboardPage() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
-  // Instead of filtering by company_id (which is null), show all data
-  const myCompanies = companies
+  // Admins see all companies; clients see only their own
+  const myCompanies = user?.role === "admin" ? companies : companies.filter(c => c.created_by === user?.id)
   const myEmployees = employees
   const myDocuments = documents
   const myRequests = requests

@@ -96,12 +96,15 @@ export async function GET(request: NextRequest) {
       visa_quota_total: c.visaQuotaTotal,
       visa_quota_used: c.visaQuotaUsed,
       created_at: c.createdAt,
+      created_by: c.createdById,
+      owner_name: c.createdBy?.fullName || null,
     })
 
     if (isAdminOrStaff) {
       const mapped = await cached(CK.companies(), TTL.COMPANIES, async () => {
         const companies = await prisma.company.findMany({
           orderBy: { createdAt: "desc" },
+          include: { createdBy: { select: { fullName: true } } },
         })
         return companies.map(mapCompany)
       })
@@ -111,6 +114,7 @@ export async function GET(request: NextRequest) {
     const companies = await prisma.company.findMany({
       where: companyFilter ? { id: { in: companyFilter } } : undefined,
       orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { fullName: true } } },
     })
     const mapped = companies.map(mapCompany)
 
