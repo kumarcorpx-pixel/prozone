@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { documentCategories } from "@/lib/company-data"
 import { toast } from "sonner"
-import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2 } from "lucide-react"
+import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2, Search } from "lucide-react"
 
 const allCategories = ["all", ...Object.keys(documentCategories)] as const
 
@@ -37,6 +37,7 @@ export default function DocumentsPage() {
   const [employees, setEmployees] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,8 +108,13 @@ export default function DocumentsPage() {
   }
 
   const filteredDocs = getTabDocs().filter(doc => {
-    if (selectedCategory === "all") return true
-    return doc.document_type === selectedCategory
+    if (selectedCategory !== "all" && doc.document_type !== selectedCategory) return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      const empName = doc.employee_id ? employees.find((e: any) => e.id === doc.employee_id)?.full_name?.toLowerCase() : ""
+      return doc.name?.toLowerCase().includes(q) || doc.document_type?.toLowerCase().includes(q) || empName?.includes(q)
+    }
+    return true
   })
 
   const tabs: { id: TabType; label: string; icon: typeof FileText; count: number }[] = [
@@ -214,6 +220,13 @@ export default function DocumentsPage() {
         </div>
       ) : (
         <>
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input type="text" placeholder="Search by document name, type, or employee..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20" />
+          </div>
+
           {/* Category Filter */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             <Filter className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -274,9 +287,11 @@ export default function DocumentsPage() {
                           </div>
                         </div>
                       </div>
-                      <button className="flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5 transition-colors">
-                        <Download className="h-4 w-4" />
-                      </button>
+                      {doc.file_url && (
+                        <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5 transition-colors">
+                          <Download className="h-4 w-4" />
+                        </a>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
                       {doc.expiry_date && (
