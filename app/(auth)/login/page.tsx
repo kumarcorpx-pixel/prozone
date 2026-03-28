@@ -29,10 +29,11 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      await login(email, password)
-      if (email.includes("admin")) {
+      const loggedInUser = await login(email, password)
+      const role = loggedInUser?.role
+      if (role === "admin") {
         router.push("/admin")
-      } else if (email.includes("staff") || email.includes("pro")) {
+      } else if (role === "pro_staff") {
         router.push("/staff")
       } else {
         router.push("/dashboard")

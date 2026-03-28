@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json()
         setUser(data.user)
         localStorage.setItem("prozone_user", JSON.stringify(data.user))
-        return
+        return data.user
       }
       const err = await res.json()
       throw new Error(err.error || "Login failed")
