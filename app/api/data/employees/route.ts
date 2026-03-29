@@ -57,8 +57,17 @@ export async function GET(request: NextRequest) {
     }
 
     const whereClause: any = {}
-    if (companyId) whereClause.companyId = companyId
-    if (companyFilter) whereClause.companyId = { in: companyFilter }
+    if (companyId) {
+      // If client user, ensure the requested companyId is within their allowed companies
+      if (companyFilter) {
+        if (!companyFilter.includes(companyId)) {
+          return NextResponse.json([])
+        }
+      }
+      whereClause.companyId = companyId
+    } else if (companyFilter) {
+      whereClause.companyId = { in: companyFilter }
+    }
 
     const employees = await prisma.employee.findMany({
       where: Object.keys(whereClause).length > 0 ? whereClause : undefined,

@@ -490,7 +490,7 @@ export default function CompanyDetailPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">{employees.length} employee(s)</p>
-              <Link href="/admin/employees" className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
+              <Link href={`/admin/employees?companyId=${companyId}&companyName=${encodeURIComponent(company.name)}`} prefetch={false} className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
                 <Plus className="h-4 w-4" />
                 Add Employee
               </Link>
@@ -713,14 +713,14 @@ export default function CompanyDetailPage() {
                                 <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={async (ev) => {
                                   const f = ev.target.files?.[0]; if (!f) return
                                   const fd = new FormData(); fd.append("file", f); fd.append("name", doc.name); fd.append("companyId", companyId); fd.append("documentType", doc.document_type || "other")
-                                  try { const r = await fetch("/api/documents/upload", { method: "POST", body: fd }); if (r.ok) { toast.success("File attached"); const d = await fetchDocuments(companyId); setDocuments(d) } else toast.error("Upload failed") } catch { toast.error("Upload failed") }
+                                  try { const r = await fetch("/api/documents/upload", { method: "POST", body: fd }); if (r.ok) { toast.success("File attached"); const d = await fetchDocuments(companyId); setDocuments(d) } else { const err = await r.json().catch(() => ({})); toast.error(err.error || "Upload failed") } } catch (err: any) { toast.error(err?.message || "Upload failed") }
                                   ev.target.value = ""
                                 }} />
                               </label>
                             )}
                             <button onClick={async () => {
                               if (!confirm("Delete this document?")) return
-                              try { await fetch(`/api/documents/${doc.id}`, { method: "DELETE" }); toast.success("Deleted"); const d = await fetchDocuments(companyId); setDocuments(d) } catch { toast.error("Delete failed") }
+                              try { const r = await fetch(`/api/documents/${doc.id}`, { method: "DELETE" }); if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.error || "Delete failed") } toast.success("Deleted"); const d = await fetchDocuments(companyId); setDocuments(d) } catch (err: any) { toast.error(err?.message || "Delete failed") }
                             }} className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
                               <X className="h-4 w-4" />
                             </button>
@@ -773,14 +773,14 @@ export default function CompanyDetailPage() {
                                   const f = ev.target.files?.[0]; if (!f) return
                                   const fd = new FormData(); fd.append("file", f); fd.append("name", doc.name); fd.append("companyId", companyId); fd.append("documentType", doc.document_type || "other")
                                   if (doc.employee_id) fd.append("employeeId", doc.employee_id)
-                                  try { const r = await fetch("/api/documents/upload", { method: "POST", body: fd }); if (r.ok) { toast.success("File attached"); const d = await fetchDocuments(companyId); setDocuments(d) } else toast.error("Upload failed") } catch { toast.error("Upload failed") }
+                                  try { const r = await fetch("/api/documents/upload", { method: "POST", body: fd }); if (r.ok) { toast.success("File attached"); const d = await fetchDocuments(companyId); setDocuments(d) } else { const err = await r.json().catch(() => ({})); toast.error(err.error || "Upload failed") } } catch (err: any) { toast.error(err?.message || "Upload failed") }
                                   ev.target.value = ""
                                 }} />
                               </label>
                             )}
                             <button onClick={async () => {
                               if (!confirm("Delete?")) return
-                              try { await fetch(`/api/documents/${doc.id}`, { method: "DELETE" }); toast.success("Deleted"); const d = await fetchDocuments(companyId); setDocuments(d) } catch { toast.error("Failed") }
+                              try { const r = await fetch(`/api/documents/${doc.id}`, { method: "DELETE" }); if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.error || "Delete failed") } toast.success("Deleted"); const d = await fetchDocuments(companyId); setDocuments(d) } catch (err: any) { toast.error(err?.message || "Failed to delete document") }
                             }} className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
                               <X className="h-4 w-4" />
                             </button>
@@ -932,7 +932,7 @@ export default function CompanyDetailPage() {
               <input type="file" className="hidden" accept=".sif,.csv,.xlsx" onChange={async (e) => {
                 const file = e.target.files?.[0]; if (!file) return
                 const fd = new FormData(); fd.append("file", file); fd.append("name", `WPS ${new Date().toLocaleDateString("en-GB", {month:"short", year:"numeric"})}`); fd.append("companyId", companyId); fd.append("documentType", "wps")
-                try { const res = await fetch("/api/documents/upload", { method: "POST", body: fd }); if (res.ok) { toast.success("WPS file uploaded"); const d = await fetchDocuments(companyId); setDocuments(d) } else toast.error("Upload failed") } catch { toast.error("Upload failed") }
+                try { const res = await fetch("/api/documents/upload", { method: "POST", body: fd }); if (res.ok) { toast.success("WPS file uploaded"); const d = await fetchDocuments(companyId); setDocuments(d) } else { const err = await res.json().catch(() => ({})); toast.error(err.error || "Upload failed") } } catch (err: any) { toast.error(err?.message || "Upload failed") }
                 e.target.value = ""
               }} />
             </label>
@@ -1174,12 +1174,12 @@ export default function CompanyDetailPage() {
                     method: "PATCH", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(editData),
                   })
-                  if (!res.ok) throw new Error("Save failed")
+                  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || "Save failed") }
                   const updated = await fetchCompany(companyId)
                   setCompany(updated)
                   toast.success("Company updated successfully")
                   setActiveTab("overview")
-                } catch { toast.error("Failed to save") }
+                } catch (err: any) { toast.error(err?.message || "Failed to save") }
                 finally { setSaving(false) }
               }} className="px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] disabled:opacity-50">
                 {saving ? "Saving..." : "Save Changes"}

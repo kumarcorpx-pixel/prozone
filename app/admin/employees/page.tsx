@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { useSearchParams } from "next/navigation"
 import { fetchEmployees, fetchCompanies } from "@/lib/data-fetcher"
 import { createEmployee } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
@@ -41,6 +42,10 @@ function extractPersonCode(notes: string | null): string {
 }
 
 export default function EmployeesPage() {
+  const searchParams = useSearchParams()
+  const preselectedCompanyId = searchParams.get("companyId") || ""
+  const preselectedCompanyName = searchParams.get("companyName") || ""
+
   const [search, setSearch] = useState("")
   const [companyFilter, setCompanyFilter] = useState("all")
   const [nationalityFilter, setNationalityFilter] = useState("all")
@@ -50,12 +55,15 @@ export default function EmployeesPage() {
   const [companies, setCompanies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(!!preselectedCompanyId)
   const [showImport, setShowImport] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<any>(null)
-  const [formData, setFormData] = useState(defaultEmployeeForm)
+  const [formData, setFormData] = useState({
+    ...defaultEmployeeForm,
+    company_id: preselectedCompanyId,
+  })
   const [saving, setSaving] = useState(false)
   const [ocrProcessing, setOcrProcessing] = useState(false)
 

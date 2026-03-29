@@ -118,9 +118,13 @@ export async function POST(request: NextRequest) {
       "image/jpeg",
       "image/png",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "text/csv",
+      "application/octet-stream",
     ]
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: "File type not allowed. Use PDF, JPG, PNG, or DOCX" }, { status: 400 })
+      return NextResponse.json({ error: "File type not allowed. Use PDF, JPG, PNG, DOCX, XLSX, CSV, or SIF" }, { status: 400 })
     }
 
     if (file.size > 25 * 1024 * 1024) {
