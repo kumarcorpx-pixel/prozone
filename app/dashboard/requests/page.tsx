@@ -61,8 +61,8 @@ export default function ClientRequestsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           serviceType: formData.serviceType,
-          companyId: formData.companyId || null,
-          description: formData.description || null,
+          ...(formData.companyId ? { companyId: formData.companyId } : {}),
+          ...(formData.description ? { description: formData.description } : {}),
           priority: formData.priority,
         }),
       })

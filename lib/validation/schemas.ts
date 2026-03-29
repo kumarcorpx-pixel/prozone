@@ -54,9 +54,9 @@ export const employeeSchema = z.object({
 })
 
 export const serviceRequestSchema = z.object({
-  companyId: z.string().uuid().optional(),
+  companyId: z.string().optional().nullable().transform(v => v && v.length > 10 ? v : undefined),
   serviceType: z.string().min(1, "Service type is required"),
-  description: z.string().optional(),
+  description: z.string().optional().nullable().transform(v => v || undefined),
   priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
 })
 
