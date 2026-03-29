@@ -27,6 +27,7 @@ export default function ClientsPage() {
   const [editForm, setEditForm] = useState({ full_name: "", email: "", phone: "" })
   const [editSaving, setEditSaving] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [roleFilter, setRoleFilter] = useState("all")
 
   useEffect(() => {
     async function load() {
@@ -159,8 +160,6 @@ export default function ClientsPage() {
       </div>
     )
   }
-
-  const [roleFilter, setRoleFilter] = useState("all")
 
   const filteredByRole = roleFilter === "all" ? profiles : profiles.filter((p: any) => p.role === roleFilter)
 
