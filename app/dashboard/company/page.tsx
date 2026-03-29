@@ -2,17 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { ComplianceScore } from "@/components/dashboard/compliance-score"
-import { StatusBadge } from "@/components/dashboard/status-badge"
 import { documentCategories } from "@/lib/company-data"
 import { toast } from "sonner"
 import {
-  Building2, Users, FileText, Shield, CheckCircle2, XCircle, HelpCircle,
-  Upload, ChevronDown, ChevronRight, MapPin, Calendar, Phone, Mail, Loader2,
+  Building2, Users, FileText, Shield, CheckCircle2, XCircle,
+  Upload, MapPin, Calendar, Phone, Mail, Loader2,
   Download, AlertTriangle, Search, Briefcase, Globe, Eye
 } from "lucide-react"
 import { DocumentPreview } from "@/components/ui/document-preview"
-import Link from "next/link"
 
 function getExpiryInfo(date: string | null) {
   if (!date) return { label: "Not set", color: "text-gray-400", days: null }
@@ -116,6 +113,48 @@ export default function CompanyPage() {
     </div>
   )
 
+  // Compliance data for inline display
+  const complianceItems = (() => {
+    const getStatus = (dateStr: string | null | undefined): "valid" | "expiring" | "expired" | "not_set" => {
+      if (!dateStr) return "not_set"
+      const diffDays = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      if (diffDays < 0) return "expired"
+      if (diffDays <= 30) return "expiring"
+      return "valid"
+    }
+    const tradeLicenseStatus = getStatus(company.license_expiry)
+    const hasEstabDoc = companyDocs.some((d: any) => d.document_type === "establishment_card" && !d.employee_id)
+    const establishmentCardStatus = company.establishment_card_expiry ? getStatus(company.establishment_card_expiry) : hasEstabDoc ? "unknown" as const : "not_set" as const
+    const hasEjariDoc = companyDocs.some((d: any) => (d.document_type === "ejari" || d.document_type === "tawtheeq") && !d.employee_id)
+    const ejariStatus = company.ejari_tawtheeq_expiry ? getStatus(company.ejari_tawtheeq_expiry) : hasEjariDoc ? "unknown" as const : "not_set" as const
+    const empsWithVisa = employees.filter((e: any) => e.visa_expiry)
+    const visaExpired = empsWithVisa.filter((e: any) => getStatus(e.visa_expiry) === "expired").length
+    const visaExpiring = empsWithVisa.filter((e: any) => getStatus(e.visa_expiry) === "expiring").length
+    const visaStatus = employees.length === 0 ? "not_set" : empsWithVisa.length === 0 ? "unknown" : visaExpired > 0 ? "expired" : visaExpiring > 0 ? "expiring" : (employees.length - empsWithVisa.length) > 0 ? "unknown" : "valid"
+    const empsWithEid = employees.filter((e: any) => e.emirates_id_expiry)
+    const eidExpired = empsWithEid.filter((e: any) => getStatus(e.emirates_id_expiry) === "expired").length
+    const eidExpiring = empsWithEid.filter((e: any) => getStatus(e.emirates_id_expiry) === "expiring").length
+    const eidStatus = employees.length === 0 ? "not_set" : empsWithEid.length === 0 ? "unknown" : eidExpired > 0 ? "expired" : eidExpiring > 0 ? "expiring" : (employees.length - empsWithEid.length) > 0 ? "unknown" : "valid"
+    const empsWithLc = employees.filter((e: any) => e.labor_card_expiry)
+    const lcExpired = empsWithLc.filter((e: any) => getStatus(e.labor_card_expiry) === "expired").length
+    const lcExpiring = empsWithLc.filter((e: any) => getStatus(e.labor_card_expiry) === "expiring").length
+    const lcStatus = employees.length === 0 ? "not_set" : empsWithLc.length === 0 ? "unknown" : lcExpired > 0 ? "expired" : lcExpiring > 0 ? "expiring" : (employees.length - empsWithLc.length) > 0 ? "unknown" : "valid"
+    const insuredEmployeeIds = new Set(companyDocs.filter((d: any) => d.document_type === "medical_insurance" && d.employee_id).map((d: any) => d.employee_id))
+    const uninsured = employees.length - insuredEmployeeIds.size
+    const insuranceStatus = employees.length === 0 ? "not_set" : uninsured === 0 ? "valid" : insuredEmployeeIds.size === 0 ? "unknown" : "expired"
+    return [
+      { label: "Trade License", status: tradeLicenseStatus },
+      { label: "Establishment Card", status: establishmentCardStatus },
+      { label: "Ejari/Tawtheeq", status: ejariStatus },
+      { label: "Employee Visas", status: visaStatus },
+      { label: "Emirates IDs", status: eidStatus },
+      { label: "Labor Cards", status: lcStatus },
+      { label: "Health Insurance", status: insuranceStatus },
+    ]
+  })()
+  const complianceGreen = complianceItems.filter(i => i.status === "valid").length
+  const compliancePercent = complianceItems.length > 0 ? Math.round((complianceGreen / complianceItems.length) * 100) : 0
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -124,16 +163,23 @@ export default function CompanyPage() {
           <h1 className="text-2xl font-bold text-gray-900">My Company</h1>
           <p className="text-sm text-gray-500 mt-1">View company details, employees, and documents</p>
         </div>
-        {companies.length > 1 && (
-          <div className="relative">
-            <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}
-              className="appearance-none px-4 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20">
-              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-          </div>
-        )}
       </div>
+
+      {/* Multi-Company Selector Cards */}
+      {companies.length > 1 && (
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {companies.map(c => (
+            <button key={c.id} onClick={() => setSelectedId(c.id)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl ring-1 text-left flex-shrink-0 transition-all ${c.id === selectedId ? "ring-2 ring-[#1a3a6b] bg-white shadow-sm" : "ring-gray-200 bg-white hover:ring-gray-300"}`}>
+              <span className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${c.status === "active" ? "bg-green-500" : c.status === "inactive" ? "bg-gray-400" : "bg-yellow-500"}`} />
+              <div>
+                <p className={`text-sm font-medium ${c.id === selectedId ? "text-[#1a3a6b]" : "text-gray-700"}`}>{c.name}</p>
+                <p className="text-xs text-gray-400 capitalize">{c.status}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -188,75 +234,120 @@ export default function CompanyPage() {
       {/* Overview Tab */}
       {activeTab === "overview" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-xl ring-1 ring-gray-200 p-6">
-              <h3 className="font-semibold text-[#1a3a6b] flex items-center gap-2 mb-5"><Building2 className="h-5 w-5" /> Company Details</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8">
-                {[
-                  { icon: Building2, label: "Company Name", value: company.name },
-                  { icon: FileText, label: "License Number", value: company.license_number || "Not provided" },
-                  { icon: Calendar, label: "License Expiry", value: licenseExpiry.label, color: licenseExpiry.color },
-                  { icon: MapPin, label: "Emirate", value: company.emirate || "Not provided" },
-                  { icon: Briefcase, label: "License Type", value: company.license_type || "Commercial" },
-                  { icon: Building2, label: "Legal Form", value: company.legal_form || "LLC" },
-                  { icon: Globe, label: "Jurisdiction", value: company.jurisdiction || "Mainland" },
-                  { icon: Phone, label: "Phone", value: company.phone ? <a href={`tel:${company.phone}`} className="text-[#1a3a6b] hover:underline">{company.phone}</a> : "Not provided" },
-                  { icon: Mail, label: "Email", value: company.email ? <a href={`mailto:${company.email}`} className="text-[#1a3a6b] hover:underline">{company.email}</a> : "Not provided" },
-                  { icon: MapPin, label: "Address", value: company.address || "Not provided" },
-                  { icon: Briefcase, label: "Industry", value: company.industry || "Not provided" },
-                  ...(company.sponsor_name ? [{ icon: Users, label: "Sponsor", value: company.sponsor_name }] : []),
-                  ...(company.establishment_card_number ? [{ icon: FileText, label: "Establishment Card #", value: company.establishment_card_number }] : []),
-                  ...(company.ejari_tawtheeq_number ? [{ icon: FileText, label: "Ejari/Tawtheeq #", value: company.ejari_tawtheeq_number }] : []),
-                  ...(company.mohre_company_number ? [{ icon: Shield, label: "MOHRE Company #", value: company.mohre_company_number }] : []),
-                  ...(company.vat_trn ? [{ icon: FileText, label: "VAT TRN", value: company.vat_trn }] : []),
-                ].map((item: any) => (
-                  <div key={item.label} className="flex items-start gap-3">
-                    <item.icon className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-500">{item.label}</p>
-                      <p className={`text-sm font-medium ${item.color || "text-gray-900"}`}>{item.value}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* Company Header Card */}
+          <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <h2 className="text-xl font-bold text-gray-900">{company.name}</h2>
+              {company.license_type && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">{company.license_type}</span>
+              )}
+              {company.emirate && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{company.emirate}</span>
+              )}
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${company.status === "active" ? "bg-green-50 text-green-700" : company.status === "inactive" ? "bg-gray-100 text-gray-500" : "bg-yellow-50 text-yellow-700"}`}>{company.status}</span>
             </div>
-
-            {/* Compliance — uses shared component */}
-            <div>
-              <ComplianceScore company={company} employees={employees} documents={companyDocs} />
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
+              {company.license_number && <span>License # {company.license_number}</span>}
+              {company.jurisdiction && <span>{company.jurisdiction}</span>}
+              {company.legal_form && <span>{company.legal_form}</span>}
             </div>
           </div>
 
-          {/* Expiry dates summary */}
+          {/* Key Dates Row */}
           {(() => {
             const estabExpiry = getExpiryInfo(company.establishment_card_expiry)
             const ejariExpiry = getExpiryInfo(company.ejari_tawtheeq_expiry)
             const leaseExpiry = getExpiryInfo(company.lease_expiry)
-            const items = [
-              { label: "Trade License", expiry: licenseExpiry },
-              ...(company.establishment_card_expiry ? [{ label: "Establishment Card", expiry: estabExpiry }] : []),
-              ...(company.ejari_tawtheeq_expiry ? [{ label: "Ejari / Tawtheeq", expiry: ejariExpiry }] : []),
-              ...(company.lease_expiry ? [{ label: "Lease", expiry: leaseExpiry }] : []),
-            ].filter(i => i.expiry.days !== null && (i.expiry.days as number) <= 90)
-            if (items.length === 0) return null
+            const dateItems = [
+              { label: "License Expiry", expiry: licenseExpiry, hasValue: true },
+              { label: "Establishment Card Expiry", expiry: estabExpiry, hasValue: !!company.establishment_card_expiry },
+              { label: "Ejari Expiry", expiry: ejariExpiry, hasValue: !!company.ejari_tawtheeq_expiry },
+              { label: "Lease Expiry", expiry: leaseExpiry, hasValue: !!company.lease_expiry },
+            ].filter(i => i.hasValue)
+            if (dateItems.length === 0) return null
+            const cols = dateItems.length <= 2 ? "grid-cols-2" : dateItems.length === 3 ? "grid-cols-3" : "grid-cols-2 lg:grid-cols-4"
             return (
-              <div className="bg-amber-50 rounded-xl border border-amber-200 p-5">
-                <h3 className="font-semibold text-amber-900 flex items-center gap-2 mb-3">
-                  <AlertTriangle className="h-5 w-5" /> Upcoming Expirations
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {items.map(item => (
-                    <div key={item.label} className="bg-white rounded-lg p-3 flex items-center justify-between">
-                      <span className="text-sm text-gray-700">{item.label}</span>
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${(item.expiry.days as number) <= 30 ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
+              <div className={`grid ${cols} gap-4`}>
+                {dateItems.map(item => (
+                  <div key={item.label} className="bg-white rounded-xl ring-1 ring-gray-200 p-4">
+                    <p className="text-xs text-gray-500 mb-1">{item.label}</p>
+                    <p className={`text-sm font-semibold ${item.expiry.color}`}>{item.expiry.label}</p>
+                    {item.expiry.days !== null && (item.expiry.days as number) <= 90 && (
+                      <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${(item.expiry.days as number) <= 30 ? "bg-red-50 text-red-700" : "bg-yellow-50 text-yellow-700"}`}>
                         {(item.expiry.days as number) < 0 ? "Expired" : `${item.expiry.days}d left`}
                       </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
+          {/* Contact & Details - only fields with values */}
+          {(() => {
+            const detailItems: { icon: any; label: string; value: any }[] = [
+              ...(company.phone ? [{ icon: Phone, label: "Phone", value: <a href={`tel:${company.phone}`} className="text-[#1a3a6b] hover:underline">{company.phone}</a> }] : []),
+              ...(company.email ? [{ icon: Mail, label: "Email", value: <a href={`mailto:${company.email}`} className="text-[#1a3a6b] hover:underline">{company.email}</a> }] : []),
+              ...(company.address ? [{ icon: MapPin, label: "Address", value: company.address }] : []),
+              ...(company.industry ? [{ icon: Briefcase, label: "Industry", value: company.industry }] : []),
+              ...(company.sponsor_name ? [{ icon: Users, label: "Sponsor", value: company.sponsor_name }] : []),
+              ...(company.vat_trn ? [{ icon: FileText, label: "VAT TRN", value: company.vat_trn }] : []),
+              ...(company.establishment_card_number ? [{ icon: FileText, label: "Establishment Card #", value: company.establishment_card_number }] : []),
+              ...(company.ejari_tawtheeq_number ? [{ icon: FileText, label: "Ejari/Tawtheeq #", value: company.ejari_tawtheeq_number }] : []),
+              ...(company.mohre_company_number ? [{ icon: Shield, label: "MOHRE Company #", value: company.mohre_company_number }] : []),
+            ]
+            if (detailItems.length === 0) return null
+            return (
+              <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+                <h3 className="font-semibold text-[#1a3a6b] flex items-center gap-2 mb-5"><Building2 className="h-5 w-5" /> Contact & Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+                  {detailItems.map((item: any) => (
+                    <div key={item.label} className="flex items-start gap-3">
+                      <item.icon className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500">{item.label}</p>
+                        <p className="text-sm font-medium text-gray-900">{item.value}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )
           })()}
+
+          {/* Compact Compliance Checklist */}
+          <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-[#1a3a6b] flex items-center gap-2"><Shield className="h-5 w-5" /> Compliance</h3>
+              <span className={`text-sm font-semibold ${compliancePercent > 80 ? "text-green-600" : compliancePercent >= 60 ? "text-yellow-600" : "text-red-600"}`}>
+                {compliancePercent}% ({complianceGreen}/{complianceItems.length})
+              </span>
+            </div>
+            {/* Progress bar */}
+            <div className="w-full bg-gray-100 rounded-full h-2.5 mb-5">
+              <div
+                className={`h-2.5 rounded-full transition-all ${compliancePercent > 80 ? "bg-green-500" : compliancePercent >= 60 ? "bg-yellow-500" : "bg-red-500"}`}
+                style={{ width: `${Math.min(compliancePercent, 100)}%` }}
+              />
+            </div>
+            {/* Items in 2 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
+              {complianceItems.map(item => (
+                <div key={item.label} className="flex items-center gap-2.5 py-1">
+                  {item.status === "valid" ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  ) : item.status === "expiring" ? (
+                    <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                  ) : item.status === "expired" ? (
+                    <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                  )}
+                  <span className="text-sm text-gray-700">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
