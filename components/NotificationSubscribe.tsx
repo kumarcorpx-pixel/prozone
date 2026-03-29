@@ -46,14 +46,12 @@ export function NotificationSubscribe() {
   }
 
   if (enabled) {
+    // Don't show "Connecting..." banner if ntfy isn't configured
+    if (!connected) return null
     return (
-      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
-        connected
-          ? "bg-green-50 text-green-700"
-          : "bg-orange-50 text-orange-700"
-      }`}>
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700">
         <CheckCircle2 className="h-3.5 w-3.5" />
-        {connected ? "Notifications: ON" : "Notifications: Connecting..."}
+        Notifications: ON
       </div>
     )
   }

@@ -144,7 +144,6 @@ export async function PATCH(request: NextRequest) {
 
     const updateData: Record<string, any> = {
       status,
-      updatedAt: new Date(),
     }
     if (notes) updateData.notes = notes
 

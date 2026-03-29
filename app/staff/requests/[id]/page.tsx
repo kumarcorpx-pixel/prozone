@@ -474,48 +474,15 @@ export default function StaffRequestDetailPage() {
               })()}
             </div>
 
-            {/* Notes */}
-            <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Notes</h2>
-              {request.notes && (
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+            {/* Request Notes (read-only) */}
+            {request.notes && (
+              <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Request Notes</h2>
+                <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-700">{request.notes}</p>
                 </div>
-              )}
-              <textarea
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-                placeholder="Add a note..."
-                rows={3}
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent resize-none"
-              />
-              <div className="mt-3 flex justify-end">
-                <button
-                  disabled={!noteText.trim()}
-                  onClick={async () => {
-                    if (!noteText.trim()) return
-                    try {
-                      await addTimelineEntry({
-                        request_id: request.id,
-                        status: "",
-                        message: noteText.trim(),
-                        created_by: "staff",
-                      })
-                      toast.success("Note saved")
-                      setNoteText("")
-                      const timeline = await getRequestTimeline(requestId)
-                      setRealTimeline(timeline)
-                    } catch {
-                      toast.error("Failed to save note")
-                    }
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors disabled:opacity-50"
-                >
-                  <Plus className="h-4 w-4" />
-                  Save Note
-                </button>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -555,6 +522,14 @@ export default function StaffRequestDetailPage() {
                       >
                         {doc.doc_type || doc.document_type || "general"}
                       </span>
+                      <a
+                        href={`/api/documents/${doc.id}/download`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[#1a3a6b] bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        Download
+                      </a>
                     </div>
                   ))
                 ) : (
@@ -596,9 +571,9 @@ export default function StaffRequestDetailPage() {
                     try {
                       const formData = new FormData()
                       formData.append("file", selectedFile)
-                      formData.append("request_id", request.id)
-                      formData.append("company_id", request.company_id || "")
-                      formData.append("doc_type", uploadDocType)
+                      formData.append("name", selectedFile.name)
+                      formData.append("companyId", request.company_id || "general")
+                      formData.append("documentType", uploadDocType)
                       const res = await fetch("/api/documents/upload", { method: "POST", body: formData })
                       if (!res.ok) throw new Error("Upload failed")
                       toast.success("Document uploaded")
