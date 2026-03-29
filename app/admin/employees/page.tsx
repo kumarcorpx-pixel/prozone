@@ -31,6 +31,13 @@ const defaultEmployeeForm = {
   emirates_id: "",
   labor_card_number: "",
   mohre_work_permit: "",
+  person_code: "",
+}
+
+function extractPersonCode(notes: string | null): string {
+  if (!notes) return ""
+  const match = notes.match(/code:([^\s,;]+)/)
+  return match ? match[1] : ""
 }
 
 export default function EmployeesPage() {
@@ -50,6 +57,7 @@ export default function EmployeesPage() {
   const [importResult, setImportResult] = useState<any>(null)
   const [formData, setFormData] = useState(defaultEmployeeForm)
   const [saving, setSaving] = useState(false)
+  const [ocrProcessing, setOcrProcessing] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -134,7 +142,7 @@ export default function EmployeesPage() {
         salary: null,
         join_date: null,
         status: "active",
-        notes: null,
+        notes: formData.person_code ? `code:${formData.person_code}` : null,
         date_of_birth: null,
         gender: null,
         marital_status: null,
@@ -305,7 +313,72 @@ export default function EmployeesPage() {
                 <option value="expired">Expired</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Person Code</label>
+              <input
+                type="text"
+                value={formData.person_code}
+                onChange={(e) => setFormData({ ...formData, person_code: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                placeholder="e.g. EMP001"
+              />
+            </div>
           </div>
+
+          {/* Upload Document to Auto-Fill */}
+          <div className="border-t border-gray-200 pt-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Upload Document to Auto-Fill Employee Details</h3>
+            <p className="text-xs text-gray-500 mb-3">Upload a passport, Emirates ID, or visa document (PDF/JPG/PNG) to auto-fill fields.</p>
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">
+                <Upload className="h-4 w-4" />
+                {ocrProcessing ? "Processing..." : "Choose File"}
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  disabled={ocrProcessing}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setOcrProcessing(true)
+                    try {
+                      const fd = new FormData()
+                      fd.append("file", file)
+                      const res = await fetch("/api/ocr/process", { method: "POST", body: fd })
+                      const data = await res.json()
+                      if (!res.ok) throw new Error(data.error || "OCR processing failed")
+                      const updates: Partial<typeof formData> = {}
+                      const docType = data.document_type || data.documentType || ""
+                      if (docType === "passport" || data.passport_number) {
+                        if (data.passport_number) updates.passport_number = data.passport_number
+                        if (data.full_name) updates.full_name = data.full_name
+                        if (data.nationality) updates.nationality = data.nationality
+                      }
+                      if (docType === "emirates-id" || docType === "emirates_id" || data.emirates_id) {
+                        if (data.emirates_id) updates.emirates_id = data.emirates_id
+                        if (data.full_name) updates.full_name = data.full_name
+                        if (data.nationality) updates.nationality = data.nationality
+                      }
+                      if (docType === "visa" || data.visa_status) {
+                        if (data.visa_status) updates.visa_status = data.visa_status
+                      }
+                      setFormData((prev) => ({ ...prev, ...updates }))
+                      const fields = Object.keys(updates)
+                      toast.success(`Extracted ${fields.length} field(s): ${fields.join(", ")}`)
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to process document")
+                    } finally {
+                      setOcrProcessing(false)
+                      e.target.value = ""
+                    }
+                  }}
+                />
+              </label>
+              {ocrProcessing && <Loader2 className="h-4 w-4 animate-spin text-[#1a3a6b]" />}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-3 pt-2">
             <button
               onClick={() => { setShowAddForm(false); setFormData(defaultEmployeeForm) }}
@@ -496,44 +569,46 @@ export default function EmployeesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Name</th>
+                <th className="text-left py-3 px-4 text-gray-500 font-medium">Sr No</th>
+                <th className="text-left py-3 px-4 text-gray-500 font-medium">Person Code</th>
+                <th className="text-left py-3 px-4 text-gray-500 font-medium">Person Name</th>
                 <th className="text-left py-3 px-4 text-gray-500 font-medium">Company</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Nationality</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Designation</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Visa Status</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Visa Expiry</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">EID Expiry</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Labor Card</th>
+                <th className="text-left py-3 px-4 text-gray-500 font-medium">Job</th>
+                <th className="text-left py-3 px-4 text-gray-500 font-medium">Passport</th>
+                <th className="text-left py-3 px-4 text-gray-500 font-medium">Emirates ID</th>
+                <th className="text-left py-3 px-4 text-gray-500 font-medium">Visa</th>
                 <th className="text-left py-3 px-4 text-gray-500 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((emp) => {
-                const visaExpiry = getExpiryLabel(emp.visa_expiry)
+              {filtered.map((emp, index) => {
+                const passportExpiry = getExpiryLabel(emp.passport_expiry)
                 const eidExpiry = getExpiryLabel(emp.emirates_id_expiry)
-                const laborExpiry = getExpiryLabel(emp.labor_card_expiry)
+                const visaExpiry = getExpiryLabel(emp.visa_expiry)
+                const personCode = extractPersonCode(emp.notes) || emp.id?.substring(0, 8) || "-"
 
                 return (
                   <tr key={emp.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-gray-500">{index + 1}</td>
+                    <td className="py-3 px-4 text-gray-600 font-mono text-xs">{personCode}</td>
                     <td className="py-3 px-4">
-                      <a href={`/admin/employees/${emp.id}`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">
+                      <Link href={`/admin/employees/${emp.id}`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">
                         {emp.full_name}
-                      </a>
+                      </Link>
                     </td>
                     <td className="py-3 px-4 text-gray-600">{getCompanyName(emp.company_id)}</td>
-                    <td className="py-3 px-4 text-gray-600">{emp.nationality || "N/A"}</td>
                     <td className="py-3 px-4 text-gray-600">{emp.designation || "N/A"}</td>
                     <td className="py-3 px-4">
+                      <div className="text-gray-700 text-xs">{emp.passport_number || "N/A"}</div>
+                      <div className={`text-xs font-medium ${passportExpiry.color}`}>{passportExpiry.text}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="text-gray-700 text-xs">{emp.emirates_id || "N/A"}</div>
+                      <div className={`text-xs font-medium ${eidExpiry.color}`}>{eidExpiry.text}</div>
+                    </td>
+                    <td className="py-3 px-4">
                       <StatusBadge status={emp.visa_status} />
-                    </td>
-                    <td className={`py-3 px-4 font-medium ${visaExpiry.color}`}>
-                      {visaExpiry.text}
-                    </td>
-                    <td className={`py-3 px-4 font-medium ${eidExpiry.color}`}>
-                      {eidExpiry.text}
-                    </td>
-                    <td className={`py-3 px-4 font-medium ${laborExpiry.color}`}>
-                      {laborExpiry.text}
+                      <div className={`text-xs font-medium mt-0.5 ${visaExpiry.color}`}>{visaExpiry.text}</div>
                     </td>
                     <td className="py-3 px-4">
                       <Link href={`/admin/employees/${emp.id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1a3a6b] bg-[#1a3a6b]/10 rounded-lg hover:bg-[#1a3a6b]/20 transition-colors">
@@ -558,16 +633,25 @@ export default function EmployeesPage() {
 
       {/* Mobile Cards */}
       <div className="lg:hidden space-y-3">
-        {filtered.map((emp) => {
-          const visaExpiry = getExpiryLabel(emp.visa_expiry)
+        {filtered.map((emp, index) => {
+          const passportExpiry = getExpiryLabel(emp.passport_expiry)
           const eidExpiry = getExpiryLabel(emp.emirates_id_expiry)
-          const laborExpiry = getExpiryLabel(emp.labor_card_expiry)
+          const visaExpiry = getExpiryLabel(emp.visa_expiry)
+          const personCode = extractPersonCode(emp.notes) || emp.id?.substring(0, 8) || "-"
 
           return (
             <div key={emp.id} className="bg-white rounded-xl ring-1 ring-gray-200 p-4 space-y-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold text-gray-900">{emp.full_name}</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 font-mono">#{index + 1}</span>
+                    <span className="text-xs text-gray-500 font-mono">{personCode}</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900">
+                    <Link href={`/admin/employees/${emp.id}`} className="text-[#1a3a6b] hover:underline">
+                      {emp.full_name}
+                    </Link>
+                  </h3>
                   <p className="text-xs text-gray-500">{getCompanyName(emp.company_id)}</p>
                 </div>
                 <StatusBadge status={emp.visa_status} />
@@ -575,27 +659,25 @@ export default function EmployeesPage() {
 
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span className="text-gray-500 text-xs">Nationality</span>
-                  <p className="text-gray-700">{emp.nationality || "N/A"}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-xs">Designation</span>
+                  <span className="text-gray-500 text-xs">Job</span>
                   <p className="text-gray-700">{emp.designation || "N/A"}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-sm border-t border-gray-100 pt-3">
                 <div>
-                  <span className="text-gray-500 text-xs">Visa Expiry</span>
-                  <p className={`font-medium ${visaExpiry.color}`}>{visaExpiry.text}</p>
+                  <span className="text-gray-500 text-xs">Passport</span>
+                  <p className="text-gray-700 text-xs">{emp.passport_number || "N/A"}</p>
+                  <p className={`text-xs font-medium ${passportExpiry.color}`}>{passportExpiry.text}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500 text-xs">EID Expiry</span>
-                  <p className={`font-medium ${eidExpiry.color}`}>{eidExpiry.text}</p>
+                  <span className="text-gray-500 text-xs">Emirates ID</span>
+                  <p className="text-gray-700 text-xs">{emp.emirates_id || "N/A"}</p>
+                  <p className={`text-xs font-medium ${eidExpiry.color}`}>{eidExpiry.text}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500 text-xs">Labor Card</span>
-                  <p className={`font-medium ${laborExpiry.color}`}>{laborExpiry.text}</p>
+                  <span className="text-gray-500 text-xs">Visa</span>
+                  <p className={`text-xs font-medium ${visaExpiry.color}`}>{visaExpiry.text}</p>
                 </div>
               </div>
 
