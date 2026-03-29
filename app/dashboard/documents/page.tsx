@@ -40,6 +40,8 @@ export default function DocumentsPage() {
   const [uploading, setUploading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [previewDoc, setPreviewDoc] = useState<any>(null)
+  const [companyFilter, setCompanyFilter] = useState("all")
+  const [uploadDocType, setUploadDocType] = useState("other")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,9 +52,9 @@ export default function DocumentsPage() {
       const formData = new FormData()
       formData.append("file", file)
       formData.append("name", file.name)
-      if (companies.length > 0) formData.append("companyId", companies[0].id)
-      else if (user?.company_id) formData.append("companyId", user.company_id)
-      formData.append("documentType", "other")
+      const targetCompany = companyFilter !== "all" ? companyFilter : companies[0]?.id
+      if (targetCompany) formData.append("companyId", targetCompany)
+      formData.append("documentType", uploadDocType)
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData })
       const data = await res.json()
       if (res.ok) {
@@ -90,16 +92,15 @@ export default function DocumentsPage() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
-  // Since /api/client/* already filters server-side, use ALL returned documents
-  const companyIds = companies.map((c: any) => c.id)
-  const myCompany = companies[0] || null
+  // Filter by selected company
+  const filteredByCompany = companyFilter === "all" ? documents : documents.filter(d => d.company_id === companyFilter)
 
   // Company documents (no employee linked)
-  const myCompanyDocs = documents.filter(d => !d.employee_id)
+  const myCompanyDocs = filteredByCompany.filter(d => !d.employee_id)
   // Employee documents
-  const myEmployeeDocs = documents.filter(d => d.employee_id)
+  const myEmployeeDocs = filteredByCompany.filter(d => d.employee_id)
   // Request-linked documents
-  const myRequestDocs = documents.filter(d => d.request_id)
+  const myRequestDocs = filteredByCompany.filter(d => d.request_id)
 
   const getTabDocs = () => {
     switch (activeTab) {
@@ -132,15 +133,49 @@ export default function DocumentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Documents</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {myCompany ? `${myCompany.name} — ` : ""}All documents linked to your company, employees, and service requests.
+            {documents.length} documents across {companies.length} {companies.length === 1 ? "company" : "companies"}
           </p>
         </div>
-        <label className={`inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
-          <Upload className="h-4 w-4" />
-          {uploading ? "Uploading..." : "Upload Document"}
-          <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.docx" />
-        </label>
+        <div className="flex items-center gap-2">
+          <select value={uploadDocType} onChange={e => setUploadDocType(e.target.value)}
+            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20">
+            <option value="other">Doc Type</option>
+            <option value="trade_license">Trade License</option>
+            <option value="visa">Visa</option>
+            <option value="emirates_id">Emirates ID</option>
+            <option value="passport">Passport</option>
+            <option value="labor_card">Labor Card</option>
+            <option value="establishment_card">Establishment Card</option>
+            <option value="ejari">Ejari</option>
+            <option value="contract">Contract</option>
+            <option value="financial">Financial</option>
+          </select>
+          <label className={`inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+            <Upload className="h-4 w-4" />
+            {uploading ? "Uploading..." : "Upload"}
+            <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.docx" />
+          </label>
+        </div>
       </div>
+
+      {/* Company Filter */}
+      {companies.length > 1 && (
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setCompanyFilter("all")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${companyFilter === "all" ? "bg-[#1a3a6b] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            All Companies ({documents.length})
+          </button>
+          {companies.map((c: any) => {
+            const count = documents.filter(d => d.company_id === c.id).length
+            return (
+              <button key={c.id} onClick={() => setCompanyFilter(c.id)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${companyFilter === c.id ? "bg-[#1a3a6b] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                {c.name} ({count})
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
@@ -272,7 +307,12 @@ export default function DocumentsPage() {
           {filteredDocs.length === 0 ? (
             <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No documents found</p>
+              <p className="text-gray-500 font-medium">No documents uploaded yet</p>
+              <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Upload your trade license, visa copies, Emirates ID, passport, and other documents. Select the document type before uploading.</p>
+              <label className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors cursor-pointer">
+                <Upload className="h-4 w-4" /> Upload Your First Document
+                <input type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.docx" />
+              </label>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
