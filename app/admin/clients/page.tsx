@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { fetchProfiles } from "@/lib/data-fetcher"
+import { fetchProfiles, fetchCompanies } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, Users, Loader2, Plus, X, Pencil } from "lucide-react"
 import Link from "next/link"
@@ -23,16 +23,18 @@ export default function ClientsPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState(defaultClientForm)
   const [saving, setSaving] = useState(false)
+  const [companies, setCompanies] = useState<any[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({ full_name: "", email: "", phone: "" })
+  const [editForm, setEditForm] = useState({ full_name: "", email: "", phone: "", password: "", role: "" })
   const [editSaving, setEditSaving] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [roleFilter, setRoleFilter] = useState("all")
 
   useEffect(() => {
     async function load() {
-      const data = await fetchProfiles()
+      const [data, comps] = await Promise.all([fetchProfiles(), fetchCompanies()])
       setProfiles(data)
+      setCompanies(comps)
       setLoading(false)
     }
     load()
@@ -123,14 +125,17 @@ export default function ClientsPage() {
     }
     setEditSaving(true)
     try {
+      const payload: any = {
+        id: clientId,
+        fullName: editForm.full_name,
+        phone: editForm.phone || null,
+      }
+      if (editForm.password && editForm.password.length >= 8) payload.password = editForm.password
+      if (editForm.role) payload.role = editForm.role
       const res = await fetch("/api/data/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: clientId,
-          fullName: editForm.full_name,
-          phone: editForm.phone || null,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -293,50 +298,78 @@ export default function ClientsPage() {
             <tbody>
               {filtered.map((profile) => (
                 editingId === profile.id ? (
-                  <tr key={profile.id} className="border-b border-gray-50 bg-gray-50">
-                    <td className="px-6 py-3">
-                      <input
-                        type="text"
-                        value={editForm.full_name}
-                        onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
-                      />
-                    </td>
-                    <td className="px-6 py-3">
-                      <input
-                        type="email"
-                        value={editForm.email}
-                        disabled
-                        className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-500"
-                      />
-                    </td>
-                    <td className="px-6 py-3">
-                      <input
-                        type="text"
-                        value={editForm.phone}
-                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
-                      />
-                    </td>
-                    <td className="px-6 py-3" />
-                    <td className="px-6 py-3" />
-                    <td className="px-6 py-3" />
-                    <td className="px-6 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleEditSave(profile.id)}
-                          disabled={editSaving}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] disabled:opacity-50"
-                        >
-                          {editSaving && <Loader2 className="h-3 w-3 animate-spin" />}
-                          {editSaving ? "Saving..." : "Save"}
-                        </button>
+                  <tr key={profile.id} className="border-b border-gray-50 bg-blue-50/50">
+                    <td colSpan={7} className="px-6 py-4">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Full Name</label>
+                            <input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Email (read-only)</label>
+                            <input type="email" value={editForm.email} disabled
+                              className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                            <input type="text" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">New Password (leave blank to keep)</label>
+                            <input type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                              placeholder="Min 8 characters" className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Role</label>
+                            <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20">
+                              <option value="client">Client</option>
+                              <option value="pro_staff">PRO Staff</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </div>
+                          <div className="sm:col-span-3">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Assigned Companies (click to assign/unassign)</label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {companies.map((c: any) => {
+                                const isAssigned = c.created_by === profile.id
+                                return (
+                                  <button key={c.id} onClick={async () => {
+                                    try {
+                                      await fetch(`/api/data/companies/${c.id}`, {
+                                        method: "PATCH", headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ created_by: isAssigned ? null : profile.id }),
+                                      })
+                                      const comps = await fetchCompanies()
+                                      setCompanies(comps)
+                                      toast.success(isAssigned ? `${c.name} unassigned` : `${c.name} assigned to ${profile.full_name}`)
+                                    } catch { toast.error("Failed to update") }
+                                  }}
+                                    className={`px-2 py-1 text-xs rounded-full border transition-colors ${
+                                      isAssigned ? "bg-[#1a3a6b] text-white border-[#1a3a6b]" : "bg-white text-gray-600 border-gray-300 hover:border-[#1a3a6b]"
+                                    }`}
+                                  >
+                                    {isAssigned ? "✓ " : ""}{c.name}
+                                  </button>
+                                )
+                              })}
+                              {companies.length === 0 && <span className="text-xs text-gray-400">No companies created yet</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1">
+                          <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancel</button>
+                          <button onClick={() => handleEditSave(profile.id)} disabled={editSaving}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] disabled:opacity-50">
+                            {editSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+                            {editSaving ? "Saving..." : "Save Changes"}
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -372,7 +405,7 @@ export default function ClientsPage() {
                       <button
                         onClick={() => {
                           setEditingId(profile.id)
-                          setEditForm({ full_name: profile.full_name, email: profile.email, phone: profile.phone || "" })
+                          setEditForm({ full_name: profile.full_name, email: profile.email, phone: profile.phone || "", password: "", role: profile.role })
                         }}
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                       >
