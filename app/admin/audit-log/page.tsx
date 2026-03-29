@@ -22,6 +22,13 @@ function classifyAction(action: string): string {
   return "update"
 }
 
+function formatActionLabel(action: string): string {
+  return action
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 export default function AuditLogPage() {
   const [auditLog, setAuditLog] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,10 +43,11 @@ export default function AuditLogPage() {
           const data = await res.json()
           setAuditLog(((data.data || data.activities || []) as any[]).map((a: any) => ({
             id: a.id,
-            user: a.message?.split(" ")[0] || "System",
-            action: a.action || a.message || "",
-            entity: a.entityType || "",
-            details: a.message || "",
+            user: a.user_name || a.user_role || "System",
+            role: a.user_role || "",
+            action: formatActionLabel(a.action || ""),
+            entity: a.entity_type ? `${a.entity_type}${a.entity_id ? ` #${a.entity_id.substring(0, 8)}` : ""}` : "",
+            details: typeof a.details === "string" ? a.details : a.details ? JSON.stringify(a.details).substring(0, 100) : a.message || "",
             time: a.time || "",
             type: classifyAction(a.action || a.message || ""),
           })))

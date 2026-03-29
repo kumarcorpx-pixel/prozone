@@ -26,6 +26,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const { data: notifData } = useNotifications()
   const notifications = (notifData?.notifications || []).slice(0, 10)
+  const unreadCount = notifications.filter((n: any) => !n.isRead).length
 
   const markAsRead = async (id: string) => {
     try {
@@ -184,8 +185,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 className="relative p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all active:scale-95"
               >
                 <Bell className="h-5 w-5" />
-                {notifications.some(n => !n.isRead) && (
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full animate-pulse-dot" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 leading-none">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
                 )}
               </button>
               {notifOpen && (

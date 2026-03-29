@@ -171,7 +171,7 @@ export default function ExpiryCalendarPage() {
   const filtered = search ? byType.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.entity.toLowerCase().includes(search.toLowerCase())) : byType
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -190,21 +190,21 @@ export default function ExpiryCalendarPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-red-50 rounded-xl p-4 ring-1 ring-red-200">
-          <p className="text-2xl font-bold text-red-600">{expired.length}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-red-50 rounded-xl px-3 py-2 ring-1 ring-red-200">
+          <p className="text-xl font-bold text-red-600">{expired.length}</p>
           <p className="text-xs text-red-500">Expired</p>
         </div>
-        <div className="bg-orange-50 rounded-xl p-4 ring-1 ring-orange-200">
-          <p className="text-2xl font-bold text-orange-600">{expiring30.length}</p>
+        <div className="bg-orange-50 rounded-xl px-3 py-2 ring-1 ring-orange-200">
+          <p className="text-xl font-bold text-orange-600">{expiring30.length}</p>
           <p className="text-xs text-orange-500">Expiring 30d</p>
         </div>
-        <div className="bg-yellow-50 rounded-xl p-4 ring-1 ring-yellow-200">
-          <p className="text-2xl font-bold text-yellow-600">{expiring60.length}</p>
+        <div className="bg-yellow-50 rounded-xl px-3 py-2 ring-1 ring-yellow-200">
+          <p className="text-xl font-bold text-yellow-600">{expiring60.length}</p>
           <p className="text-xs text-yellow-500">Expiring 60d</p>
         </div>
-        <div className="bg-green-50 rounded-xl p-4 ring-1 ring-green-200">
-          <p className="text-2xl font-bold text-green-600">{valid.length}</p>
+        <div className="bg-green-50 rounded-xl px-3 py-2 ring-1 ring-green-200">
+          <p className="text-xl font-bold text-green-600">{valid.length}</p>
           <p className="text-xs text-green-500">Valid</p>
         </div>
       </div>
@@ -224,10 +224,10 @@ export default function ExpiryCalendarPage() {
       </div>
 
       {/* Type filter + search */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex gap-1.5 flex-wrap">
           {["all", "Company", "Employee", "Document"].map(t => (
-            <button key={t} onClick={() => setTypeFilter(t)} className={`px-3 py-1.5 text-xs font-medium rounded-full ${typeFilter === t ? "bg-[#c9a96e] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            <button key={t} onClick={() => setTypeFilter(t)} className={`px-2.5 py-1 text-xs font-medium rounded-full ${typeFilter === t ? "bg-[#c9a96e] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {t === "all" ? "All Types" : t}
             </button>
           ))}
@@ -237,7 +237,7 @@ export default function ExpiryCalendarPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or entity..."
-          className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 sm:ml-auto sm:w-64"
+          className="px-2.5 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 sm:ml-auto sm:w-60"
         />
       </div>
 
@@ -253,7 +253,7 @@ export default function ExpiryCalendarPage() {
             const Icon = getStatusIcon(item.daysLeft)
             const color = getStatusColor(item.daysLeft)
             return (
-              <div key={item.id} className="flex items-center gap-4 px-5 py-3">
+              <div key={item.id} className="flex items-center gap-3 px-4 py-2">
                 <div className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
                   <Icon className="h-4 w-4" />
                 </div>
