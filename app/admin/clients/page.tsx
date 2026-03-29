@@ -11,6 +11,8 @@ const defaultClientForm = {
   full_name: "",
   email: "",
   phone: "",
+  password: "",
+  role: "client" as string,
 }
 
 export default function ClientsPage() {
@@ -35,40 +37,56 @@ export default function ClientsPage() {
     load()
   }, [])
 
-  const handleAddClient = async () => {
-    if (!formData.full_name.trim()) {
-      toast.error("Full name is required")
-      return
-    }
-    if (!formData.email.trim()) {
-      toast.error("Email is required")
-      return
-    }
+  const handleAddUser = async () => {
+    if (!formData.full_name.trim()) { toast.error("Full name is required"); return }
+    if (!formData.email.trim()) { toast.error("Email is required"); return }
+    if (!formData.password || formData.password.length < 8) { toast.error("Password must be at least 8 characters"); return }
     setSaving(true)
     try {
-      const res = await fetch("/api/admin/clients", {
+      const res = await fetch("/api/data/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          full_name: formData.full_name,
+          fullName: formData.full_name,
           email: formData.email,
           phone: formData.phone || null,
-          role: "client",
+          password: formData.password,
+          role: formData.role,
         }),
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || "Failed to add client")
+        throw new Error(err.error || "Failed to create user")
       }
-      toast.success("Client added successfully")
+      toast.success(`${formData.role === "pro_staff" ? "PRO Staff" : "Client"} created successfully`)
       setShowAddForm(false)
       setFormData(defaultClientForm)
       const updated = await fetchProfiles()
       setProfiles(updated)
     } catch (err: any) {
-      toast.error(err?.message || "Failed to add client")
+      toast.error(err?.message || "Failed to create user")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete ${userName}? This cannot be undone.`)) return
+    try {
+      const res = await fetch("/api/data/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: userId }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Failed to delete")
+      }
+      toast.success(`${userName} deleted`)
+      const updated = await fetchProfiles()
+      setProfiles(updated)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete user")
     }
   }
 
@@ -142,80 +160,87 @@ export default function ClientsPage() {
     )
   }
 
-  const clientProfiles = profiles.filter((p: any) => p.role === "client")
+  const [roleFilter, setRoleFilter] = useState("all")
 
-  const filtered = clientProfiles.filter(
-    (p) =>
-      p.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      p.email.toLowerCase().includes(search.toLowerCase()) ||
-      (p.role && p.role.toLowerCase().includes(search.toLowerCase()))
+  const filteredByRole = roleFilter === "all" ? profiles : profiles.filter((p: any) => p.role === roleFilter)
+
+  const filtered = filteredByRole.filter(
+    (p: any) =>
+      p.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.email?.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#1a3a6b]">Client Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage all client profiles</p>
+          <h1 className="text-2xl font-bold text-[#1a3a6b]">User Management</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage all users — Admin, PRO Staff, and Clients</p>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showAddForm ? "Cancel" : "Add Client"}
+          {showAddForm ? "Cancel" : "Create User"}
         </button>
+      </div>
+
+      {/* Role filter tabs */}
+      <div className="flex gap-2">
+        {[
+          { id: "all", label: `All (${profiles.length})` },
+          { id: "admin", label: `Admin (${profiles.filter((p: any) => p.role === "admin").length})` },
+          { id: "pro_staff", label: `PRO Staff (${profiles.filter((p: any) => p.role === "pro_staff").length})` },
+          { id: "client", label: `Clients (${profiles.filter((p: any) => p.role === "client").length})` },
+        ].map(f => (
+          <button key={f.id} onClick={() => setRoleFilter(f.id)} className={`px-3 py-1.5 text-xs font-medium rounded-full ${roleFilter === f.id ? "bg-[#1a3a6b] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {showAddForm && (
         <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Add New Client</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Create New User</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-              <input
-                type="text"
-                value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
-                placeholder="Enter full name"
-              />
+              <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]" placeholder="Enter full name" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
-                placeholder="Enter email address"
-              />
+              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]" placeholder="Enter email address" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input
-                type="text"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
-                placeholder="Enter phone number"
-              />
+              <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]" placeholder="+971 XX XXX XXXX" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+              <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]" placeholder="Min 8 characters" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+              <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white">
+                <option value="client">Client</option>
+                <option value="pro_staff">PRO Staff</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button
-              onClick={() => { setShowAddForm(false); setFormData(defaultClientForm) }}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddClient}
-              disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
-            >
+            <button onClick={() => { setShowAddForm(false); setFormData(defaultClientForm) }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+            <button onClick={handleAddUser} disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {saving ? "Saving..." : "Add Client"}
+              {saving ? "Creating..." : "Create User"}
             </button>
           </div>
         </div>
@@ -311,8 +336,12 @@ export default function ClientsPage() {
                   <td className="px-6 py-4 text-gray-600">{profile.email}</td>
                   <td className="px-6 py-4 text-gray-600">{profile.phone || "-"}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${profile.role === "admin" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}>
-                      {profile.role === "admin" ? "Admin" : "Client"}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      profile.role === "admin" ? "bg-blue-100 text-blue-800" :
+                      profile.role === "pro_staff" ? "bg-purple-100 text-purple-800" :
+                      "bg-green-100 text-green-800"
+                    }`}>
+                      {profile.role === "admin" ? "Admin" : profile.role === "pro_staff" ? "PRO Staff" : "Client"}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -342,6 +371,12 @@ export default function ClientsPage() {
                       >
                         {togglingId === profile.id && <Loader2 className="h-3 w-3 animate-spin" />}
                         {profile.is_active ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(profile.id, profile.full_name)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                      >
+                        Delete
                       </button>
                     </div>
                   </td>
