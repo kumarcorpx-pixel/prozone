@@ -120,16 +120,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 })
   }
 
-  // Valid token — sliding session + CORS headers
+  // Valid token — pass through
   const response = NextResponse.next()
-
-  response.cookies.set("auth_token", token!, {
-    httpOnly: true,
-    secure: request.url.startsWith("https"),
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 2,
-  })
 
   // Add CORS headers to API responses
   if (pathname.startsWith("/api/") && origin && isOriginAllowed(origin)) {
