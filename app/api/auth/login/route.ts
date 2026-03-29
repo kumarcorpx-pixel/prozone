@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      // No maxAge = session cookie — expires when browser closes
+      maxAge: 60 * 30, // 30 minutes — forces re-login after inactivity
     })
 
     return response

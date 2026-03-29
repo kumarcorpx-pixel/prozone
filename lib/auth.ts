@@ -7,7 +7,7 @@ function getJwtSecret(): string {
   if (!secret) throw new Error("FATAL: JWT_SECRET environment variable is required")
   return secret
 }
-const JWT_EXPIRES = "2h"
+const JWT_EXPIRES = "30m"
 
 export interface JWTPayload {
   userId: string
