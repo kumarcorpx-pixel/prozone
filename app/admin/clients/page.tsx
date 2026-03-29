@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { fetchProfiles } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, Users, Loader2, Plus, X } from "lucide-react"
+import { Search, Users, Loader2, Plus, X, Pencil } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -21,6 +21,10 @@ export default function ClientsPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState(defaultClientForm)
   const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ full_name: "", email: "", phone: "" })
+  const [editSaving, setEditSaving] = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -65,6 +69,65 @@ export default function ClientsPage() {
       toast.error(err?.message || "Failed to add client")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const refreshClients = async () => {
+    const updated = await fetchProfiles()
+    setProfiles(updated)
+  }
+
+  const handleEditSave = async (clientId: string) => {
+    if (!editForm.full_name.trim()) {
+      toast.error("Full name is required")
+      return
+    }
+    setEditSaving(true)
+    try {
+      const res = await fetch("/api/data/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: clientId,
+          fullName: editForm.full_name,
+          phone: editForm.phone || null,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to update client")
+      }
+      toast.success("Client updated")
+      setEditingId(null)
+      await refreshClients()
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update client")
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const handleToggleActive = async (profile: any) => {
+    setTogglingId(profile.id)
+    try {
+      const res = await fetch("/api/data/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: profile.id,
+          isActive: !profile.is_active,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to update status")
+      }
+      toast.success(profile.is_active ? "Client deactivated" : "Client activated")
+      await refreshClients()
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update status")
+    } finally {
+      setTogglingId(null)
     }
   }
 
@@ -180,10 +243,60 @@ export default function ClientsPage() {
                 <th className="text-left px-6 py-3 text-gray-500 font-medium">Role</th>
                 <th className="text-left px-6 py-3 text-gray-500 font-medium">Status</th>
                 <th className="text-left px-6 py-3 text-gray-500 font-medium">Joined</th>
+                <th className="text-left px-6 py-3 text-gray-500 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((profile) => (
+                editingId === profile.id ? (
+                  <tr key={profile.id} className="border-b border-gray-50 bg-gray-50">
+                    <td className="px-6 py-3">
+                      <input
+                        type="text"
+                        value={editForm.full_name}
+                        onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                      />
+                    </td>
+                    <td className="px-6 py-3">
+                      <input
+                        type="email"
+                        value={editForm.email}
+                        disabled
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-500"
+                      />
+                    </td>
+                    <td className="px-6 py-3">
+                      <input
+                        type="text"
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+                      />
+                    </td>
+                    <td className="px-6 py-3" />
+                    <td className="px-6 py-3" />
+                    <td className="px-6 py-3" />
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleEditSave(profile.id)}
+                          disabled={editSaving}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] disabled:opacity-50"
+                        >
+                          {editSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {editSaving ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
                 <tr key={profile.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -206,11 +319,38 @@ export default function ClientsPage() {
                     <StatusBadge status={profile.is_active ? "active" : "expired"} />
                   </td>
                   <td className="px-6 py-4 text-gray-500">{new Date(profile.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingId(profile.id)
+                          setEditForm({ full_name: profile.full_name, email: profile.email, phone: profile.phone || "" })
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(profile)}
+                        disabled={togglingId === profile.id}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                          profile.is_active
+                            ? "text-red-700 bg-red-50 hover:bg-red-100"
+                            : "text-green-700 bg-green-50 hover:bg-green-100"
+                        }`}
+                      >
+                        {togglingId === profile.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {profile.is_active ? "Deactivate" : "Activate"}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
+                )
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     <Users className="h-8 w-8 mx-auto text-gray-300 mb-2" />
                     No clients found matching your search.
                   </td>

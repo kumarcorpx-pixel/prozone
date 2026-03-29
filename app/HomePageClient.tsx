@@ -367,6 +367,65 @@ export function HomePageClient() {
         </div>
       </section>
 
+      {/* Contact / Inquiry Form */}
+      <section id="inquiry" className="py-16 px-4 bg-gray-50">
+        <div className="max-w-4xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-[#0f2340]">Get a Free Quote</h2>
+            <p className="text-gray-500 mt-2">Tell us about your requirement and we&apos;ll get back to you within 24 hours</p>
+          </motion.div>
+          <motion.form
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            onSubmit={async (e) => {
+              e.preventDefault()
+              const form = e.target as HTMLFormElement
+              const data = Object.fromEntries(new FormData(form))
+              try {
+                const res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
+                if (res.ok) { toast.success("Inquiry submitted! We'll contact you soon."); form.reset() }
+                else { const err = await res.json(); toast.error(err.error || "Failed to submit") }
+              } catch { toast.error("Network error. Please try again.") }
+            }}
+            className="bg-white rounded-2xl shadow-lg p-8 grid grid-cols-1 md:grid-cols-2 gap-5"
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+              <input name="name" required className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]" placeholder="Your name" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <input name="email" type="email" required className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]" placeholder="your@email.com" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input name="phone" className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]" placeholder="+971 XX XXX XXXX" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Service Needed</label>
+              <select name="service" className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white">
+                <option value="">Select a service</option>
+                <option>Company Formation</option>
+                <option>Trade License Renewal</option>
+                <option>Visa Processing</option>
+                <option>Document Attestation</option>
+                <option>MOHRE / Labor Services</option>
+                <option>Auditing & Accounting</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+              <textarea name="message" required rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] resize-none" placeholder="Tell us about your requirement..." />
+            </div>
+            <div className="md:col-span-2">
+              <button type="submit" className="w-full py-3 bg-[#1a3a6b] hover:bg-[#15305a] text-white font-semibold rounded-xl text-sm transition-all flex items-center justify-center gap-2">
+                <Mail className="h-4 w-4" /> Submit Inquiry
+              </button>
+            </div>
+          </motion.form>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-[#0f2340] text-white py-12 px-4">
         <div className="max-w-6xl mx-auto">

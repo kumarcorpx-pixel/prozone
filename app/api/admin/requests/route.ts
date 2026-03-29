@@ -5,44 +5,6 @@ import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { handleApiError } from "@/lib/api-error-handler"
 
-const demoRequests = [
-  {
-    id: "req-1",
-    serviceType: "Visa Renewal",
-    status: "in_progress",
-    priority: "high",
-    companyName: "ABC Trading LLC",
-    clientName: "Ahmed Hassan",
-    assignedTo: "Sarah Admin",
-    description: "Employment visa renewal for 3 employees",
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "req-2",
-    serviceType: "Trade License Renewal",
-    status: "pending",
-    priority: "medium",
-    companyName: "XYZ Services",
-    clientName: "Mohammed Ali",
-    assignedTo: null,
-    description: "Annual trade license renewal",
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "req-3",
-    serviceType: "Company Formation - Mainland",
-    status: "completed",
-    priority: "low",
-    companyName: "New Venture LLC",
-    clientName: "Fatima Khalid",
-    assignedTo: "Sarah Admin",
-    description: "New mainland company formation",
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-]
 
 async function checkAdminAuth(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value
@@ -70,7 +32,7 @@ export async function GET(request: NextRequest) {
     const auth = await checkAdminAuth(request)
 
     if (!auth.user) {
-      return NextResponse.json({ requests: demoRequests, demo: true })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     if (!auth.authorized) {

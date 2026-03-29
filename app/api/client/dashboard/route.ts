@@ -4,19 +4,6 @@ import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { handleApiError } from "@/lib/api-error-handler"
 
-const demoDashboard = {
-  companies: [
-    { id: "comp-1", name: "My Trading LLC", emirate: "Dubai", licenseType: "mainland", status: "active" },
-  ],
-  activeRequests: 3,
-  completedRequests: 12,
-  documents: 8,
-  expiryAlerts: [
-    { id: "alert-1", type: "Trade License", companyName: "My Trading LLC", expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), daysLeft: 30 },
-    { id: "alert-2", type: "Employment Visa", employeeName: "John Doe", expiresAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(), daysLeft: 15 },
-  ],
-}
-
 export async function GET(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"
   const rl = rateLimit(`client-dashboard:${ip}`, apiRateLimit)
@@ -29,7 +16,7 @@ export async function GET(request: NextRequest) {
     const user = token ? await getUserFromToken(token) : null
 
     if (!user) {
-      return NextResponse.json({ ...demoDashboard, demo: true })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Fetch client data in parallel
