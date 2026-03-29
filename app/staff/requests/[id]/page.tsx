@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
-import { fetchRequests, fetchDocuments } from "@/lib/data-fetcher"
+import { fetchDocuments } from "@/lib/data-fetcher"
 import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/api"
 import type { ServiceRequest, RequestTimeline } from "@/lib/types"
 import { toast } from "sonner"
@@ -67,12 +67,19 @@ export default function StaffRequestDetailPage() {
   const [uploadDocType, setUploadDocType] = useState<string>("submitted")
   const [realTimeline, setRealTimeline] = useState<any[]>([])
   const [realDocs, setRealDocs] = useState<any[]>([])
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const requests = await fetchRequests()
-      const found = requests.find((r: any) => r.id === requestId)
-      const req = found || null
+      // Fetch the single request directly by ID
+      let req: any = null
+      try {
+        const reqRes = await fetch(`/api/data/requests/${requestId}`)
+        if (reqRes.ok) {
+          req = await reqRes.json()
+        }
+      } catch {}
       setRequest(req)
       if (req) {
         setSelectedStatus(req.status || "pending")
@@ -178,9 +185,8 @@ export default function StaffRequestDetailPage() {
       } as Omit<RequestTimeline, "id" | "created_at" | "creator">)
       toast.success("Status updated")
       // Refresh
-      const requests = await fetchRequests()
-      const updated = requests.find((r: any) => r.id === requestId)
-      if (updated) setRequest(updated)
+      const reqRes = await fetch(`/api/data/requests/${requestId}`)
+      if (reqRes.ok) setRequest(await reqRes.json())
       const timeline = await getRequestTimeline(requestId)
       setRealTimeline(timeline)
     } catch (err: any) {
@@ -227,7 +233,7 @@ export default function StaffRequestDetailPage() {
           <div>
             <h1 className="text-xl font-bold text-gray-900">{request.service_type}</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {request.company?.name} &middot; {request.id}
+              {request.company_name || "N/A"} &middot; {request.id}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -282,11 +288,11 @@ export default function StaffRequestDetailPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Company</p>
-                  <p className="text-sm font-medium text-gray-900">{request.company?.name}</p>
+                  <p className="text-sm font-medium text-gray-900">{request.company_name || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Client</p>
-                  <p className="text-sm font-medium text-gray-900">{request.client?.full_name}</p>
+                  <p className="text-sm font-medium text-gray-900">{request.client_name || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Status</p>
@@ -445,12 +451,39 @@ export default function StaffRequestDetailPage() {
                 </div>
                 <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 rounded-lg text-sm font-medium ring-1 ring-gray-200 hover:bg-gray-50 transition-colors cursor-pointer">
                   <Upload className="h-4 w-4" />
-                  Choose File
-                  <input type="file" className="hidden" />
+                  {selectedFile ? selectedFile.name : "Choose File"}
+                  <input type="file" className="hidden" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
                 </label>
-                <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
-                  <Upload className="h-4 w-4" />
-                  Upload
+                <button
+                  disabled={!selectedFile || uploading}
+                  onClick={async () => {
+                    if (!selectedFile) return
+                    setUploading(true)
+                    try {
+                      const formData = new FormData()
+                      formData.append("file", selectedFile)
+                      formData.append("request_id", request.id)
+                      formData.append("company_id", request.company_id || "")
+                      formData.append("doc_type", uploadDocType)
+                      const res = await fetch("/api/documents/upload", { method: "POST", body: formData })
+                      if (!res.ok) throw new Error("Upload failed")
+                      toast.success("Document uploaded")
+                      setSelectedFile(null)
+                      // Refresh docs
+                      try {
+                        const docs = await fetchDocuments(request.company_id)
+                        setRealDocs(docs)
+                      } catch {}
+                    } catch (err: any) {
+                      toast.error(err?.message || "Failed to upload document")
+                    } finally {
+                      setUploading(false)
+                    }
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors disabled:opacity-50"
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {uploading ? "Uploading..." : "Upload"}
                 </button>
               </div>
             </div>

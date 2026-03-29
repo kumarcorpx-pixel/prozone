@@ -49,7 +49,7 @@ export default function ClientRequestsPage() {
           await Promise.all(
             reqs.map(async (r: any) => {
               try {
-                const tlRes = await fetch(`/api/requests/${r.id}/timeline`)
+                const tlRes = await fetch(`/api/data/requests/${r.id}/timeline`)
                 if (tlRes.ok) {
                   const tlData = await tlRes.json()
                   timelineEntries[r.id] = Array.isArray(tlData) ? tlData : (tlData.timeline || [])
@@ -154,8 +154,12 @@ export default function ClientRequestsPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
               >
                 <option value="">Select a service</option>
-                {commonServices.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                {getCategories().map((cat) => (
+                  <optgroup key={cat} label={cat.charAt(0).toUpperCase() + cat.slice(1)}>
+                    {serviceCatalog.filter(s => s.category === cat).map((s) => (
+                      <option key={s.id} value={s.name}>{s.name}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -220,7 +224,7 @@ export default function ClientRequestsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900">{req.service_type}</h3>
-                  <p className="text-sm text-gray-500 mt-0.5">{req.company?.name || "N/A"}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{req.company_name || "N/A"}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={req.status} />
@@ -231,7 +235,7 @@ export default function ClientRequestsPage() {
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-500">
                 <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(req.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-                <span className="flex items-center gap-1"><User className="h-3 w-3" />{req.assignee?.full_name || "Unassigned"}</span>
+                <span className="flex items-center gap-1"><User className="h-3 w-3" />{req.assignee_name || "Unassigned"}</span>
               </div>
               {steps.length > 0 && (
                 <div className="mt-3">
