@@ -879,7 +879,7 @@ export default function CompanyDetailPage() {
                     toast.success("Fee added")
                     setShowFeeForm(false)
                     setFeeForm({ description: "", amount: "", date: "", status: "pending", receipt_number: "" })
-                  } catch { toast.error("Failed to add fee") }
+                  } catch (err: any) { toast.error(err?.message || "Failed to add fee") }
                 }} className="px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
                   Save Fee
                 </button>
@@ -1012,7 +1012,7 @@ export default function CompanyDetailPage() {
                     toast.success("Shareholder added")
                     setShowShareholderForm(false)
                     setShareholderForm({ name: "", nationality: "", share_percentage: "", passport_number: "" })
-                  } catch { toast.error("Failed to add shareholder") }
+                  } catch (err: any) { toast.error(err?.message || "Failed to add shareholder") }
                 }} className="px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
                   Save Shareholder
                 </button>

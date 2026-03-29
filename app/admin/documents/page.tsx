@@ -170,12 +170,12 @@ export default function DocumentsPage() {
     if (!confirm("Are you sure you want to delete this document?")) return
     try {
       const res = await fetch(`/api/documents/${id}`, { method: "DELETE" })
-      if (!res.ok) throw new Error("Delete failed")
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || "Delete failed") }
       toast.success("Document deleted")
       const updated = await fetchDocuments()
       setDocuments(updated)
-    } catch {
-      toast.error("Failed to delete document")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete document")
     }
   }
 
@@ -243,8 +243,8 @@ export default function DocumentsPage() {
                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   onChange={(e) => {
                     const file = e.target.files?.[0] || null
-                    if (file && file.size > 10 * 1024 * 1024) {
-                      toast.error("File size must be less than 10MB")
+                    if (file && file.size > 25 * 1024 * 1024) {
+                      toast.error("File size must be less than 25MB")
                       return
                     }
                     setSelectedFile(file)
