@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
         retentionDays: RETENTION_DAYS,
       },
     })
-  } catch (err: any) {
-    console.error("[Cron Backup] Error:", err.message)
+  } catch (err) {
+    console.error("[Cron Backup] Error:", err instanceof Error ? err.message : "unknown")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

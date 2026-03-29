@@ -201,7 +201,6 @@ export async function POST(request: NextRequest) {
           thumbnailPath = thumbPath
         } catch {}
 
-        console.log(`[Upload] Image processed: ${file.name} — ${file.size} → ${finalSize} bytes (${compressionSaved}% saved)`)
       } catch (sharpErr) {
         console.error("[Upload] Sharp processing failed, using original:", sharpErr)
         // Fall back to original buffer

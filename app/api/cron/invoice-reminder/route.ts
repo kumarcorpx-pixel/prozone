@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
             clientId: inv.clientId,
           })
           remindersSent++
-        } catch (err: any) {
-          console.error("[Cron] Invoice reminder error:", err.message)
+        } catch (err) {
+          console.error("[Cron] Invoice reminder error:", err instanceof Error ? err.message : "unknown")
         }
       }
     }
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       overdueCount,
       remindersSent,
     })
-  } catch (err: any) {
+  } catch (err) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

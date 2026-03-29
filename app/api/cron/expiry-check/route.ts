@@ -88,8 +88,8 @@ export async function GET(request: NextRequest) {
             type: item.type,
           })
           results.notified++
-        } catch (err: any) {
-          console.error("[Cron] Expiry dispatch error:", err.message)
+        } catch (err) {
+          console.error("[Cron] Expiry dispatch error:", err instanceof Error ? err.message : "unknown")
         }
       }
     }
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true, timestamp: new Date().toISOString(), results })
-  } catch (err: any) {
+  } catch (err) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
