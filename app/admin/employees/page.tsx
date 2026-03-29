@@ -47,7 +47,7 @@ export default function EmployeesPage() {
   const preselectedCompanyName = searchParams.get("companyName") || ""
 
   const [search, setSearch] = useState("")
-  const [companyFilter, setCompanyFilter] = useState("all")
+  const [companyFilter, setCompanyFilter] = useState(preselectedCompanyId || "all")
   const [nationalityFilter, setNationalityFilter] = useState("all")
   const [visaStatusFilter, setVisaStatusFilter] = useState("all")
   const [expiryFilter, setExpiryFilter] = useState("all")
@@ -353,7 +353,10 @@ export default function EmployeesPage() {
                     try {
                       const fd = new FormData()
                       fd.append("file", file)
-                      const res = await fetch("/api/ocr/process", { method: "POST", body: fd })
+                      const controller = new AbortController()
+                      const timeout = setTimeout(() => controller.abort(), 15000)
+                      const res = await fetch("/api/ocr/process", { method: "POST", body: fd, signal: controller.signal })
+                      clearTimeout(timeout)
                       const data = await res.json()
                       if (!res.ok) throw new Error(data.error || "OCR processing failed")
                       const updates: Partial<typeof formData> = {}
@@ -375,7 +378,11 @@ export default function EmployeesPage() {
                       const fields = Object.keys(updates)
                       toast.success(`Extracted ${fields.length} field(s): ${fields.join(", ")}`)
                     } catch (err: any) {
-                      toast.error(err.message || "Failed to process document")
+                      if (err.name === "AbortError") {
+                        toast.error("OCR timed out. You can still add the employee manually.")
+                      } else {
+                        toast.error(err.message || "Failed to process document. Add employee manually.")
+                      }
                     } finally {
                       setOcrProcessing(false)
                       e.target.value = ""
@@ -383,7 +390,7 @@ export default function EmployeesPage() {
                   }}
                 />
               </label>
-              {ocrProcessing && <Loader2 className="h-4 w-4 animate-spin text-[#1a3a6b]" />}
+              {ocrProcessing && <><Loader2 className="h-4 w-4 animate-spin text-[#1a3a6b]" /><button type="button" onClick={() => setOcrProcessing(false)} className="text-xs text-red-500 hover:underline">Cancel</button></>}
             </div>
           </div>
 
