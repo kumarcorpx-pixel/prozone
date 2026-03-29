@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { customer_name, company_name, client_id, line_items, due_date, notes, terms } = body
+    const { customer_name, company_name, client_id, line_items, due_date, notes, terms, subject } = body
 
     if (!line_items || !Array.isArray(line_items) || line_items.length === 0) {
       return NextResponse.json({ error: "At least one line item is required" }, { status: 400 })
@@ -96,26 +96,35 @@ export async function POST(request: NextRequest) {
 
     const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
 
-    // Calculate totals
-    const items = line_items.map((item: any) => ({
-      name: item.name || "Service",
-      description: item.description || "",
-      rate: Number(item.rate) || 0,
-      quantity: Number(item.quantity) || 1,
-      item_total: (Number(item.rate) || 0) * (Number(item.quantity) || 1),
-    }))
+    // Calculate totals with per-item tax
+    const items = line_items.map((item: any) => {
+      const rate = Number(item.rate) || 0
+      const quantity = Number(item.quantity) || 1
+      const itemTotal = rate * quantity
+      const taxPercent = Number(item.tax) || 0
+      const taxAmount = Math.round(itemTotal * taxPercent) / 100
+      return {
+        name: item.name || "Service",
+        description: item.description || "",
+        rate,
+        quantity,
+        item_total: itemTotal,
+        tax_percent: taxPercent,
+        tax_amount: taxAmount,
+      }
+    })
 
     const subtotal = items.reduce((s: number, i: any) => s + i.item_total, 0)
-    const vatPercent = 5
-    const vatAmount = Math.round(subtotal * vatPercent) / 100
+    const vatAmount = items.reduce((s: number, i: any) => s + i.tax_amount, 0)
     const totalAmount = subtotal + vatAmount
 
     // Store with customer info in items JSON
     const itemsWithMeta = {
       customerName: customer_name || company_name,
       companyName: company_name || customer_name,
-      notes: notes || "",
-      terms: terms || "Payment due within 30 days. Bank transfer to YABS account.",
+      subject: subject || "",
+      notes: notes || "Thank you for choosing YABS. You just made our day.",
+      terms: terms || "Payment due within 30 days. Thank you for choosing YABS.",
       lineItems: items,
     }
 
@@ -124,7 +133,7 @@ export async function POST(request: NextRequest) {
         invoiceNumber,
         clientId: client_id || null,
         subtotal,
-        vatPercentage: vatPercent,
+        vatPercentage: 0,
         vatAmount,
         totalAmount,
         discount: 0,

@@ -4,12 +4,14 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, Plus, Eye, Download, Send, FileText, X, Loader2, Trash2, CheckCircle2, Ban, CreditCard } from "lucide-react"
 import { AedIcon } from "@/components/ui/aed-icon"
 import { toast } from "sonner"
+import { serviceCatalog } from "@/lib/service-catalog"
 
 interface LineItem {
   name: string
   description: string
   rate: string
   quantity: string
+  tax: string // "5" or "0"
 }
 
 interface Invoice {
@@ -26,6 +28,18 @@ interface Invoice {
   line_items?: any[]
 }
 
+interface Client {
+  id: string
+  full_name: string
+  email?: string
+}
+
+interface Company {
+  id: string
+  name: string
+  created_by?: string
+}
+
 const statusColors: Record<string, string> = {
   paid: "bg-green-100 text-green-800",
   pending: "bg-yellow-100 text-yellow-800",
@@ -34,7 +48,7 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-gray-100 text-gray-500",
 }
 
-const emptyLineItem = (): LineItem => ({ name: "", description: "", rate: "", quantity: "1" })
+const emptyLineItem = (): LineItem => ({ name: "", description: "", rate: "", quantity: "1", tax: "5" })
 
 export default function InvoicesPage() {
   const [search, setSearch] = useState("")
@@ -48,12 +62,50 @@ export default function InvoicesPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   // Form state
+  const [clients, setClients] = useState<Client[]>([])
+  const [clientCompanies, setClientCompanies] = useState<Company[]>([])
+  const [selectedClientId, setSelectedClientId] = useState("")
   const [customerName, setCustomerName] = useState("")
   const [companyName, setCompanyName] = useState("")
+  const [subject, setSubject] = useState("")
   const [dueDate, setDueDate] = useState("")
-  const [notes, setNotes] = useState("")
-  const [terms, setTerms] = useState("Payment due within 30 days. Bank transfer to YABS account.")
+  const [notes, setNotes] = useState("Thank you for choosing YABS. You just made our day.")
+  const [terms, setTerms] = useState("Payment due within 30 days. Thank you for choosing YABS.")
   const [lineItems, setLineItems] = useState<LineItem[]>([emptyLineItem()])
+
+  // Load clients on mount
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const res = await fetch("/api/data/users?role=client")
+        const data = await res.json()
+        setClients(data.users || data || [])
+      } catch { setClients([]) }
+    }
+    loadClients()
+  }, [])
+
+  // Load companies when client changes
+  useEffect(() => {
+    if (!selectedClientId) { setClientCompanies([]); return }
+    const loadCompanies = async () => {
+      try {
+        const res = await fetch("/api/data/companies")
+        const data = await res.json()
+        const allCompanies = data.companies || data || []
+        const filtered = allCompanies.filter((c: any) => c.created_by === selectedClientId || c.createdBy === selectedClientId)
+        setClientCompanies(filtered.length > 0 ? filtered : allCompanies)
+      } catch { setClientCompanies([]) }
+    }
+    loadCompanies()
+  }, [selectedClientId])
+
+  const handleClientChange = (clientId: string) => {
+    setSelectedClientId(clientId)
+    const client = clients.find(c => c.id === clientId)
+    setCustomerName(client?.full_name || "")
+    setCompanyName("")
+  }
 
   const fetchInvoices = async () => {
     try {
@@ -88,9 +140,25 @@ export default function InvoicesPage() {
     setLineItems(updated)
   }
 
+  const handleServiceSelect = (i: number, serviceName: string) => {
+    const svc = serviceCatalog.find(s => s.name === serviceName)
+    const updated = [...lineItems]
+    updated[i] = {
+      ...updated[i],
+      name: serviceName,
+      rate: svc ? String(svc.base_price) : updated[i].rate,
+    }
+    setLineItems(updated)
+  }
+
+  // Per-item tax calculation
   const subtotal = lineItems.reduce((s, item) => s + (parseFloat(item.rate) || 0) * (parseInt(item.quantity) || 1), 0)
-  const vat = Math.round(subtotal * 5) / 100
-  const total = subtotal + vat
+  const totalTax = lineItems.reduce((s, item) => {
+    const itemTotal = (parseFloat(item.rate) || 0) * (parseInt(item.quantity) || 1)
+    const taxRate = parseFloat(item.tax) || 0
+    return s + Math.round(itemTotal * taxRate) / 100
+  }, 0)
+  const total = subtotal + totalTax
 
   const handleCreate = async () => {
     if (!customerName.trim()) { toast.error("Customer name is required"); return }
@@ -105,6 +173,8 @@ export default function InvoicesPage() {
         body: JSON.stringify({
           customer_name: customerName,
           company_name: companyName,
+          client_id: selectedClientId || undefined,
+          subject,
           due_date: dueDate || undefined,
           notes, terms,
           line_items: validItems.map(i => ({
@@ -112,6 +182,7 @@ export default function InvoicesPage() {
             description: i.description,
             rate: parseFloat(i.rate),
             quantity: parseInt(i.quantity) || 1,
+            tax: parseFloat(i.tax) || 0,
           })),
         }),
       })
@@ -119,7 +190,9 @@ export default function InvoicesPage() {
       if (!res.ok) throw new Error(data.error || "Failed")
       toast.success(`Invoice ${data.invoice.invoice_number} created!`)
       setShowForm(false)
-      setCustomerName(""); setCompanyName(""); setDueDate(""); setNotes("")
+      setCustomerName(""); setCompanyName(""); setDueDate(""); setNotes("Thank you for choosing YABS. You just made our day.")
+      setTerms("Payment due within 30 days. Thank you for choosing YABS.")
+      setSubject(""); setSelectedClientId("")
       setLineItems([emptyLineItem()])
       fetchInvoices()
     } catch (err: any) { toast.error(err.message || "Failed to create invoice") }
@@ -151,12 +224,19 @@ export default function InvoicesPage() {
     setActionLoading(null)
   }
 
+  // Group services by category for the dropdown
+  const servicesByCategory = serviceCatalog.reduce<Record<string, typeof serviceCatalog>>((acc, svc) => {
+    if (!acc[svc.category]) acc[svc.category] = []
+    acc[svc.category].push(svc)
+    return acc
+  }, {})
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Invoicing</h1>
-          <p className="text-sm text-gray-500">Create and manage invoices with UAE VAT (5%)</p>
+          <p className="text-sm text-gray-500">Create and manage tax invoices</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
           {showForm ? <><X className="h-4 w-4" /> Cancel</> : <><Plus className="h-4 w-4" /> New Invoice</>}
@@ -166,16 +246,38 @@ export default function InvoicesPage() {
       {/* Create Invoice Form */}
       {showForm && (
         <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-5">
-          <h2 className="text-lg font-semibold text-gray-900">Create New Invoice</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Create New Tax Invoice</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
-              <input value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Client name" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+              <select
+                value={selectedClientId}
+                onChange={e => handleClientChange(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+              >
+                <option value="">Select a client...</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.full_name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-              <input value={companyName} onChange={e => setCompanyName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Company name" />
+              <select
+                value={companyName}
+                onChange={e => setCompanyName(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+              >
+                <option value="">Select a company...</option>
+                {clientCompanies.map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+              <input value={subject} onChange={e => setSubject(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="e.g. Visa Processing for March 2026" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
@@ -191,38 +293,74 @@ export default function InvoicesPage() {
             </div>
             <div className="space-y-2">
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-1">
-                <div className="col-span-4">Item Name</div>
-                <div className="col-span-3">Description</div>
+                <div className="col-span-3">Item Name</div>
+                <div className="col-span-2">Description</div>
                 <div className="col-span-2">Rate (AED)</div>
                 <div className="col-span-1">Qty</div>
+                <div className="col-span-1">Tax</div>
+                <div className="col-span-1 text-right">Tax Amt</div>
                 <div className="col-span-1 text-right">Total</div>
                 <div className="col-span-1"></div>
               </div>
-              {lineItems.map((item, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                  <input value={item.name} onChange={e => updateLineItem(i, "name", e.target.value)} placeholder="e.g. Government Fees" className="col-span-4 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-                  <input value={item.description} onChange={e => updateLineItem(i, "description", e.target.value)} placeholder="Description" className="col-span-3 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-                  <input type="number" value={item.rate} onChange={e => updateLineItem(i, "rate", e.target.value)} placeholder="0.00" className="col-span-2 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-                  <input type="number" value={item.quantity} onChange={e => updateLineItem(i, "quantity", e.target.value)} placeholder="1" className="col-span-1 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-                  <div className="col-span-1 text-right text-sm font-medium text-gray-700">
-                    {((parseFloat(item.rate) || 0) * (parseInt(item.quantity) || 1)).toLocaleString()}
+              {lineItems.map((item, i) => {
+                const itemTotal = (parseFloat(item.rate) || 0) * (parseInt(item.quantity) || 1)
+                const taxAmt = Math.round(itemTotal * (parseFloat(item.tax) || 0)) / 100
+                return (
+                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                    <select
+                      value={item.name}
+                      onChange={e => handleServiceSelect(i, e.target.value)}
+                      className="col-span-3 rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                    >
+                      <option value="">Select service...</option>
+                      {Object.entries(servicesByCategory).map(([cat, svcs]) => (
+                        <optgroup key={cat} label={cat.charAt(0).toUpperCase() + cat.slice(1)}>
+                          {svcs.map(svc => (
+                            <option key={svc.id} value={svc.name}>{svc.name} (AED {svc.base_price})</option>
+                          ))}
+                          {cat === Object.keys(servicesByCategory)[0] && (
+                            <option value="Government Fees">Government Fees</option>
+                          )}
+                        </optgroup>
+                      ))}
+                      <option value="Government Fees">Government Fees</option>
+                      <option value="Service Charge">Service Charge</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <input value={item.description} onChange={e => updateLineItem(i, "description", e.target.value)} placeholder="Employee name / details" className="col-span-2 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                    <input type="number" value={item.rate} onChange={e => updateLineItem(i, "rate", e.target.value)} placeholder="0.00" className="col-span-2 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                    <input type="number" value={item.quantity} onChange={e => updateLineItem(i, "quantity", e.target.value)} placeholder="1" className="col-span-1 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                    <select
+                      value={item.tax}
+                      onChange={e => updateLineItem(i, "tax", e.target.value)}
+                      className="col-span-1 rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                    >
+                      <option value="5">5%</option>
+                      <option value="0">0%</option>
+                    </select>
+                    <div className="col-span-1 text-right text-xs text-gray-500">
+                      {taxAmt.toLocaleString()}
+                    </div>
+                    <div className="col-span-1 text-right text-sm font-medium text-gray-700">
+                      {(itemTotal + taxAmt).toLocaleString()}
+                    </div>
+                    <div className="col-span-1 text-center">
+                      {lineItems.length > 1 && (
+                        <button onClick={() => removeLineItem(i)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
+                      )}
+                    </div>
                   </div>
-                  <div className="col-span-1 text-center">
-                    {lineItems.length > 1 && (
-                      <button onClick={() => removeLineItem(i)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
           {/* Totals */}
           <div className="flex justify-end">
-            <div className="w-64 space-y-1 text-sm">
+            <div className="w-72 space-y-1 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-medium">AED {subtotal.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">VAT (5%)</span><span className="font-medium">AED {vat.toLocaleString()}</span></div>
-              <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold text-gray-900">Total</span><span className="font-bold text-[#1a3a6b] text-lg">AED {total.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Total Tax</span><span className="font-medium">AED {totalTax.toLocaleString()}</span></div>
+              <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold text-gray-900">Grand Total</span><span className="font-bold text-[#1a3a6b] text-lg">AED {total.toLocaleString()}</span></div>
             </div>
           </div>
 
