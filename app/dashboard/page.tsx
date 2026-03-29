@@ -44,7 +44,8 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const [companies, setCompanies] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
-  const [documents, setDocuments] = useState<{ count: number }>({ count: 0 })
+  const [documents, setDocuments] = useState<any[]>([])
+  const [documentsCount, setDocumentsCount] = useState(0)
   const [requests, setRequests] = useState<any[]>([])
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,7 +68,7 @@ export default function DashboardPage() {
           ])
           if (companiesRes.ok) setCompanies(await companiesRes.json())
           if (employeesRes.ok) setEmployees(await employeesRes.json())
-          if (documentsRes.ok) { const docs = await documentsRes.json(); setDocuments({ count: Array.isArray(docs) ? docs.length : 0 }) }
+          if (documentsRes.ok) { const docs = await documentsRes.json(); const arr = Array.isArray(docs) ? docs : []; setDocuments(arr); setDocumentsCount(arr.length) }
           if (requestsRes.ok) setRequests(await requestsRes.json())
           if (notifsRes.ok) {
             const d = await notifsRes.json()
@@ -78,19 +79,21 @@ export default function DashboardPage() {
           }
         } else {
           // Client: use aggregated dashboard endpoint + requests list + notifications
-          const [dashRes, requestsRes, notifsRes, employeesRes] = await Promise.all([
+          const [dashRes, requestsRes, notifsRes, employeesRes, docsRes] = await Promise.all([
             fetch("/api/client/dashboard"),
             fetch("/api/client/requests"),
             fetch("/api/notifications"),
             fetch("/api/client/employees"),
+            fetch("/api/client/documents"),
           ])
           if (dashRes.ok) {
             const dash = await dashRes.json()
             setCompanies(dash.companies || [])
-            setDocuments({ count: dash.documents || 0 })
+            setDocumentsCount(dash.documents || 0)
           }
           if (requestsRes.ok) setRequests(await requestsRes.json())
           if (employeesRes.ok) setEmployees(await employeesRes.json())
+          if (docsRes.ok) { const docs = await docsRes.json(); setDocuments(Array.isArray(docs) ? docs : []) }
           if (notifsRes.ok) {
             const d = await notifsRes.json()
             setNotifications((d.notifications || []).map((n: any) => ({
@@ -213,7 +216,7 @@ export default function DashboardPage() {
 
   const recentNotifications = [...notifications]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 4)
+    .slice(0, 6)
 
   function timeAgo(dateStr: string) {
     const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
@@ -227,205 +230,362 @@ export default function DashboardPage() {
     return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
   }
 
+  // --- Portfolio helpers (client only) ---
+  const totalEmployees = employees.length
+  const totalDocuments = isAdmin ? documentsCount : (documents.length || documentsCount)
+
+  function getCompanyEmployeeCount(companyId: string) {
+    return employees.filter((e: any) => e.company_id === companyId).length
+  }
+
+  function getCompanyDocCount(companyId: string) {
+    return documents.filter((d: any) => d.company_id === companyId).length
+  }
+
+  function getLicenseExpiryInfo(expiryDate: string | null | undefined) {
+    if (!expiryDate) return { label: "Not set", color: "text-gray-400", bg: "bg-gray-100" }
+    const now = new Date()
+    const expiry = new Date(expiryDate)
+    const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    if (daysLeft < 0) return { label: `Expired ${Math.abs(daysLeft)}d ago`, color: "text-red-700", bg: "bg-red-50" }
+    if (daysLeft <= 30) return { label: `${daysLeft}d left`, color: "text-amber-700", bg: "bg-amber-50" }
+    return { label: `${daysLeft}d left`, color: "text-green-700", bg: "bg-green-50" }
+  }
+
+  function getCompanyCompliance(company: any) {
+    // Compliance based on how many key expiry dates are populated
+    const fields = [
+      company.licenseExpiry || company.license_expiry,
+      company.establishmentCardExpiry || company.establishment_card_expiry,
+      company.chamberCommerceExpiry || company.chamber_commerce_expiry,
+      company.ejariTawtheeqExpiry || company.ejari_tawtheeq_expiry,
+      company.leaseExpiry || company.lease_expiry,
+    ]
+    const set = fields.filter(Boolean).length
+    return Math.round((set / fields.length) * 100)
+  }
+
+  function getLicenseTypeBadge(licenseType: string | null | undefined) {
+    const lt = (licenseType || "").toLowerCase()
+    if (lt.includes("free") || lt.includes("zone")) return { label: "Free Zone", bg: "bg-blue-50", text: "text-blue-700" }
+    if (lt.includes("mainland") || lt.includes("llc") || lt.includes("local")) return { label: "Mainland", bg: "bg-emerald-50", text: "text-emerald-700" }
+    if (lt.includes("offshore")) return { label: "Offshore", bg: "bg-purple-50", text: "text-purple-700" }
+    return { label: licenseType || "N/A", bg: "bg-gray-50", text: "text-gray-600" }
+  }
+
+  // --- Admin dashboard (unchanged) ---
+  if (isAdmin) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user?.full_name}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Admin Dashboard</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div className="flex items-center gap-2 mb-1"><Building2 className="h-4 w-4 text-[#1a3a6b]" /><span className="text-xs text-gray-500">Companies</span></div>
+            <p className="text-2xl font-bold text-gray-900">{companies.length}</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div className="flex items-center gap-2 mb-1"><Users className="h-4 w-4 text-green-600" /><span className="text-xs text-gray-500">Employees</span></div>
+            <p className="text-2xl font-bold text-gray-900">{employees.length}</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div className="flex items-center gap-2 mb-1"><FolderOpen className="h-4 w-4 text-purple-600" /><span className="text-xs text-gray-500">Documents</span></div>
+            <p className="text-2xl font-bold text-gray-900">{documentsCount}</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div className="flex items-center gap-2 mb-1"><Briefcase className="h-4 w-4 text-amber-600" /><span className="text-xs text-gray-500">Active Requests</span></div>
+            <p className="text-2xl font-bold text-gray-900">{activeRequests.length}</p>
+          </div>
+        </div>
+
+        {activeRequests.length > 0 && (
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Active Requests</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {activeRequests.slice(0, 6).map(req => {
+                const progress = getProgress(req.status)
+                return (
+                  <div key={req.id} className="bg-white rounded-2xl border border-gray-200 p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-sm">{req.service_type}</h3>
+                        {req.company_name && <p className="text-xs text-gray-500 mt-0.5">{req.company_name}</p>}
+                      </div>
+                      <span className="text-xs font-semibold text-[#1a3a6b]">{progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+                      <div className={`h-1.5 rounded-full transition-all ${getProgressColor(progress)}`} style={{ width: `${progress}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-500">{getStatusLabel(req.status)}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // --- Client Portfolio Dashboard ---
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user?.full_name}</h1>
-          {company && <p className="text-sm text-gray-500 mt-0.5">{company.name}{company.emirate ? ` · ${company.emirate}` : ""}</p>}
+
+      {/* Row 1: Welcome Banner */}
+      <div className="rounded-2xl p-6 md:p-8" style={{ background: "linear-gradient(135deg, #1a3a6b 0%, #15305a 60%, #0f2440 100%)" }}>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Welcome back, {user?.full_name}</h1>
+            <p className="text-sm text-white/70 mt-1">
+              Managing {companies.length} {companies.length === 1 ? "company" : "companies"} &middot; {totalEmployees} {totalEmployees === 1 ? "employee" : "employees"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { label: "Companies", value: companies.length, icon: Building2 },
+              { label: "Employees", value: totalEmployees, icon: Users },
+              { label: "Documents", value: totalDocuments, icon: FolderOpen },
+              { label: "Active Requests", value: activeRequests.length, icon: Briefcase },
+            ].map(stat => (
+              <div key={stat.label} className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 min-w-[120px]">
+                <stat.icon className="h-4 w-4 text-[#D4A843]" />
+                <div>
+                  <p className="text-lg font-bold text-white leading-tight">{stat.value}</p>
+                  <p className="text-[10px] text-white/60 uppercase tracking-wide">{stat.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Main Grid: Active Services + Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Row 2: My Companies Grid */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">My Companies</h2>
+          <Link href="/dashboard/company" className="text-sm text-[#1a3a6b] hover:underline flex items-center gap-1">
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {companies.map((co: any) => {
+            const empCount = getCompanyEmployeeCount(co.id)
+            const docCount = getCompanyDocCount(co.id)
+            const licenseExpiry = co.licenseExpiry || co.license_expiry
+            const expiryInfo = getLicenseExpiryInfo(licenseExpiry)
+            const licenseType = co.licenseType || co.license_type
+            const badge = getLicenseTypeBadge(licenseType)
+            const compliance = getCompanyCompliance(co)
+            const emirate = co.emirate || "UAE"
 
-        {/* Active Services — 2/3 */}
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-lg font-bold text-gray-900">Active Services Overview</h2>
+            return (
+              <div key={co.id} className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-[#1a3a6b]/30 hover:shadow-sm transition-all">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="min-w-0 flex-1 mr-3">
+                    <h3 className="font-bold text-gray-900 text-base truncate" title={co.name}>{co.name}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{emirate}</p>
+                  </div>
+                  <span className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ${badge.bg} ${badge.text}`}>
+                    {badge.label}
+                  </span>
+                </div>
 
-          {activeRequests.length === 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Empty state service cards */}
-              {["Trade License Renewal", "Visa Processing", "Company Formation"].map((name, i) => (
-                <div key={name} className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-6">
-                  <h3 className="font-bold text-gray-400 text-base">{name}</h3>
-                  <div className="mt-6">
-                    <Link href="/dashboard/requests" className="block w-full text-center bg-[#1a3a6b] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#15305a] transition-colors">
-                      Start New Request
-                    </Link>
+                {/* Stats row */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="bg-gray-50 rounded-lg px-3 py-2">
+                    <p className="text-xs text-gray-500">Employees</p>
+                    <p className="text-sm font-bold text-gray-900">{empCount}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg px-3 py-2">
+                    <p className="text-xs text-gray-500">Documents</p>
+                    <p className="text-sm font-bold text-gray-900">{docCount}</p>
                   </div>
                 </div>
-              ))}
+
+                {/* License expiry */}
+                <div className={`flex items-center gap-2 rounded-lg px-3 py-2 mb-3 ${expiryInfo.bg}`}>
+                  <Calendar className={`h-3.5 w-3.5 ${expiryInfo.color}`} />
+                  <span className={`text-xs font-medium ${expiryInfo.color}`}>
+                    License: {expiryInfo.label}
+                  </span>
+                </div>
+
+                {/* Compliance bar */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-gray-500">Compliance</span>
+                    <span className="text-[11px] font-semibold text-gray-700">{compliance}%</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full transition-all ${compliance >= 80 ? "bg-green-500" : compliance >= 50 ? "bg-amber-500" : "bg-red-400"}`}
+                      style={{ width: `${compliance}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* View Details */}
+                <Link
+                  href={`/dashboard/company?id=${co.id}`}
+                  className="block w-full text-center bg-[#1a3a6b] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#15305a] transition-colors"
+                >
+                  View Details
+                </Link>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Row 3: Active Requests + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Active Requests — 2/3 */}
+        <div className="lg:col-span-2">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Active Requests</h2>
+          {activeRequests.length === 0 ? (
+            <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center">
+              <FileText className="h-10 w-10 text-gray-200 mx-auto mb-3" />
+              <p className="text-sm text-gray-500 mb-1">No active requests</p>
+              <p className="text-xs text-gray-400 mb-4">Submit a new request to get started</p>
+              <Link href="/dashboard/requests" className="inline-flex items-center gap-2 bg-[#1a3a6b] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#15305a] transition-colors">
+                <Plus className="h-4 w-4" /> New Request
+              </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {activeRequests.slice(0, 4).map(req => {
+            <div className="space-y-3">
+              {activeRequests.slice(0, 6).map(req => {
                 const progress = getProgress(req.status)
                 return (
-                  <div key={req.id} className="bg-white rounded-2xl border-2 border-[#1a3a6b]/20 p-6 hover:border-[#1a3a6b]/40 transition-colors">
-                    <div className="flex items-start justify-between mb-4">
-                      <h3 className="font-bold text-gray-900 text-base">{req.service_type}</h3>
-                      <span className="text-sm font-semibold text-[#1a3a6b]">{progress}%</span>
+                  <div key={req.id} className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#1a3a6b]/20 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-gray-900 text-sm truncate">{req.service_type}</h3>
+                          {req.priority === "urgent" && (
+                            <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 uppercase">Urgent</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          {req.company_name && (
+                            <>
+                              <Building2 className="h-3 w-3" />
+                              <span className="truncate">{req.company_name}</span>
+                              <span className="text-gray-300">|</span>
+                            </>
+                          )}
+                          <span>{getStatusLabel(req.status)}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="text-right hidden sm:block">
+                          <span className="text-xs font-semibold text-[#1a3a6b]">{progress}%</span>
+                          <div className="w-20 bg-gray-200 rounded-full h-1.5 mt-1">
+                            <div className={`h-1.5 rounded-full ${getProgressColor(progress)}`} style={{ width: `${progress}%` }} />
+                          </div>
+                        </div>
+                        <Link href={`/dashboard/requests/${req.id}`} className="text-[#1a3a6b] hover:text-[#15305a] transition-colors">
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-                      <div className={`h-2 rounded-full transition-all ${getProgressColor(progress)}`} style={{ width: `${progress}%` }} />
+                  </div>
+                )
+              })}
+              {activeRequests.length > 6 && (
+                <Link href="/dashboard/requests" className="block text-center text-sm text-[#1a3a6b] hover:underline py-2">
+                  View all {activeRequests.length} requests
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions — 1/3 */}
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="space-y-3">
+            <Link href="/dashboard/requests"
+              className="flex items-center gap-3 w-full px-4 py-3.5 bg-[#1a3a6b] text-white rounded-xl hover:bg-[#15305a] transition-colors">
+              <div className="h-9 w-9 rounded-lg bg-white/15 flex items-center justify-center">
+                <Plus className="h-4 w-4" />
+              </div>
+              <span className="font-semibold text-sm">New Request</span>
+            </Link>
+            <Link href="/dashboard/documents"
+              className="flex items-center gap-3 w-full px-4 py-3.5 bg-white border border-gray-200 text-gray-900 rounded-xl hover:border-[#1a3a6b]/30 transition-colors">
+              <div className="h-9 w-9 rounded-lg bg-[#1a3a6b]/10 flex items-center justify-center">
+                <Upload className="h-4 w-4 text-[#1a3a6b]" />
+              </div>
+              <span className="font-semibold text-sm">Upload Document</span>
+            </Link>
+            <Link href="/dashboard/messages"
+              className="flex items-center gap-3 w-full px-4 py-3.5 bg-white border border-gray-200 text-gray-900 rounded-xl hover:border-[#1a3a6b]/30 transition-colors">
+              <div className="h-9 w-9 rounded-lg bg-[#1a3a6b]/10 flex items-center justify-center">
+                <MessageSquare className="h-4 w-4 text-[#1a3a6b]" />
+              </div>
+              <span className="font-semibold text-sm">Messages</span>
+            </Link>
+            <a href="https://wa.me/971565204844" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 w-full px-4 py-3.5 bg-white border border-gray-200 text-gray-900 rounded-xl hover:border-green-300 transition-colors">
+              <div className="h-9 w-9 rounded-lg bg-green-50 flex items-center justify-center">
+                <Phone className="h-4 w-4 text-green-600" />
+              </div>
+              <span className="font-semibold text-sm">WhatsApp Support</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 4: Recent Activity */}
+      <div>
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Recent Activity</h2>
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          {recentNotifications.length === 0 ? (
+            <div className="text-center py-8">
+              <Bell className="h-10 w-10 text-gray-200 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">No recent activity</p>
+              <p className="text-xs text-gray-400 mt-1">Updates will appear here as your services progress</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recentNotifications.map(n => {
+                const iconColors: Record<string, string> = {
+                  info: "bg-blue-100 text-blue-600",
+                  success: "bg-green-100 text-green-600",
+                  warning: "bg-amber-100 text-amber-600",
+                  error: "bg-red-100 text-red-600",
+                }
+                const icons: Record<string, typeof Info> = {
+                  info: FileText,
+                  success: CheckCircle2,
+                  warning: AlertTriangle,
+                  error: AlertCircle,
+                }
+                const Icon = icons[n.type] || FileText
+                return (
+                  <div key={n.id} className="flex items-start gap-3">
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${iconColors[n.type] || iconColors.info}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <p className="text-sm text-gray-500 mb-4">{getStatusLabel(req.status)}</p>
-                    <Link href={`/dashboard/requests/${req.id}`}
-                      className="block w-full text-center bg-[#1a3a6b] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#15305a] transition-colors">
-                      View Details
-                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900 leading-snug">{n.title}</p>
+                      {n.message && <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{n.message}</p>}
+                      <p className="text-[11px] text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
+                    </div>
                   </div>
                 )
               })}
             </div>
           )}
         </div>
-
-        {/* Right Column: Quick Actions + Recent Activity */}
-        <div className="space-y-6">
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="space-y-3">
-              <Link href="/dashboard/requests"
-                className="flex items-center gap-3 w-full px-4 py-3 bg-[#1a3a6b] text-white rounded-xl hover:bg-[#15305a] transition-colors">
-                <div className="h-8 w-8 rounded-lg bg-white/15 flex items-center justify-center">
-                  <Plus className="h-4 w-4" />
-                </div>
-                <span className="font-semibold text-sm">Start New Service</span>
-              </Link>
-              <Link href="/dashboard/documents"
-                className="flex items-center gap-3 w-full px-4 py-3 bg-[#1a3a6b] text-white rounded-xl hover:bg-[#15305a] transition-colors">
-                <div className="h-8 w-8 rounded-lg bg-white/15 flex items-center justify-center">
-                  <Upload className="h-4 w-4" />
-                </div>
-                <span className="font-semibold text-sm">Upload Document</span>
-              </Link>
-              <Link href="/consultation"
-                className="flex items-center gap-3 w-full px-4 py-3 bg-[#1a3a6b] text-white rounded-xl hover:bg-[#15305a] transition-colors">
-                <div className="h-8 w-8 rounded-lg bg-white/15 flex items-center justify-center">
-                  <Calendar className="h-4 w-4" />
-                </div>
-                <span className="font-semibold text-sm">Book Consultation</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Recent Activity</h2>
-            {recentNotifications.length === 0 ? (
-              <div className="text-center py-6">
-                <Bell className="h-8 w-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No recent activity</p>
-                <p className="text-xs text-gray-400 mt-1">Updates will appear here when your services progress</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {recentNotifications.map(n => {
-                  const iconColors: Record<string, string> = {
-                    info: "bg-blue-100 text-blue-600",
-                    success: "bg-green-100 text-green-600",
-                    warning: "bg-amber-100 text-amber-600",
-                    error: "bg-red-100 text-red-600",
-                  }
-                  const icons: Record<string, typeof Info> = {
-                    info: FileText,
-                    success: CheckCircle2,
-                    warning: AlertTriangle,
-                    error: AlertCircle,
-                  }
-                  const Icon = icons[n.type] || FileText
-                  return (
-                    <div key={n.id} className="flex items-start gap-3">
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${iconColors[n.type] || iconColors.info}`}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900 leading-snug">{n.title}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
-
-      {/* Bottom Row: Company Info + Compliance */}
-      {company && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Company Card */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">My Company</h2>
-              <Link href="/dashboard/company" className="text-sm text-[#1a3a6b] hover:underline flex items-center gap-1">
-                View All <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Building2 className="h-4 w-4 text-[#1a3a6b]" />
-                  <span className="text-xs text-gray-500">Company</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-900 truncate">{company.name}</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Users className="h-4 w-4 text-green-600" />
-                  <span className="text-xs text-gray-500">Employees</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-900">{employees.length}</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <FolderOpen className="h-4 w-4 text-purple-600" />
-                  <span className="text-xs text-gray-500">Documents</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-900">{documents.count}</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Briefcase className="h-4 w-4 text-amber-600" />
-                  <span className="text-xs text-gray-500">Active Requests</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-900">{activeRequests.length}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact PRO */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Contact Your PRO</h2>
-            <div className="flex items-center gap-4 mb-5">
-              <div className="h-14 w-14 rounded-full bg-[#1a3a6b] flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xl font-bold">Y</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">YABS PRO Team</p>
-                <p className="text-sm text-gray-500">Public Relations Management LLC</p>
-                <a href="tel:+971565204844" className="text-sm text-[#1a3a6b] hover:underline flex items-center gap-1 mt-0.5">
-                  <Phone className="h-3 w-3" /> +971 56 520 4844
-                </a>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Link href="/dashboard/messages" className="flex-1 text-center bg-[#1a3a6b] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#15305a] transition-colors">
-                Send Message
-              </Link>
-              <a href="https://wa.me/971565204844" target="_blank" rel="noopener noreferrer" className="flex-1 text-center bg-green-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors">
-                WhatsApp
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
