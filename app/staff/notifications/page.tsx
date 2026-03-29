@@ -40,8 +40,32 @@ export default function StaffNotificationsPage() {
   const unreadCount = notifications.filter(n => !n.isRead).length
   const filtered = tab === "unread" ? notifications.filter(n => !n.isRead) : notifications
 
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
-  const markRead = (id: string) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+  const markAllRead = async () => {
+    const unread = notifications.filter(n => !n.isRead)
+    try {
+      await Promise.all(unread.map(n =>
+        fetch(`/api/notifications`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: n.id, isRead: true }),
+        })
+      ))
+    } catch {}
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+  }
+  const markRead = async (id: string) => {
+    const n = notifications.find(n => n.id === id)
+    if (n && !n.isRead) {
+      try {
+        await fetch(`/api/notifications`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, isRead: true }),
+        })
+      } catch {}
+    }
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+  }
 
   if (loading) {
     return (

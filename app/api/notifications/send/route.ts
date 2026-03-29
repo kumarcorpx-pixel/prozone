@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { handleApiError } from "@/lib/api-error-handler"
+import { withAuth } from "@/lib/auth-middleware"
 import {
   notifyStatusUpdate, notifyDocumentReady, notifyExpiryWarning,
   notifyPaymentDue, notifyPaymentReceived, notifyRequestAssigned,
@@ -7,6 +8,9 @@ import {
 } from "@/lib/notifications"
 
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff"])
+  if (!auth.success) return auth.response
+
   try {
     const { type, clientId, staffId, data } = await request.json()
     if (!type) return NextResponse.json({ error: "Missing type" }, { status: 400 })

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Store in database
     try {
-      await prisma.contactSubmission.create({
+      await (prisma as any).contactSubmission?.create({
         data: {
           name: sanitizedData.name,
           email: sanitizedData.email,

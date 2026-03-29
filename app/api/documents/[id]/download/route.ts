@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { withAuth } from "@/lib/auth-middleware"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(
@@ -16,6 +16,12 @@ export async function GET(
 
     if (!doc || !doc.fileUrl) {
       return NextResponse.json({ error: "Document not found or no file attached" }, { status: 404 })
+    }
+
+    // Client scoping: verify the document belongs to one of the client's companies
+    const companyFilter = await getClientCompanyFilter(auth.user)
+    if (companyFilter && doc.companyId && !companyFilter.includes(doc.companyId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     // If file is stored locally (starts with /uploads/)

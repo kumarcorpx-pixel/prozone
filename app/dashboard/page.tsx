@@ -48,6 +48,7 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<any[]>([])
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const isAdmin = user?.role === "admin"
   const apiPrefix = isAdmin ? "/api/data" : "/api/client"
@@ -73,7 +74,9 @@ export default function DashboardPage() {
             is_read: n.isRead ?? n.is_read ?? false, created_at: n.createdAt || n.created_at || "",
           })))
         }
-      } catch {}
+      } catch (err: any) {
+        setError(err?.message || "Failed to load dashboard data. Please try again.")
+      }
       setLoading(false)
     }
     load()
@@ -82,6 +85,22 @@ export default function DashboardPage() {
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (error) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-center">
+        <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
+        <p className="text-lg font-medium text-gray-900">Something went wrong</p>
+        <p className="text-sm text-gray-500 mt-1">{error}</p>
+        <button
+          onClick={() => { setError(null); setLoading(true); window.location.reload() }}
+          className="mt-4 px-4 py-2 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
     </div>
   )
 

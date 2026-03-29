@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { handleApiError } from "@/lib/api-error-handler"
+import { withAuth } from "@/lib/auth-middleware"
 import {
   sendWelcomeEmail,
   sendRequestConfirmation,
@@ -12,6 +13,9 @@ import {
 } from "@/lib/email"
 
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff"])
+  if (!auth.success) return auth.response
+
   try {
     const { type, to, data } = await request.json()
 

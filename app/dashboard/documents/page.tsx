@@ -203,7 +203,25 @@ export default function DocumentsPage() {
                             </div>
                           </div>
                         </div>
-                        <button className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5">
+                        <button
+                          className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              const res = await fetch(`/api/documents/${doc.id}/download`)
+                              if (!res.ok) throw new Error("Download failed")
+                              const blob = await res.blob()
+                              const url = URL.createObjectURL(blob)
+                              const a = document.createElement("a")
+                              a.href = url
+                              a.download = doc.file_name || doc.name || "document"
+                              a.click()
+                              URL.revokeObjectURL(url)
+                            } catch {
+                              toast.error("Failed to download document")
+                            }
+                          }}
+                        >
                           <Download className="h-4 w-4" />
                         </button>
                       </div>

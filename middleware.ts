@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { jwtVerify } from "jose"
 
 const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/about", "/contact", "/services", "/faq", "/privacy", "/consultation", "/offline"]
-const publicApiPaths = ["/api/auth/login", "/api/auth/logout", "/api/auth/signup", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/google", "/api/auth/google/callback", "/api/auth/zoho", "/api/auth/zoho/callback", "/api/contact", "/api/consultation", "/api/health", "/api/services", "/api/activities"]
+const publicApiPaths = ["/api/auth/login", "/api/auth/logout", "/api/auth/signup", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/google", "/api/auth/google/callback", "/api/auth/zoho", "/api/auth/zoho/callback", "/api/contact", "/api/consultation", "/api/health", "/api/services"]
 const cronPaths = ["/api/cron/"]
 
 const ALLOWED_ORIGINS = [
@@ -10,7 +10,11 @@ const ALLOWED_ORIGINS = [
   "https://www.corporatepro.cloud",
 ]
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "yabs-pro-2026-secret-key-change-this")
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET
+  if (!secret) throw new Error("FATAL: JWT_SECRET environment variable is required")
+  return new TextEncoder().encode(secret)
+}
 
 function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return true
@@ -19,7 +23,7 @@ function isOriginAllowed(origin: string | null): boolean {
 
 async function verifyJWT(token: string): Promise<{ userId: string; email: string; role: string } | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET)
+    const { payload } = await jwtVerify(token, getJwtSecret())
     // Double-check expiry
     if (payload.exp && payload.exp * 1000 < Date.now()) {
       return null

@@ -62,7 +62,19 @@ export default function ClientNotificationsPage() {
           <p className="text-sm text-gray-500 mt-1">{unreadCount} unread notifications</p>
         </div>
         {unreadCount > 0 && (
-          <button onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))} className="text-sm text-[#1a3a6b] hover:underline">Mark all as read</button>
+          <button onClick={async () => {
+            const unread = notifications.filter(n => !n.read)
+            try {
+              await Promise.all(unread.map(n =>
+                fetch(`/api/notifications`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: n.id, isRead: true }),
+                })
+              ))
+            } catch {}
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+          }} className="text-sm text-[#1a3a6b] hover:underline">Mark all as read</button>
         )}
       </div>
 
@@ -81,7 +93,18 @@ export default function ClientNotificationsPage() {
           filtered.map(n => {
             const Icon = typeIcons[n.type] || Info
             return (
-              <div key={n.id} onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))} className={`flex gap-4 p-4 cursor-pointer transition-colors ${n.read ? "hover:bg-gray-50" : "bg-blue-50/30 hover:bg-blue-50/50"}`}>
+              <div key={n.id} onClick={async () => {
+                if (!n.read) {
+                  try {
+                    await fetch(`/api/notifications`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ id: n.id, isRead: true }),
+                    })
+                  } catch {}
+                }
+                setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
+              }} className={`flex gap-4 p-4 cursor-pointer transition-colors ${n.read ? "hover:bg-gray-50" : "bg-blue-50/30 hover:bg-blue-50/50"}`}>
                 <div className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ${typeColors[n.type]}`}><Icon className="h-4 w-4" /></div>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm ${n.read ? "text-gray-700" : "text-gray-900 font-medium"}`}>{n.title}</p>

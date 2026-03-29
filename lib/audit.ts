@@ -14,7 +14,7 @@ export async function logAudit(
         action,
         entityType: entityType || null,
         entityId: entityId || null,
-        details: details ? JSON.stringify(details) : null,
+        details: details ? JSON.stringify(details) : undefined,
       },
     })
   } catch (err) {

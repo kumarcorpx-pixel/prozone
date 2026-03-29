@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { handleApiError } from "@/lib/api-error-handler"
-import { withAuth } from "@/lib/auth-middleware"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 import prisma from "@/lib/prisma"
 
 export async function GET(
@@ -14,6 +14,12 @@ export async function GET(
     const { id } = await params
     const invoice = await prisma.invoice.findUnique({ where: { id } })
     if (!invoice) return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
+
+    // Client scoping: verify the invoice belongs to this client
+    const companyFilter = await getClientCompanyFilter(auth.user)
+    if (companyFilter && invoice.clientId !== auth.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
     let parsed: any = {}
     try { parsed = typeof invoice.items === "string" ? JSON.parse(invoice.items as string) : invoice.items } catch {}

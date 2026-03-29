@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { withAuth } from "@/lib/auth-middleware"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(request: NextRequest) {
@@ -18,12 +18,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Client scoping: restrict search results to client's companies
+    const companyFilter = await getClientCompanyFilter(auth.user)
+    const companyScope = companyFilter ? { id: { in: companyFilter } } : {}
+    const employeeScope = companyFilter ? { companyId: { in: companyFilter } } : {}
+    const documentScope = companyFilter ? { companyId: { in: companyFilter } } : {}
+
     const [companies, employees, documents] = await Promise.all([
       prisma.company.findMany({
         where: {
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { licenseNumber: { contains: q, mode: "insensitive" } },
+          AND: [
+            companyScope,
+            {
+              OR: [
+                { name: { contains: q, mode: "insensitive" } },
+                { licenseNumber: { contains: q, mode: "insensitive" } },
+              ],
+            },
           ],
         },
         take: 5,
@@ -31,16 +42,24 @@ export async function GET(request: NextRequest) {
       }),
       prisma.employee.findMany({
         where: {
-          fullName: { contains: q, mode: "insensitive" },
+          AND: [
+            employeeScope,
+            { fullName: { contains: q, mode: "insensitive" } },
+          ],
         },
         take: 5,
         orderBy: { createdAt: "desc" },
       }),
       prisma.document.findMany({
         where: {
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { documentType: { contains: q, mode: "insensitive" } },
+          AND: [
+            documentScope,
+            {
+              OR: [
+                { name: { contains: q, mode: "insensitive" } },
+                { documentType: { contains: q, mode: "insensitive" } },
+              ],
+            },
           ],
         },
         take: 5,

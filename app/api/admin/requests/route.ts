@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
       data: {
         serviceType: result.data.serviceType,
         companyId: result.data.companyId,
-        createdBy: auth.user.id,
+        clientId: auth.user.id,
         status: "pending",
       },
     })

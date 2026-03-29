@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, Plus, Eye, Download, Send, FileText, X, Loader2, Trash2, CheckCircle2, Ban, CreditCard } from "lucide-react"
 import { AedIcon } from "@/components/ui/aed-icon"
 import { toast } from "sonner"
@@ -68,7 +68,17 @@ export default function InvoicesPage() {
     setLoading(false)
   }
 
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debouncedFetch = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => { fetchInvoices() }, 300)
+  }, [search, statusFilter])
+
   useEffect(() => { fetchInvoices() }, [statusFilter])
+  useEffect(() => {
+    if (search !== undefined) debouncedFetch()
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [search])
 
   const addLineItem = () => setLineItems([...lineItems, emptyLineItem()])
   const removeLineItem = (i: number) => setLineItems(lineItems.filter((_, idx) => idx !== i))
@@ -267,7 +277,7 @@ export default function InvoicesPage() {
         </select>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && fetchInvoices()}
+          <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search invoices..." className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 text-sm" />
         </div>
       </div>

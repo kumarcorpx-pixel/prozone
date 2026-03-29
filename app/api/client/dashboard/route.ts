@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
           },
         }),
         prisma.document.count({
-          where: { createdById: user.id },
+          where: { company: { createdById: user.id } },
         }),
       ])
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const sixtyDaysFromNow = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
     const expiryAlerts = await prisma.document.findMany({
       where: {
-        createdById: user.id,
+        company: { createdById: user.id },
         expiryDate: {
           not: null,
           lte: sixtyDaysFromNow,

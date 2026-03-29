@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { readFile, writeFile, mkdir } from "fs/promises"
 import path from "path"
+import { withAuth } from "@/lib/auth-middleware"
 
 // DED Activity Master Data — searchable by name or code
 // This serves as a lightweight lookup for the business activities dropdown
@@ -266,6 +267,9 @@ export async function GET(request: NextRequest) {
 //   2. application/json with { "tsv": "..." } containing raw TSV text
 // ---------------------------------------------------------------------------
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin"])
+  if (!auth.success) return auth.response
+
   try {
     let tsvText = ""
 

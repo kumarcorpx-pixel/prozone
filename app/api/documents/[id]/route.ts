@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { withAuth } from "@/lib/auth-middleware"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
 import { onDocumentChange } from "@/lib/cache"
 import { logAudit } from "@/lib/audit"
@@ -19,6 +19,12 @@ export async function GET(
       include: { company: { select: { name: true } }, employee: { select: { fullName: true } } },
     })
     if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    // Client scoping: verify the document belongs to one of the client's companies
+    const companyFilter = await getClientCompanyFilter(auth.user)
+    if (companyFilter && doc.companyId && !companyFilter.includes(doc.companyId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
     return NextResponse.json({
       id: doc.id,

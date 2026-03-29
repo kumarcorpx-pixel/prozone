@@ -77,6 +77,8 @@ model User {
   avatarUrl       String?   @map("avatar_url")
   isActive        Boolean   @default(true) @map("is_active")
   lastLoginAt     DateTime? @map("last_login_at")
+  resetToken      String?   @map("reset_token")
+  resetTokenExpiry DateTime? @map("reset_token_expiry")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -148,6 +150,9 @@ model Company {
   serviceRequests ServiceRequest[]
   governmentFees  GovernmentFee[]
 
+  @@index([createdById])
+  @@index([status])
+  @@index([licenseExpiry])
   @@map("companies")
 }
 
@@ -193,6 +198,12 @@ model Employee {
 
   documents           Document[]
 
+  @@index([companyId])
+  @@index([status])
+  @@index([visaExpiry])
+  @@index([emiratesIdExpiry])
+  @@index([passportExpiry])
+  @@index([laborCardExpiry])
   @@map("employees")
 }
 
@@ -220,6 +231,10 @@ model Document {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([expiryDate])
+  @@index([documentType])
   @@map("documents")
 }
 
@@ -261,6 +276,11 @@ model ServiceRequest {
   governmentFees  GovernmentFee[]
   invoices        Invoice[]
 
+  @@index([clientId])
+  @@index([companyId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([createdAt])
   @@map("service_requests")
 }
 
@@ -274,13 +294,14 @@ model RequestTimeline {
   createdBy   User?    @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now()) @map("created_at")
 
+  @@index([requestId])
   @@map("request_timeline")
 }
 
 model Invoice {
   id              String        @id @default(uuid())
   requestId       String?       @map("request_id")
-  request         ServiceRequest? @relation(fields: [requestId], references: [id])
+  request         ServiceRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
   clientId        String?       @map("client_id")
   invoiceNumber   String        @unique @map("invoice_number")
   items           Json?
@@ -296,15 +317,18 @@ model Invoice {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
+  @@index([clientId])
+  @@index([requestId])
+  @@index([status])
   @@map("invoices")
 }
 
 model GovernmentFee {
   id              String    @id @default(uuid())
   requestId       String?   @map("request_id")
-  request         ServiceRequest? @relation(fields: [requestId], references: [id])
+  request         ServiceRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
   companyId       String?   @map("company_id")
-  company         Company?  @relation(fields: [companyId], references: [id])
+  company         Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
   feeType         String    @map("fee_type")
   description     String?
   amount          Decimal   @db.Decimal(10, 2)
@@ -314,6 +338,8 @@ model GovernmentFee {
   paidDate        DateTime? @map("paid_date")
   createdAt       DateTime  @default(now()) @map("created_at")
 
+  @@index([requestId])
+  @@index([companyId])
   @@map("government_fees")
 }
 
@@ -328,6 +354,9 @@ model Notification {
   link      String?
   createdAt DateTime         @default(now()) @map("created_at")
 
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
   @@map("notifications")
 }
 
@@ -342,6 +371,9 @@ model ActivityLog {
   ipAddress  String?  @map("ip_address")
   createdAt  DateTime @default(now()) @map("created_at")
 
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
   @@map("activity_log")
 }
 
@@ -357,6 +389,9 @@ model Message {
   isRead     Boolean  @default(false) @map("is_read")
   createdAt  DateTime @default(now()) @map("created_at")
 
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([requestId])
   @@map("messages")
 }
 

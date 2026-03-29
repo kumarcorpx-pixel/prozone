@@ -261,7 +261,21 @@ export default function SettingsPage() {
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
             />
           </div>
-          <button className="px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors">
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/auth/profile", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name, email, phone }),
+                })
+                const data = await res.json()
+                if (res.ok) toast.success("Profile updated")
+                else toast.error(data.error || "Failed to update profile")
+              } catch { toast.error("Failed to update profile") }
+            }}
+            className="px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+          >
             Save Changes
           </button>
           {/* Change Password */}

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     const users = await prisma.user.findMany({
-      where: { role },
+      where: { role: role as any },
       orderBy: { createdAt: "desc" },
     })
     const mapped = users.map((u: any) => ({

@@ -61,10 +61,18 @@ function formatAED(amount: number): string {
   return `AED ${amount.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
+function escapeCSVField(value: any): string {
+  const str = String(value ?? "")
+  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+    return '"' + str.replace(/"/g, '""') + '"'
+  }
+  return str
+}
+
 function downloadCSV(data: any[], filename: string) {
   if (!data.length) return
-  const headers = Object.keys(data[0]).join(",")
-  const rows = data.map(r => Object.values(r).join(",")).join("\n")
+  const headers = Object.keys(data[0]).map(escapeCSVField).join(",")
+  const rows = data.map(r => Object.values(r).map(escapeCSVField).join(",")).join("\n")
   const blob = new Blob([headers + "\n" + rows], { type: "text/csv" })
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")

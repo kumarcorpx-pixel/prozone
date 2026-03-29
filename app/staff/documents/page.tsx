@@ -90,6 +90,21 @@ export default function StaffDocumentsPage() {
               <button
                 className="flex-shrink-0 p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                 title="Download"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/documents/${doc.id}/download`)
+                    if (!res.ok) throw new Error("Download failed")
+                    const blob = await res.blob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement("a")
+                    a.href = url
+                    a.download = doc.file_name || doc.name || "document"
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  } catch {
+                    // Silently fail or could add toast if available
+                  }
+                }}
               >
                 <Download className="h-4 w-4" />
               </button>

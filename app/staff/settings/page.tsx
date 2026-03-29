@@ -18,9 +18,24 @@ export default function StaffSettingsPage() {
   const [newPw, setNewPw] = useState("")
   const [changingPw, setChangingPw] = useState(false)
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const handleSave = async () => {
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, phone }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+        toast.success("Profile updated")
+      } else {
+        toast.error(data.error || "Failed to update profile")
+      }
+    } catch {
+      toast.error("Failed to update profile")
+    }
   }
 
   const handleChangePassword = async () => {

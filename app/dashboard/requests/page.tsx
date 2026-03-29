@@ -43,6 +43,7 @@ export default function ClientRequestsPage() {
   const [requests, setRequests] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [timelines, setTimelines] = useState<Record<string, any[]>>({})
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState(defaultRequestForm)
@@ -55,7 +56,24 @@ export default function ClientRequestsPage() {
           fetch("/api/client/requests"),
           fetch("/api/client/companies"),
         ])
-        if (requestsRes.ok) setRequests(await requestsRes.json())
+        if (requestsRes.ok) {
+          const reqs = await requestsRes.json()
+          setRequests(reqs)
+          // Fetch timelines for each request to track actual progress
+          const timelineEntries: Record<string, any[]> = {}
+          await Promise.all(
+            reqs.map(async (r: any) => {
+              try {
+                const tlRes = await fetch(`/api/requests/${r.id}/timeline`)
+                if (tlRes.ok) {
+                  const tlData = await tlRes.json()
+                  timelineEntries[r.id] = Array.isArray(tlData) ? tlData : (tlData.timeline || [])
+                }
+              } catch {}
+            })
+          )
+          setTimelines(timelineEntries)
+        }
         if (companiesRes.ok) setCompanies(await companiesRes.json())
       } catch {}
       setLoading(false)
@@ -210,7 +228,8 @@ export default function ClientRequestsPage() {
       <div className="space-y-4">
         {filtered.map(req => {
           const steps = getChecklistForServiceType(req.service_type)
-          const completedSteps = Math.min(Math.floor(steps.length * 0.4), steps.length)
+          const timelineEntries = timelines[req.id] || []
+          const completedSteps = Math.min(timelineEntries.length, steps.length)
           return (
             <Link key={req.id} href={`/dashboard/requests/${req.id}`} className="block bg-white rounded-xl ring-1 ring-gray-200 p-5 hover:ring-[#1a3a6b]/30 hover:shadow-md transition-all">
               <div className="flex items-start justify-between gap-4">

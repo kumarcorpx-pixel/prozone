@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { withAuth } from "@/lib/auth-middleware"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
 import { handleApiError } from "@/lib/api-error-handler"
 import { onEmployeeChange } from "@/lib/cache"
 import { logAudit } from "@/lib/audit"
@@ -24,6 +24,12 @@ export async function GET(
         { error: "Employee not found" },
         { status: 404 }
       )
+    }
+
+    // Client scoping: verify the employee belongs to one of the client's companies
+    const companyFilter = await getClientCompanyFilter(auth.user)
+    if (companyFilter && !companyFilter.includes(e.companyId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const mapped = {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import prisma from "@/lib/prisma"
 import { dispatchStaffAssignment } from "@/lib/notify-dispatch"
 
@@ -55,38 +54,40 @@ export async function runNewRequestWorkflow(requestId: string) {
     staffMembers.sort((a: any, b: any) => a._count.assignedRequests - b._count.assignedRequests)
     const selectedStaff = staffMembers[0]
 
-    // Update the request with the assignment
-    await prisma.serviceRequest.update({
-      where: { id: requestId },
-      data: {
-        assignedToId: selectedStaff.id,
-        status: "assigned",
-      },
-    })
-
-    // Step 2: Create timeline entry
-    await prisma.requestTimeline.create({
-      data: {
-        requestId: requestId,
-        status: "assigned",
-        message: `Auto-assigned to ${selectedStaff.fullName}`,
-        createdById: selectedStaff.id,
-      },
-    })
-
-    // Step 3: Create DB notification for the assigned staff
-    await prisma.notification.create({
-      data: {
-        userId: selectedStaff.id,
-        title: "New Task Assigned",
-        message: `You have been assigned a new ${request.serviceType || "service"} request${request.company ? ` for ${request.company.name}` : ""}`,
-        type: "info",
-        isRead: false,
-        link: `/staff/requests/${requestId}`,
-      },
-    })
+    // Steps 2-4 in a transaction to prevent partial updates
+    await prisma.$transaction([
+      // Update the request with the assignment
+      prisma.serviceRequest.update({
+        where: { id: requestId },
+        data: {
+          assignedToId: selectedStaff.id,
+          status: "assigned",
+        },
+      }),
+      // Create timeline entry
+      prisma.requestTimeline.create({
+        data: {
+          requestId: requestId,
+          status: "assigned",
+          message: `Auto-assigned to ${selectedStaff.fullName}`,
+          createdById: selectedStaff.id,
+        },
+      }),
+      // Create DB notification for the assigned staff
+      prisma.notification.create({
+        data: {
+          userId: selectedStaff.id,
+          title: "New Task Assigned",
+          message: `You have been assigned a new ${request.serviceType || "service"} request${request.company ? ` for ${request.company.name}` : ""}`,
+          type: "info",
+          isRead: false,
+          link: `/staff/requests/${requestId}`,
+        },
+      }),
+    ])
 
     // Step 4: Dispatch multi-channel notifications (WhatsApp + email + push)
+    // This is outside the transaction as external calls shouldn't block DB ops
     await dispatchStaffAssignment({
       id: requestId,
       serviceType: request.serviceType || "Service Request",
@@ -96,7 +97,7 @@ export async function runNewRequestWorkflow(requestId: string) {
     })
 
     console.log(`[Workflow] Request ${requestId} auto-assigned to ${selectedStaff.fullName}`)
-  } catch (err: any) {
-    console.error("[Workflow] Error processing request:", requestId, err.message)
+  } catch (err) {
+    console.error("[Workflow] Error processing request:", requestId, err instanceof Error ? err.message : "unknown")
   }
 }
