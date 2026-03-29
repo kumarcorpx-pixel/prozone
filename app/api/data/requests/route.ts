@@ -77,6 +77,11 @@ export async function GET(request: NextRequest) {
       requests = await prisma.serviceRequest.findMany({
         where,
         orderBy: { createdAt: "desc" },
+        include: {
+          client: { select: { fullName: true } },
+          company: { select: { name: true } },
+          assignedTo: { select: { fullName: true } },
+        },
       })
     } catch {
       // Table might not exist
@@ -97,6 +102,9 @@ export async function GET(request: NextRequest) {
       completed_date: r.completedDate,
       created_at: r.createdAt,
       updated_at: r.updatedAt,
+      client_name: r.client?.fullName || null,
+      company_name: r.company?.name || null,
+      assignee_name: r.assignedTo?.fullName || null,
     }))
 
     return NextResponse.json(mapped)

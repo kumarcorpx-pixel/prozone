@@ -20,6 +20,11 @@ export async function GET(
 
     const r = await prisma.serviceRequest.findUnique({
       where: { id },
+      include: {
+        client: { select: { fullName: true, email: true } },
+        company: { select: { name: true } },
+        assignedTo: { select: { fullName: true, email: true, phone: true } },
+      },
     })
 
     if (!r) {
@@ -48,6 +53,12 @@ export async function GET(
       completed_date: r.completedDate,
       created_at: r.createdAt,
       updated_at: r.updatedAt,
+      client_name: (r as any).client?.fullName || null,
+      client_email: (r as any).client?.email || null,
+      company_name: (r as any).company?.name || null,
+      assignee_name: (r as any).assignedTo?.fullName || null,
+      assignee_email: (r as any).assignedTo?.email || null,
+      assignee_phone: (r as any).assignedTo?.phone || null,
     }
 
     return NextResponse.json(mapped)
@@ -94,6 +105,31 @@ export async function PATCH(
       data,
       include: { company: { select: { name: true } } },
     })
+
+    // Auto-record timeline entry on status change
+    if (body.status && old && body.status !== old.status) {
+      prisma.requestTimeline.create({
+        data: {
+          requestId: id,
+          status: body.status,
+          message: `Status changed to ${body.status.replace(/_/g, " ")}`,
+          createdById: auth.user.id,
+        },
+      }).catch(() => {})
+    }
+
+    // Auto-record timeline entry on assignment change
+    if (data.assignedToId && data.assignedToId !== old?.assignedToId) {
+      const staff = await prisma.user.findUnique({ where: { id: data.assignedToId }, select: { fullName: true } }).catch(() => null)
+      prisma.requestTimeline.create({
+        data: {
+          requestId: id,
+          status: "assigned",
+          message: `Assigned to ${staff?.fullName || "staff member"}`,
+          createdById: auth.user.id,
+        },
+      }).catch(() => {})
+    }
 
     // Dispatch notifications on status change
     if (body.status && old && body.status !== old.status) {

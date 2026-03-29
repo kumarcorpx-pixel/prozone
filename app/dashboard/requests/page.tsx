@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { createServiceRequest, getSession } from "@/lib/api"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
+import { serviceCatalog, getCategories } from "@/lib/service-catalog"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Plus, Calendar, User, ArrowRight, X, Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -14,22 +15,6 @@ const priorityColors: Record<string, string> = {
   medium: "bg-yellow-100 text-yellow-700", low: "bg-gray-100 text-gray-600",
 }
 
-const commonServices = [
-  "New Visa Application",
-  "Visa Renewal",
-  "Visa Cancellation",
-  "Emirates ID New/Renewal",
-  "Trade License Renewal",
-  "License Amendment",
-  "Establishment Card Renewal",
-  "Labor Card New/Renewal",
-  "Medical Fitness Test",
-  "Entry Permit",
-  "Status Change",
-  "Document Attestation",
-  "PRO Typing Services",
-  "Other",
-]
 
 const defaultRequestForm = {
   company_id: "",

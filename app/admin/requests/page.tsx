@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { fetchRequests, fetchProfiles, fetchCompanies } from "@/lib/data-fetcher"
 import { createServiceRequest } from "@/lib/api"
+import { serviceCatalog, getCategories } from "@/lib/service-catalog"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, FileText, Plus, X, Loader2 } from "lucide-react"
 import Link from "next/link"
@@ -103,7 +104,7 @@ export default function RequestsPage() {
 
   const filtered = requests.filter((r) => {
     const matchesSearch =
-      (r.company?.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (r.company_name || "").toLowerCase().includes(search.toLowerCase()) ||
       (r.service_type || "").toLowerCase().includes(search.toLowerCase()) ||
       (r.description || "").toLowerCase().includes(search.toLowerCase())
     const matchesStatus = statusFilter === "all" || r.status === statusFilter
@@ -159,13 +160,20 @@ export default function RequestsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Service Type *</label>
-              <input
-                type="text"
+              <select
                 value={formData.service_type}
                 onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
-                placeholder="e.g. Visa Renewal, License Amendment"
-              />
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
+              >
+                <option value="">Select a service</option>
+                {getCategories().map((cat) => (
+                  <optgroup key={cat} label={cat.charAt(0).toUpperCase() + cat.slice(1)}>
+                    {serviceCatalog.filter(s => s.category === cat).map((s) => (
+                      <option key={s.id} value={s.name}>{s.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
@@ -275,10 +283,10 @@ export default function RequestsPage() {
                 <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-gray-900 font-medium">
                     <Link href={`/admin/requests/${req.id}`} prefetch={false} className="hover:text-[#1a3a6b]">
-                      {req.client?.full_name || "N/A"}
+                      {req.client_name || "N/A"}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{req.company?.name || "N/A"}</td>
+                  <td className="px-6 py-4 text-gray-600">{req.company_name || "N/A"}</td>
                   <td className="px-6 py-4">
                     <Link href={`/admin/requests/${req.id}`} prefetch={false} className="text-[#1a3a6b] font-medium underline hover:text-[#15305a]">
                       {req.service_type}
@@ -290,7 +298,7 @@ export default function RequestsPage() {
                       {req.priority.charAt(0).toUpperCase() + req.priority.slice(1)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{req.assignee?.full_name || "Unassigned"}</td>
+                  <td className="px-6 py-4 text-gray-600">{req.assignee_name || "Unassigned"}</td>
                   <td className="px-6 py-4 text-gray-500">{new Date(req.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}

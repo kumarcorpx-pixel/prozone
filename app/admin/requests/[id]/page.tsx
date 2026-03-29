@@ -5,7 +5,6 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { fetchDocuments } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
-import { fetchRequests } from "@/lib/data-fetcher"
 import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/api"
 import type { ServiceRequest, RequestTimeline } from "@/lib/types"
 import { toast } from "sonner"
@@ -38,34 +37,38 @@ export default function AdminRequestDetailPage() {
   const [realTimeline, setRealTimeline] = useState<any[]>([])
   const [governmentFees, setGovernmentFees] = useState<any[]>([])
   const [realDocs, setRealDocs] = useState<any[]>([])
+  const [staffList, setStaffList] = useState<any[]>([])
+  const [assignedTo, setAssignedTo] = useState<string>("")
 
   useEffect(() => {
     async function load() {
-      const requests = await fetchRequests()
-      const found = requests.find((r: any) => r.id === requestId)
-      const req = found || requests[0]
-      setRequest(req)
-      if (req) {
-        setStatus(req.status)
-        // Fetch real documents for this request's company
-        try {
-          const docs = await fetchDocuments(req.company_id)
-          setRealDocs(docs)
-        } catch {}
-      }
-      // Try to load real timeline
+      // Fetch the single request directly by ID
+      try {
+        const reqRes = await fetch(`/api/data/requests/${requestId}`)
+        if (reqRes.ok) {
+          const reqData = await reqRes.json()
+          setRequest(reqData)
+          setStatus(reqData.status)
+          setAssignedTo(reqData.assigned_to || "")
+          if (reqData.government_fees) setGovernmentFees(reqData.government_fees)
+          // Fetch real documents for this request's company
+          try {
+            const docs = await fetchDocuments(reqData.company_id)
+            setRealDocs(docs)
+          } catch {}
+        }
+      } catch {}
+      // Load real timeline
       try {
         const timeline = await getRequestTimeline(requestId)
         setRealTimeline(timeline)
-      } catch {
-        // Fallback: no real timeline available
-      }
-      // Try to load government fees
+      } catch {}
+      // Load staff list for assignment dropdown
       try {
-        const feeRes = await fetch(`/api/data/requests/${requestId}`)
-        if (feeRes.ok) {
-          const feeData = await feeRes.json()
-          if (feeData.government_fees) setGovernmentFees(feeData.government_fees)
+        const staffRes = await fetch("/api/data/users?role=pro_staff")
+        if (staffRes.ok) {
+          const staffData = await staffRes.json()
+          setStaffList(Array.isArray(staffData) ? staffData : staffData.users || [])
         }
       } catch {}
       setLoading(false)
@@ -119,8 +122,8 @@ export default function AdminRequestDetailPage() {
       } as Omit<RequestTimeline, "id" | "created_at" | "creator">)
       toast.success("Status updated")
       // Refresh
-      const requests = await fetchRequests()
-      setRequest(requests.find((r: any) => r.id === requestId))
+      const reqRes = await fetch(`/api/data/requests/${requestId}`)
+      if (reqRes.ok) setRequest(await reqRes.json())
       const timeline = await getRequestTimeline(requestId)
       setRealTimeline(timeline)
     } catch (err: any) {
@@ -184,7 +187,7 @@ export default function AdminRequestDetailPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{request.service_type}</h1>
-          <p className="text-sm text-gray-500">{request.company?.name} &middot; {new Date(request.created_at).toLocaleDateString()}</p>
+          <p className="text-sm text-gray-500">{request.company_name || "N/A"} &middot; {new Date(request.created_at).toLocaleDateString()}</p>
         </div>
         <div className="ml-auto">
           <StatusBadge status={status} />
@@ -216,10 +219,10 @@ export default function AdminRequestDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { label: "Service Type", value: request.service_type },
-                { label: "Company", value: request.company?.name || "N/A" },
-                { label: "Client", value: request.client?.full_name || "N/A" },
+                { label: "Company", value: request.company_name || "N/A" },
+                { label: "Client", value: request.client_name || "N/A" },
                 { label: "Priority", value: request.priority },
-                { label: "Assigned To", value: request.assignee?.full_name || "Unassigned" },
+                { label: "Assigned To", value: request.assignee_name || "Unassigned" },
                 { label: "Created", value: new Date(request.created_at).toLocaleDateString() },
                 { label: "Due Date", value: request.due_date ? new Date(request.due_date).toLocaleDateString() : "Not set" },
                 { label: "Description", value: request.description || "No description" },
@@ -230,22 +233,50 @@ export default function AdminRequestDetailPage() {
                 </div>
               ))}
             </div>
-            <div className="border-t pt-4 flex items-end gap-3">
-              <div className="flex-1">
-                <label className="text-sm font-medium text-gray-700">Update Status</label>
-                <select
-                  value={status}
-                  onChange={e => setStatus(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                >
-                  {statusOptions.map(s => (
-                    <option key={s} value={s}>{s.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</option>
-                  ))}
-                </select>
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">Update Status</label>
+                  <select
+                    value={status}
+                    onChange={e => setStatus(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  >
+                    {statusOptions.map(s => (
+                      <option key={s} value={s}>{s.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</option>
+                    ))}
+                  </select>
+                </div>
+                <button onClick={handleStatusUpdate} className="px-4 py-2 bg-[#1a3a6b] text-white text-sm rounded-lg hover:bg-[#15305a]">
+                  Update
+                </button>
               </div>
-              <button onClick={handleStatusUpdate} className="px-4 py-2 bg-[#1a3a6b] text-white text-sm rounded-lg hover:bg-[#15305a]">
-                Update
-              </button>
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">Assign Staff</label>
+                  <select
+                    value={assignedTo}
+                    onChange={async (e) => {
+                      const staffId = e.target.value
+                      setAssignedTo(staffId)
+                      try {
+                        await updateServiceRequest(request.id, { assigned_to: staffId || null })
+                        toast.success("Staff assignment updated")
+                        const reqRes = await fetch(`/api/data/requests/${requestId}`)
+                        if (reqRes.ok) setRequest(await reqRes.json())
+                      } catch (err: any) {
+                        toast.error(err?.message || "Failed to assign staff")
+                      }
+                    }}
+                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  >
+                    <option value="">Unassigned</option>
+                    {staffList.map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.full_name || s.email}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         )}

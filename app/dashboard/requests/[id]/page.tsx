@@ -28,7 +28,8 @@ export default function ClientRequestDetailPage() {
         const requestsRes = await fetch("/api/client/requests")
         const requests = requestsRes.ok ? await requestsRes.json() : []
         const found = requests.find((r: any) => r.id === requestId)
-        const req = found || requests[0]
+        if (!found) { setLoading(false); return }
+        const req = found
         setRequest(req)
         if (req) {
           // Load documents for this request's company
@@ -82,7 +83,7 @@ export default function ClientRequestDetailPage() {
   }
 
   const steps = getChecklistForServiceType(request.service_type)
-  const completedSteps = Math.min(Math.floor(steps.length * 0.4), steps.length)
+  const completedSteps = Math.min(timeline.length, steps.length)
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) return
@@ -124,7 +125,7 @@ export default function ClientRequestDetailPage() {
         <Link href="/dashboard/requests" className="p-2 rounded-lg hover:bg-gray-100"><ArrowLeft className="h-5 w-5 text-gray-500" /></Link>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-gray-900">{request.service_type}</h1>
-          <p className="text-sm text-gray-500">{request.company?.name} &middot; {new Date(request.created_at).toLocaleDateString()}</p>
+          <p className="text-sm text-gray-500">{request.company_name || "N/A"} &middot; {new Date(request.created_at).toLocaleDateString()}</p>
         </div>
         <StatusBadge status={request.status} />
       </div>
@@ -170,7 +171,8 @@ export default function ClientRequestDetailPage() {
               </div>
             )}
             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-[#1a3a6b]">PRO Officer: <strong>{request.assignee?.full_name || "Assigned Staff"}</strong></p>
+              <p className="text-sm text-[#1a3a6b]">PRO Officer: <strong>{request.assignee_name || "Assigned Staff"}</strong></p>
+              {request.assignee_phone && <p className="text-xs text-gray-500 mt-0.5">Contact: {request.assignee_phone}</p>}
               <p className="text-xs text-gray-500 mt-1">Last updated: {new Date(request.updated_at || request.created_at).toLocaleDateString()}</p>
             </div>
           </div>

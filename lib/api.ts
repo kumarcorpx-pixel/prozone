@@ -121,11 +121,13 @@ export async function uploadFile(file: File, path: string): Promise<string> {
 // ============ TIMELINE ============
 export async function addTimelineEntry(entry: any) {
   const reqId = entry.requestId || entry.request_id || ""
-  const res = await fetch(`/api/data/requests/${reqId}`, {
-    method: "PATCH",
+  if (!reqId) return entry
+  const res = await fetch(`/api/data/requests/${reqId}/timeline`, {
+    method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ timeline_entry: entry }),
+    body: JSON.stringify({ message: entry.message || entry.description, status: entry.status }),
   })
+  if (res.ok) return await res.json()
   return entry
 }
 
@@ -138,6 +140,15 @@ export async function getRequestTimeline(requestId: string) {
   } catch {
     return []
   }
+}
+
+// ============ SERVICE CATALOG ============
+export async function getServiceCatalog() {
+  try {
+    const res = await fetch("/api/services")
+    if (res.ok) return await res.json()
+  } catch {}
+  return []
 }
 
 // ============ STUBS ============
