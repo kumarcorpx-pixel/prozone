@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     try {
       const activities = await prisma.activityLog.findMany({
         where,
+        include: { user: { select: { fullName: true, role: true } } },
         orderBy: { createdAt: "desc" },
         take: 100,
       })
@@ -38,6 +39,8 @@ export async function GET(request: NextRequest) {
       const mapped = activities.map((a: any) => ({
         id: a.id,
         user_id: a.userId,
+        user_name: a.user?.fullName || null,
+        user_role: a.user?.role || null,
         action: a.action,
         entity_type: a.entityType,
         entity_id: a.entityId,
