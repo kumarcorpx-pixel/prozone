@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { serviceCatalog, getCategories } from "@/lib/service-catalog"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Plus, Calendar, User, ArrowRight, X, Loader2 } from "lucide-react"
+import { Plus, Calendar, User, ArrowRight, X, Loader2, Upload, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 
 const tabs = ["all", "active", "completed", "cancelled"] as const
@@ -28,6 +28,7 @@ export default function ClientRequestsPage() {
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState(defaultRequestForm)
+  const [attachments, setAttachments] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -69,9 +70,22 @@ export default function ClientRequestsPage() {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error || "Failed to submit request")
       }
-      toast.success("Request submitted successfully")
+      const newReq = await res.json()
+      // Upload attachments if any
+      if (attachments.length > 0 && newReq.request?.id) {
+        for (const file of attachments) {
+          const fd = new FormData()
+          fd.append("file", file)
+          fd.append("name", file.name)
+          fd.append("companyId", formData.companyId || "general")
+          fd.append("documentType", "other")
+          await fetch("/api/documents/upload", { method: "POST", body: fd }).catch(() => {})
+        }
+      }
+      toast.success("Request submitted successfully" + (attachments.length ? ` with ${attachments.length} attachment(s)` : ""))
       setShowAddForm(false)
       setFormData(defaultRequestForm)
+      setAttachments([])
       const updatedRes = await fetch("/api/client/requests")
       if (updatedRes.ok) setRequests(await updatedRes.json())
     } catch (err: any) {
@@ -164,9 +178,30 @@ export default function ClientRequestsPage() {
               />
             </div>
           </div>
+          {/* File Attachments */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Attachments (optional)</label>
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
+                <Upload className="h-4 w-4" /> Choose Files
+                <input type="file" multiple className="hidden" accept=".pdf,.jpg,.jpeg,.png,.docx"
+                  onChange={(e) => { if (e.target.files) setAttachments(prev => [...prev, ...Array.from(e.target.files!)]) }} />
+              </label>
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {attachments.map((f, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+                      {f.name.length > 20 ? f.name.substring(0, 20) + "..." : f.name}
+                      <button onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))} className="text-blue-400 hover:text-blue-700">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <button
-              onClick={() => { setShowAddForm(false); setFormData(defaultRequestForm) }}
+              onClick={() => { setShowAddForm(false); setFormData(defaultRequestForm); setAttachments([]) }}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             >
               Cancel

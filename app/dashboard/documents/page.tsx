@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { documentCategories } from "@/lib/company-data"
 import { toast } from "sonner"
-import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2, Search, Eye } from "lucide-react"
+import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2, Search, Eye, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 import { DocumentPreview } from "@/components/ui/document-preview"
 
 const allCategories = ["all", ...Object.keys(documentCategories)] as const
@@ -128,6 +129,10 @@ export default function DocumentsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Back link */}
+      <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+      </Link>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

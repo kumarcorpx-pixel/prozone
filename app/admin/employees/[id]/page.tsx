@@ -98,6 +98,10 @@ export default function EmployeeDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Back link */}
+      <Link href="/admin/employees" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back to Employees
+      </Link>
       {/* Header */}
       <div className="flex items-start gap-4">
         <a href={company ? `/admin/companies/${company.id}` : "/admin/employees"} className="p-2 rounded-lg hover:bg-gray-100 mt-1">

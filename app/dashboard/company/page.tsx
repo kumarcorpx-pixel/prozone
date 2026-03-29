@@ -8,8 +8,9 @@ import {
   Building2, Users, FileText, Shield, CheckCircle2, XCircle,
   Upload, MapPin, Calendar, Phone, Mail, Loader2,
   Download, AlertTriangle, Search, Briefcase, Globe, Eye,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, ArrowLeft
 } from "lucide-react"
+import Link from "next/link"
 import { DocumentPreview } from "@/components/ui/document-preview"
 
 function getExpiryInfo(date: string | null) {
@@ -191,6 +192,10 @@ export default function CompanyPage() {
   return (
     <div className="space-y-6">
       <style>{`@keyframes progress { from { width: 0% } to { width: 100% } }`}</style>
+      {/* Back link */}
+      <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+      </Link>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

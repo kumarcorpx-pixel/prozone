@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { Settings, User, Bell, Building2, Phone, Mail, MapPin, Clock, MessageCircle, Lock, Eye, EyeOff } from "lucide-react"
+import { Settings, User, Bell, Building2, Phone, Mail, MapPin, Clock, MessageCircle, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
 
 export default function ClientSettingsPage() {
@@ -62,6 +63,9 @@ export default function ClientSettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+      </Link>
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Settings className="h-6 w-6 text-[#1a3a6b]" /> Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your profile and preferences</p>

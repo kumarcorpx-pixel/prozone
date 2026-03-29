@@ -115,11 +115,25 @@ export async function POST(request: NextRequest) {
     )
 
     // Notify admins of new request
-    const admins = await prisma.user.findMany({ where: { role: "admin" }, select: { id: true } })
-    for (const admin of admins) {
-      await prisma.notification.create({
-        data: { userId: admin.id, title: "New Service Request", message: `${result.data.serviceType} request submitted`, type: "info", isRead: false, link: `/admin/requests` }
-      }).catch(() => {})
+    try {
+      const admins = await prisma.user.findMany({ where: { role: "admin" as any }, select: { id: true } })
+      console.log(`[Notify] Found ${admins.length} admins to notify about new request`)
+      for (const admin of admins) {
+        await prisma.notification.create({
+          data: { userId: admin.id, title: "New Service Request", message: `${result.data.serviceType} request submitted`, type: "info", isRead: false, link: `/admin/requests` }
+        })
+      }
+    } catch (err: any) {
+      console.error("[Notify] Failed to notify admins:", err.message)
+    }
+
+    // Create initial timeline entry
+    try {
+      await prisma.requestTimeline.create({
+        data: { requestId: newRequest.id, status: "pending", message: "Request submitted by client", createdById: user.id }
+      })
+    } catch (err: any) {
+      console.error("[Timeline] Failed to create initial entry:", err.message)
     }
 
     return NextResponse.json({ request: newRequest }, { status: 201 })
