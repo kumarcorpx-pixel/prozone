@@ -13,6 +13,8 @@ export const signupSchema = z.object({
     .regex(/[A-Z]/, "Must contain at least one uppercase letter")
     .regex(/[0-9]/, "Must contain at least one number"),
   confirmPassword: z.string(),
+  phone: z.string().optional(),
+  companyName: z.string().max(200).optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],

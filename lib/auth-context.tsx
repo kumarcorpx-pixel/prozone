@@ -7,7 +7,7 @@ interface AuthContextType {
   user: Profile | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<any>
-  signup: (email: string, password: string, fullName: string) => Promise<void>
+  signup: (email: string, password: string, fullName: string, phone?: string, companyName?: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -81,16 +81,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return data.user
   }, [])
 
-  const signup = useCallback(async (email: string, password: string, fullName: string) => {
+  const signup = useCallback(async (email: string, password: string, fullName: string, phone?: string, companyName?: string) => {
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, fullName, confirmPassword: password }),
+      body: JSON.stringify({ email, password, fullName, confirmPassword: password, phone, companyName }),
     })
     if (!res.ok) {
       const err = await res.json()
       throw new Error(err.error || "Sign up failed")
     }
+    // Auto-login after signup
+    try {
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+      if (loginRes.ok) {
+        const data = await loginRes.json()
+        setUser(data.user)
+        localStorage.setItem("prozone_user", JSON.stringify(data.user))
+      }
+    } catch {}
   }, [])
 
   const logout = useCallback(async () => {

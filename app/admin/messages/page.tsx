@@ -60,6 +60,11 @@ export default function MessagesPage() {
 
   useEffect(() => {
     loadConversations()
+    // Auto-refresh conversations every 30 seconds
+    const interval = setInterval(() => {
+      loadConversations()
+    }, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {

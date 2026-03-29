@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [companyName, setCompanyName] = useState("")
   const [loading, setLoading] = useState(false)
   const { signup } = useAuth()
   const router = useRouter()
@@ -33,9 +34,9 @@ export default function SignupPage() {
 
     setLoading(true)
     try {
-      await signup(email, password, name)
+      await signup(email, password, name, phone, companyName)
+      toast.success("Welcome to CorporatePRO! Your account is ready.")
       router.push("/dashboard")
-      toast.success("Account created successfully!")
     } catch (err: any) {
       toast.error(err?.message || "Signup failed")
     } finally {
@@ -170,6 +171,20 @@ export default function SignupPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent transition-shadow"
                   placeholder="Re-enter your password"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Company name <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  id="companyName"
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent transition-shadow"
+                  placeholder="Your company name (we'll set it up for you)"
                 />
               </div>
 

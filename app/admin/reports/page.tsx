@@ -57,6 +57,12 @@ const reportCards = [
   },
 ]
 
+function formatMonth(ym: string): string {
+  const [y, m] = ym.split("-")
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  return `${months[Number(m) - 1] || m} ${y}`
+}
+
 function formatAED(amount: number): string {
   return `AED ${amount.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
@@ -174,6 +180,111 @@ export default function ReportsPage() {
         )}
       </div>
 
+      {/* Revenue Chart */}
+      {reportData.revenue.length > 0 && (
+        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Monthly Revenue</h3>
+            <button
+              onClick={() => {
+                downloadCSV(reportData.revenue, "revenue-report.csv")
+                toast.success("Revenue CSV downloaded")
+              }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              Export CSV
+            </button>
+          </div>
+          {(() => {
+            const maxRevenue = Math.max(...reportData.revenue.map((r: any) => r.revenue), 1)
+            return (
+              <div className="space-y-2">
+                {[...reportData.revenue].reverse().map((row: any) => (
+                  <div key={row.month} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 w-20 shrink-0 text-right">{formatMonth(row.month)}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden relative">
+                      <div
+                        className="h-full rounded-full bg-[#1a3a6b] transition-all"
+                        style={{ width: `${Math.max((row.revenue / maxRevenue) * 100, 2)}%` }}
+                      />
+                      <span className="absolute inset-y-0 right-2 flex items-center text-xs font-medium text-gray-600">
+                        {formatAED(row.revenue)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Month</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Revenue</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Collected</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Pending</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Overdue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.revenue.map((row: any) => (
+                  <tr key={row.month} className="border-b border-gray-100 last:border-0">
+                    <td className="py-2 px-3 text-gray-700">{formatMonth(row.month)}</td>
+                    <td className="py-2 px-3 text-gray-700 text-right">{formatAED(row.revenue)}</td>
+                    <td className="py-2 px-3 text-green-700 text-right">{formatAED(row.collected)}</td>
+                    <td className="py-2 px-3 text-yellow-700 text-right">{formatAED(row.pending)}</td>
+                    <td className="py-2 px-3 text-red-700 text-right">{formatAED(row.overdue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Performance */}
+      {reportData.staff.length > 0 && (
+        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Staff Performance</h3>
+            <button
+              onClick={() => {
+                downloadCSV(reportData.staff, "staff-report.csv")
+                toast.success("Staff CSV downloaded")
+              }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              Export CSV
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Staff Name</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Active Requests</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Completed This Month</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Avg Days</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.staff.map((row: any, i: number) => (
+                  <tr key={i} className="border-b border-gray-100 last:border-0">
+                    <td className="py-2 px-3 text-gray-700 font-medium">{row.staff || "-"}</td>
+                    <td className="py-2 px-3 text-gray-700 text-right">{row.active_requests ?? 0}</td>
+                    <td className="py-2 px-3 text-gray-700 text-right">{row.completed_this_month ?? 0}</td>
+                    <td className="py-2 px-3 text-gray-700 text-right">{row.avg_days ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Report Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {reportCards.map((report) => {
@@ -269,6 +380,31 @@ export default function ReportsPage() {
             </div>
           )
         })}
+      </div>
+
+      {/* Export All Reports */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => {
+            const allData: Record<string, any[]> = {}
+            for (const key of Object.keys(reportData) as (keyof ReportDataMap)[]) {
+              if (reportData[key].length > 0) allData[key] = reportData[key]
+            }
+            const keys = Object.keys(allData)
+            if (keys.length === 0) {
+              toast.info("No report data to export. Generate reports first.")
+              return
+            }
+            for (const key of keys) {
+              downloadCSV(allData[key], `${key}-report.csv`)
+            }
+            toast.success(`Exported ${keys.length} report(s) as CSV`)
+          }}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+        >
+          <FileDown className="h-4 w-4" />
+          Export All Reports
+        </button>
       </div>
     </div>
   )

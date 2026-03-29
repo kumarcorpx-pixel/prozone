@@ -36,14 +36,23 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_AE",
     url: "https://corporatepro.cloud",
-    siteName: "YABS PRO Services",
+    siteName: "YABS Corporate PRO Services",
     title: "YABS | PRO Services in UAE",
     description: "Track, monitor and manage all your government transactions in Abu Dhabi, Dubai & Sharjah.",
+    images: [
+      {
+        url: "https://corporatepro.cloud/icons/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "YABS Corporate PRO Services",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "YABS | PRO Services in UAE",
     description: "Cloud-based PRO services platform for UAE government transactions.",
+    images: ["https://corporatepro.cloud/icons/icon-512.png"],
   },
   robots: {
     index: true,

@@ -107,6 +107,85 @@ export default function DashboardPage() {
   const activeRequests = requests.filter(r => r.status !== "completed" && r.status !== "rejected")
   const company = companies[0] ?? null
 
+  // Welcome wizard for new clients with no companies and no requests
+  if (!isAdmin && companies.length === 0 && requests.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome to CorporatePRO, {user?.full_name}!</h1>
+          <p className="text-sm text-gray-500 mt-1">Let's get you started in just a few steps.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Step 1: Set up company */}
+          <div className="bg-white rounded-2xl border-2 border-[#1a3a6b]/20 p-8 hover:border-[#1a3a6b]/40 transition-colors">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-[#1a3a6b] flex items-center justify-center">
+                <span className="text-white text-lg font-bold">1</span>
+              </div>
+              <h2 className="text-lg font-bold text-gray-900">Set Up Your Company</h2>
+            </div>
+            <p className="text-sm text-gray-500 mb-6">
+              Add your company details so we can manage your PRO services, licenses, and government transactions.
+            </p>
+            <Link
+              href="/dashboard/company"
+              className="inline-flex items-center gap-2 w-full justify-center bg-[#1a3a6b] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#15305a] transition-colors"
+            >
+              <Building2 className="h-4 w-4" />
+              Add Company
+            </Link>
+          </div>
+
+          {/* Step 2: Submit first request */}
+          <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                <span className="text-gray-500 text-lg font-bold">2</span>
+              </div>
+              <h2 className="text-lg font-bold text-gray-400">Submit Your First Request</h2>
+            </div>
+            <p className="text-sm text-gray-400 mb-6">
+              Need a PRO service? Submit your first request for visa processing, trade license renewal, or company formation.
+            </p>
+            <Link
+              href="/dashboard/requests"
+              className="inline-flex items-center gap-2 w-full justify-center bg-gray-100 text-gray-600 py-3 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors"
+            >
+              <FileText className="h-4 w-4" />
+              Start New Request
+            </Link>
+          </div>
+        </div>
+
+        {/* Contact PRO card */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Need Help Getting Started?</h2>
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-[#1a3a6b] flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xl font-bold">Y</span>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">YABS PRO Team</p>
+              <p className="text-sm text-gray-500">Our team is here to help you set everything up.</p>
+              <a href="tel:+971565204844" className="text-sm text-[#1a3a6b] hover:underline flex items-center gap-1 mt-0.5">
+                <Phone className="h-3 w-3" /> +971 56 520 4844
+              </a>
+            </div>
+          </div>
+          <div className="flex gap-3 mt-4">
+            <Link href="/dashboard/messages" className="flex-1 text-center bg-[#1a3a6b] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#15305a] transition-colors">
+              Send Message
+            </Link>
+            <a href="https://wa.me/971565204844" target="_blank" rel="noopener noreferrer" className="flex-1 text-center bg-green-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors">
+              WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const recentNotifications = [...notifications]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 4)
