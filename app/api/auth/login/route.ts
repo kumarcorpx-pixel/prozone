@@ -26,10 +26,10 @@ export async function POST(request: NextRequest) {
     // Set HTTP-only cookie
     response.cookies.set("auth_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: request.url.startsWith("https"),
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 30, // 30 minutes — forces re-login after inactivity
+      maxAge: 60 * 30, // 30 minutes
     })
 
     return response
