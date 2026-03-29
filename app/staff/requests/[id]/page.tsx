@@ -109,11 +109,13 @@ export default function StaffRequestDetailPage() {
           sort_order: i + 1,
           created_at: new Date().toISOString(),
         })))
-        // Fetch real documents for this company
-        try {
-          const docs = await fetchDocuments(req.company_id)
-          setRealDocs(docs)
-        } catch {}
+        // Fetch real documents for this company (only if company_id exists)
+        if (req.company_id) {
+          try {
+            const docs = await fetchDocuments(req.company_id)
+            setRealDocs(docs)
+          } catch {}
+        }
       }
       // Try to load real timeline
       try {
@@ -155,7 +157,9 @@ export default function StaffRequestDetailPage() {
     )
   }
 
-  const requestDocs = realDocs.filter((d: any) => d.company_id === request.company_id)
+  const requestDocs = request.company_id
+    ? realDocs.filter((d: any) => d.company_id === request.company_id)
+    : []
   const completedItems = checklistItems.filter((c) => c.is_completed).length
   const totalItems = checklistItems.length
 
@@ -579,10 +583,12 @@ export default function StaffRequestDetailPage() {
                       toast.success("Document uploaded")
                       setSelectedFile(null)
                       // Refresh docs
-                      try {
-                        const docs = await fetchDocuments(request.company_id)
-                        setRealDocs(docs)
-                      } catch {}
+                      if (request.company_id) {
+                        try {
+                          const docs = await fetchDocuments(request.company_id)
+                          setRealDocs(docs)
+                        } catch {}
+                      }
                     } catch (err: any) {
                       toast.error(err?.message || "Failed to upload document")
                     } finally {

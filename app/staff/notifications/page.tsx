@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Info, AlertTriangle, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Bell, Info, AlertTriangle, AlertCircle, CheckCircle2, Loader2, ChevronRight } from "lucide-react"
 
 const typeIcons: Record<string, typeof Info> = { info: Info, warning: AlertTriangle, error: AlertCircle, success: CheckCircle2 }
 const typeColors: Record<string, string> = {
@@ -12,6 +13,7 @@ const typeColors: Record<string, string> = {
 }
 
 export default function StaffNotificationsPage() {
+  const router = useRouter()
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<"all" | "unread">("all")
@@ -28,6 +30,7 @@ export default function StaffNotificationsPage() {
             message: n.message,
             type: n.type || "info",
             isRead: n.isRead ?? false,
+            link: n.link || null,
             createdAt: n.createdAt || n.created_at || "",
           })))
         }
@@ -65,6 +68,10 @@ export default function StaffNotificationsPage() {
       } catch {}
     }
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+    // Navigate to the notification's link if present
+    if (n?.link) {
+      router.push(n.link)
+    }
   }
 
   if (loading) {
@@ -123,6 +130,7 @@ export default function StaffNotificationsPage() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-xs text-gray-400">{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}</span>
                   {!n.isRead && <span className="h-2 w-2 rounded-full bg-blue-500" />}
+                  {n.link && <ChevronRight className="h-4 w-4 text-gray-400" />}
                 </div>
               </div>
             )
