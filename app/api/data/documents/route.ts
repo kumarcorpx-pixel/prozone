@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
     const mapDocument = (d: any) => ({
       id: d.id,
       company_id: d.companyId,
+      company_name: d.company?.name || null,
       employee_id: d.employeeId,
+      employee_name: d.employee?.fullName || null,
       name: d.name,
       document_type: d.documentType,
       file_url: d.fileUrl,
@@ -33,6 +35,10 @@ export async function GET(request: NextRequest) {
     if (isAdminOrStaff && !companyId) {
       const mapped = await cached(CK.documents(), TTL.DOCUMENTS, async () => {
         const documents = await prisma.document.findMany({
+          include: {
+            company: { select: { name: true } },
+            employee: { select: { fullName: true } },
+          },
           orderBy: { createdAt: "desc" },
         })
         return documents.map(mapDocument)
@@ -46,6 +52,10 @@ export async function GET(request: NextRequest) {
 
     const documents = await prisma.document.findMany({
       where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
+      include: {
+        company: { select: { name: true } },
+        employee: { select: { fullName: true } },
+      },
       orderBy: { createdAt: "desc" },
     })
     const mapped = documents.map(mapDocument)

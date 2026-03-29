@@ -42,6 +42,8 @@ export default function ExpiryCalendarPage() {
   const [items, setItems] = useState<ExpiryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
+  const [typeFilter, setTypeFilter] = useState("all")
+  const [search, setSearch] = useState("")
   const [syncing, setSyncing] = useState(false)
   const [syncProgress, setSyncProgress] = useState(0)
   const [syncTotal, setSyncTotal] = useState(0)
@@ -93,39 +95,54 @@ export default function ExpiryCalendarPage() {
 
         const collected: ExpiryItem[] = []
 
+        // Company expiry fields
+        const companyFields = [
+          { key: "license_expiry", label: "Trade License" },
+          { key: "establishment_card_expiry", label: "Establishment Card" },
+          { key: "chamber_commerce_expiry", label: "Chamber of Commerce" },
+          { key: "ejari_tawtheeq_expiry", label: "Ejari/Tawtheeq" },
+          { key: "lease_expiry", label: "Office Lease" },
+        ]
         for (const c of (companies || [])) {
-          if (c.license_expiry) {
-            const days = getDaysLeft(c.license_expiry)
-            if (days < 9999) {
-              collected.push({ id: `lic-${c.id}`, name: "Trade License", type: "License", entity: c.name, expiryDate: c.license_expiry, daysLeft: days })
-            }
-          }
-        }
-
-        for (const e of (employees || [])) {
-          const fields = [
-            { key: "visa_expiry", label: "Visa" },
-            { key: "emirates_id_expiry", label: "Emirates ID" },
-            { key: "passport_expiry", label: "Passport" },
-            { key: "labor_card_expiry", label: "Labor Card" },
-          ]
-          for (const f of fields) {
-            const val = e[f.key]
+          for (const f of companyFields) {
+            const val = c[f.key]
             if (val) {
               const days = getDaysLeft(val)
               if (days < 9999) {
-                collected.push({ id: `${f.key}-${e.id}`, name: f.label, type: f.label, entity: e.full_name || "Unknown", expiryDate: val, daysLeft: days })
+                collected.push({ id: `${f.key}-${c.id}`, name: f.label, type: "Company", entity: c.name, expiryDate: val, daysLeft: days })
               }
             }
           }
         }
 
+        // Employee expiry fields
+        const employeeFields = [
+          { key: "visa_expiry", label: "Visa" },
+          { key: "emirates_id_expiry", label: "Emirates ID" },
+          { key: "passport_expiry", label: "Passport" },
+          { key: "labor_card_expiry", label: "Labor Card" },
+          { key: "work_permit_expiry", label: "Work Permit" },
+          { key: "health_insurance_expiry", label: "Health Insurance" },
+        ]
+        for (const e of (employees || [])) {
+          for (const f of employeeFields) {
+            const val = e[f.key]
+            if (val) {
+              const days = getDaysLeft(val)
+              if (days < 9999) {
+                collected.push({ id: `${f.key}-${e.id}`, name: f.label, type: "Employee", entity: `${e.full_name || "Unknown"} (${e.company_name || ""})`, expiryDate: val, daysLeft: days })
+              }
+            }
+          }
+        }
+
+        // Document expiry dates
         for (const d of (documents || [])) {
           const exp = d.expiry_date || d.expiryDate
           if (exp) {
             const days = getDaysLeft(exp)
             if (days < 9999) {
-              collected.push({ id: `doc-${d.id}`, name: d.name || "Document", type: "Document", entity: "", expiryDate: exp, daysLeft: days })
+              collected.push({ id: `doc-${d.id}`, name: d.name || "Document", type: "Document", entity: d.company_name || d.employee_name || "", expiryDate: exp, daysLeft: days })
             }
           }
         }
@@ -149,7 +166,9 @@ export default function ExpiryCalendarPage() {
   const expiring60 = items.filter(i => i.daysLeft > 30 && i.daysLeft <= 60)
   const valid = items.filter(i => i.daysLeft > 60)
 
-  const filtered = filter === "all" ? items : filter === "expired" ? expired : filter === "30" ? expiring30 : filter === "60" ? expiring60 : valid
+  const byStatus = filter === "all" ? items : filter === "expired" ? expired : filter === "30" ? expiring30 : filter === "60" ? expiring60 : valid
+  const byType = typeFilter === "all" ? byStatus : byStatus.filter(i => i.type === typeFilter)
+  const filtered = search ? byType.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.entity.toLowerCase().includes(search.toLowerCase())) : byType
 
   return (
     <div className="space-y-6">
@@ -202,6 +221,24 @@ export default function ExpiryCalendarPage() {
             {f.label}
           </button>
         ))}
+      </div>
+
+      {/* Type filter + search */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex gap-2 flex-wrap">
+          {["all", "Company", "Employee", "Document"].map(t => (
+            <button key={t} onClick={() => setTypeFilter(t)} className={`px-3 py-1.5 text-xs font-medium rounded-full ${typeFilter === t ? "bg-[#c9a96e] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              {t === "all" ? "All Types" : t}
+            </button>
+          ))}
+        </div>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or entity..."
+          className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 sm:ml-auto sm:w-64"
+        />
       </div>
 
       {filtered.length === 0 ? (
