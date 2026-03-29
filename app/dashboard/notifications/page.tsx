@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Info, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, Bell, Info, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react"
 
 const typeIcons: Record<string, typeof Info> = { info: Info, warning: AlertTriangle, error: AlertCircle, success: CheckCircle2 }
 const typeColors: Record<string, string> = { info: "bg-blue-100 text-blue-600", warning: "bg-yellow-100 text-yellow-600", error: "bg-red-100 text-red-600", success: "bg-green-100 text-green-600" }
@@ -56,6 +56,9 @@ export default function ClientNotificationsPage() {
 
   return (
     <div className="space-y-6">
+      <button onClick={() => window.history.back()} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>

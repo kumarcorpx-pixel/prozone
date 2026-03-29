@@ -47,7 +47,7 @@ export default function ActivityPage() {
             type: "status",
             message: `${r.service_type || r.serviceType || "Request"} — ${r.status || "pending"}`,
             request: r.service_type || r.serviceType || "Service Request",
-            company: r.company?.name || r.companyName || "",
+            company: r.company_name || r.company?.name || r.companyName || "",
             time: r.updated_at || r.updatedAt ? getRelativeTime(r.updated_at || r.updatedAt) : "",
           })))
         }

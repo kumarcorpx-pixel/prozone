@@ -198,9 +198,9 @@ export default function CompanyDetailPage() {
         <Building2 className="h-12 w-12 text-gray-300 mb-3" />
         <h2 className="text-lg font-semibold text-gray-900">Company not found</h2>
         <p className="text-sm text-gray-500 mt-1">The company you are looking for does not exist.</p>
-        <Link href="/admin/companies" className="mt-4 text-sm text-[#1a3a6b] hover:underline font-medium">
-          Back to Companies
-        </Link>
+        <button onClick={() => window.history.back()} className="mt-4 text-sm text-[#1a3a6b] hover:underline font-medium">
+          Back
+        </button>
       </div>
     )
   }
@@ -223,13 +223,13 @@ export default function CompanyDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <Link
-          href="/admin/companies"
+        <button
+          onClick={() => window.history.back()}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a3a6b] transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Companies
-        </Link>
+          Back
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

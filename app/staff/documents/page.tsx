@@ -29,7 +29,7 @@ export default function StaffDocumentsPage() {
       const allDocs = Array.isArray(docRes) ? docRes : []
 
       // Only show documents from companies in staff's assigned requests
-      const companyIds = new Set(staffRequests.map((r: any) => r.companyId).filter(Boolean))
+      const companyIds = new Set(staffRequests.map((r: any) => r.company_id || r.companyId).filter(Boolean))
       const scopedDocs = companyIds.size > 0
         ? allDocs.filter((d: any) => !d.company_id || companyIds.has(d.company_id))
         : allDocs
@@ -37,8 +37,9 @@ export default function StaffDocumentsPage() {
       // Build companies list from requests
       const companyMap = new Map()
       for (const r of staffRequests) {
-        if (r.companyId && !companyMap.has(r.companyId)) {
-          companyMap.set(r.companyId, { id: r.companyId, name: r.companyName || r.company?.name || "Unknown" })
+        const cid = r.company_id || r.companyId
+        if (cid && !companyMap.has(cid)) {
+          companyMap.set(cid, { id: cid, name: r.company_name || r.companyName || r.company?.name || "Unknown" })
         }
       }
 

@@ -63,9 +63,9 @@ export default function ClientSettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
-        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-      </Link>
+      <button onClick={() => window.history.back()} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Settings className="h-6 w-6 text-[#1a3a6b]" /> Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your profile and preferences</p>

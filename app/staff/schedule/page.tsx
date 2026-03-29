@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { fetchRequests } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { CalendarCheck, MapPin, X, Clock, ExternalLink, Calendar, Loader2 } from "lucide-react"
 
@@ -34,8 +33,13 @@ export default function SchedulePage() {
 
   useEffect(() => {
     async function load() {
-      const r = await fetchRequests()
-      setRequests(r)
+      try {
+        const res = await fetch("/api/staff/requests")
+        const data = res.ok ? await res.json() : { requests: [] }
+        setRequests(data.requests || [])
+      } catch {
+        setRequests([])
+      }
       setLoading(false)
     }
     load()
@@ -66,11 +70,12 @@ export default function SchedulePage() {
 
   const todaysTasks = requests
     .flatMap(req => {
-      const items = getChecklistForServiceType(req.service_type)
+      const svcType = req.service_type || req.serviceType
+      const items = getChecklistForServiceType(svcType)
       return items.slice(0, 3).map((item, i) => ({
         id: `${req.id}-${i}`,
-        request: req.service_type,
-        company: req.company?.name || "N/A",
+        request: svcType,
+        company: req.company_name || req.company?.name || "N/A",
         item,
         priority: req.priority,
       }))

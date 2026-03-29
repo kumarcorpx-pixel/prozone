@@ -81,7 +81,7 @@ export default function EmployeeDetailPage() {
     <div className="text-center py-20">
       <User className="h-12 w-12 text-gray-300 mx-auto mb-3" />
       <h2 className="text-lg font-semibold">Employee not found</h2>
-      <Link href="/admin/employees" className="text-sm text-[#1a3a6b] hover:underline mt-2 inline-block">Back to Employees</Link>
+      <button onClick={() => window.history.back()} className="text-sm text-[#1a3a6b] hover:underline mt-2 inline-block">Back</button>
     </div>
   )
 
@@ -99,14 +99,14 @@ export default function EmployeeDetailPage() {
   return (
     <div className="space-y-6">
       {/* Back link */}
-      <Link href="/admin/employees" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
-        <ArrowLeft className="h-4 w-4" /> Back to Employees
-      </Link>
+      <button onClick={() => window.history.back()} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
       {/* Header */}
       <div className="flex items-start gap-4">
-        <a href={company ? `/admin/companies/${company.id}` : "/admin/employees"} className="p-2 rounded-lg hover:bg-gray-100 mt-1">
+        <button onClick={() => window.history.back()} className="p-2 rounded-lg hover:bg-gray-100 mt-1">
           <ArrowLeft className="h-5 w-5 text-gray-500" />
-        </a>
+        </button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-full bg-[#1a3a6b] flex items-center justify-center">

@@ -26,10 +26,11 @@ export default function StaffCompaniesPage() {
       // Extract unique companies from assigned requests
       const companyMap = new Map()
       for (const r of requests) {
-        if (r.companyId && !companyMap.has(r.companyId)) {
-          companyMap.set(r.companyId, {
-            id: r.companyId,
-            name: r.companyName || r.company?.name || "Unknown",
+        const cid = r.company_id || r.companyId
+        if (cid && !companyMap.has(cid)) {
+          companyMap.set(cid, {
+            id: cid,
+            name: r.company_name || r.companyName || r.company?.name || "Unknown",
             ...r.company,
           })
         }

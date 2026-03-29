@@ -130,9 +130,9 @@ export default function DocumentsPage() {
   return (
     <div className="space-y-6">
       {/* Back link */}
-      <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
-        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-      </Link>
+      <button onClick={() => window.history.back()} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

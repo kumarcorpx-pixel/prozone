@@ -96,10 +96,10 @@ export default function AdminRequestDetailPage() {
   if (!request) {
     return (
       <div className="space-y-6">
-        <Link href="/admin/requests" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => window.history.back()} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
           <ArrowLeft className="h-4 w-4" />
-          Back to Requests
-        </Link>
+          Back
+        </button>
         <div className="text-center py-12">
           <p className="text-lg font-medium text-gray-900">Request not found</p>
         </div>
@@ -195,15 +195,15 @@ export default function AdminRequestDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/requests" prefetch={false}
+      <button onClick={() => window.history.back()}
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a3a6b] transition-colors mb-4">
         <ArrowLeft className="h-4 w-4" />
-        Back to Requests
-      </Link>
+        Back
+      </button>
       <div className="flex items-center gap-3">
-        <Link href="/admin/requests" prefetch={false} className="p-2 rounded-lg hover:bg-gray-100">
+        <button onClick={() => window.history.back()} className="p-2 rounded-lg hover:bg-gray-100">
           <ArrowLeft className="h-5 w-5 text-gray-500" />
-        </Link>
+        </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{request.service_type}</h1>
           <p className="text-sm text-gray-500">{request.company_name || "N/A"} &middot; {new Date(request.created_at).toLocaleDateString()}</p>

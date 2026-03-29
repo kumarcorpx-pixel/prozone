@@ -53,9 +53,29 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       requests: requests.map((r: any) => ({
-        ...r,
-        clientName: r.client?.fullName,
-        companyName: r.company?.name,
+        id: r.id,
+        client_id: r.clientId,
+        company_id: r.companyId,
+        service_type: r.serviceType,
+        description: r.description,
+        status: r.status,
+        priority: r.priority,
+        assigned_to: r.assignedToId,
+        notes: r.notes,
+        due_date: r.dueDate,
+        completed_date: r.completedDate,
+        created_at: r.createdAt,
+        updated_at: r.updatedAt,
+        client_name: r.client?.fullName || null,
+        company_name: r.company?.name || null,
+        // Keep camelCase aliases for backward compatibility
+        companyId: r.companyId,
+        companyName: r.company?.name || null,
+        clientName: r.client?.fullName || null,
+        serviceType: r.serviceType,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        company: r.company,
       })),
     })
   } catch (error) {

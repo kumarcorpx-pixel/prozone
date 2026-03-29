@@ -40,9 +40,9 @@ export default function ClientDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/clients" prefetch={false} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a3a6b]">
-        <ArrowLeft className="h-4 w-4" /> Back to Clients
-      </Link>
+      <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a3a6b]">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
 
       {/* Client Profile */}
       <div className="bg-white rounded-2xl shadow-sm p-6">

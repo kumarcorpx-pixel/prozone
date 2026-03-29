@@ -138,13 +138,13 @@ export default function StaffRequestDetailPage() {
   if (!request) {
     return (
       <div className="space-y-6">
-        <Link
-          href="/staff/requests"
+        <button
+          onClick={() => window.history.back()}
           className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Requests
-        </Link>
+          Back
+        </button>
         <div className="text-center py-12">
           <p className="text-lg font-medium text-gray-900">Request not found</p>
           <p className="text-sm text-gray-500 mt-1">
@@ -159,7 +159,7 @@ export default function StaffRequestDetailPage() {
   const completedItems = checklistItems.filter((c) => c.is_completed).length
   const totalItems = checklistItems.length
 
-  // Merge real timeline with demo timeline entries
+  // Merge real timeline entries
   const mergedTimeline = [
     ...realTimeline.map(t => ({
       id: t.id,
@@ -167,8 +167,8 @@ export default function StaffRequestDetailPage() {
       message: t.message,
       status: t.status,
       created_at: t.created_at,
-      creator: t.creator || null,
       created_by: t.created_by,
+      created_by_role: t.created_by_role,
     })),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
@@ -263,13 +263,13 @@ export default function StaffRequestDetailPage() {
   return (
     <div className="space-y-6">
       {/* Back button */}
-      <Link
-        href="/staff/requests"
+      <button
+        onClick={() => window.history.back()}
         className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Requests
-      </Link>
+        Back
+      </button>
 
       {/* Request header */}
       <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
@@ -743,9 +743,9 @@ export default function StaffRequestDetailPage() {
                                 </span>
                               </div>
                               <p className="text-sm text-gray-700">{entry.message}</p>
-                              {entry.creator && (
+                              {entry.created_by && (
                                 <p className="text-xs text-gray-400 mt-1">
-                                  by {entry.creator.full_name}
+                                  by {entry.created_by}
                                 </p>
                               )}
                             </div>

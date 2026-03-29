@@ -37,12 +37,13 @@ export default function StaffDashboardPage() {
       setRequests(staffRequests)
 
       // Extract unique companies and employees from assigned requests
-      const companyIds = new Set(staffRequests.map((r: any) => r.companyId).filter(Boolean))
+      const companyIds = new Set(staffRequests.map((r: any) => r.company_id || r.companyId).filter(Boolean))
       const companyList = staffRequests
-        .filter((r: any) => r.companyId && r.companyName)
+        .filter((r: any) => (r.company_id || r.companyId) && (r.company_name || r.companyName || r.company?.name))
         .reduce((acc: any[], r: any) => {
-          if (!acc.find((c: any) => c.id === r.companyId)) {
-            acc.push({ id: r.companyId, name: r.companyName || r.company?.name })
+          const cid = r.company_id || r.companyId
+          if (!acc.find((c: any) => c.id === cid)) {
+            acc.push({ id: cid, name: r.company_name || r.companyName || r.company?.name })
           }
           return acc
         }, [])

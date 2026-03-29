@@ -55,11 +55,30 @@ export async function GET(request: NextRequest) {
       take: 10,
     })
 
+    // Map activity log entries to the format the frontend expects
+    const mappedActivity = (recentActivity || []).map((a: any) => {
+      const createdAt = a.createdAt || a.created_at
+      const diffMs = Date.now() - new Date(createdAt).getTime()
+      const minutes = Math.floor(diffMs / 60000)
+      let time = ""
+      if (minutes < 60) time = `${minutes}m ago`
+      else if (minutes < 1440) time = `${Math.floor(minutes / 60)}h ago`
+      else time = `${Math.floor(minutes / 1440)}d ago`
+
+      return {
+        id: a.id,
+        message: a.action || "Activity",
+        time,
+        type: a.entityType || "general",
+        entityId: a.entityId,
+      }
+    })
+
     return NextResponse.json({
       assignedRequests: assignedCount,
       pendingTasks: pendingCount,
       completedToday: completedTodayCount,
-      recentActivity: recentActivity || [],
+      recentActivity: mappedActivity,
     })
   } catch (error) {
     return handleApiError(error)

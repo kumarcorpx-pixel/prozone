@@ -23,7 +23,7 @@ export default function StaffSettingsPage() {
       const res = await fetch("/api/auth/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone }),
+        body: JSON.stringify({ fullName: name, phone }),
       })
       const data = await res.json()
       if (res.ok) {

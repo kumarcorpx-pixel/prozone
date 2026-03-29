@@ -53,7 +53,7 @@ export default function StaffRequestsPage() {
       : allRequests.filter((r) => r.status === activeTab)
 
   function getChecklistProgress(request: any) {
-    const items = getChecklistForServiceType(request.service_type)
+    const items = getChecklistForServiceType(request.service_type || request.serviceType)
     const total = items.length
     if (total === 0) return null
     const completed = 0 // No persistent checklist state yet
@@ -101,7 +101,7 @@ export default function StaffRequestsPage() {
               }`}
             >
               <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">{request.service_type}</h3>
+                <h3 className="font-semibold text-gray-900">{request.service_type || request.serviceType}</h3>
                 {needsActionStatuses.has(request.status) && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
@@ -109,7 +109,10 @@ export default function StaffRequestsPage() {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600 mb-3">{request.company?.name}</p>
+              <p className="text-sm text-gray-600 mb-1">{request.company_name || request.company?.name || "N/A"}</p>
+              {(request.client_name || request.clientName) && (
+                <p className="text-xs text-gray-400 mb-3">Client: {request.client_name || request.clientName}</p>
+              )}
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <StatusBadge status={request.status} />
                 <span
@@ -122,7 +125,7 @@ export default function StaffRequestsPage() {
               </div>
               <p className="text-xs text-gray-400 mb-2">
                 Created{" "}
-                {new Date(request.created_at).toLocaleDateString("en-GB", {
+                {new Date(request.created_at || request.createdAt).toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "short",
                   year: "numeric",

@@ -1,13 +1,11 @@
 import prisma from "@/lib/prisma"
-import { dispatchStaffAssignment } from "@/lib/notify-dispatch"
 
 /**
- * Automated Workflow Engine
+ * Workflow Engine
  * Triggered when a new ServiceRequest is created.
- * 1. Auto-assigns to the staff member with fewest active requests
- * 2. Creates a timeline entry for the assignment
- * 3. Creates a DB notification for the assigned staff
- * 4. Dispatches multi-channel notifications (WhatsApp + email + push)
+ * 1. Creates a timeline entry noting the request awaits admin review
+ * 2. Notifies all admins via DB notification
+ * Status stays "pending" — admin manually assigns to PRO staff.
  */
 export async function runNewRequestWorkflow(requestId: string) {
   try {
@@ -27,76 +25,43 @@ export async function runNewRequestWorkflow(requestId: string) {
       return
     }
 
-    // Step 1: Find staff member with fewest active requests
-    const staffMembers = await prisma.user.findMany({
-      where: { role: "pro_staff", isActive: true },
-      select: {
-        id: true,
-        fullName: true,
-        _count: {
-          select: {
-            assignedRequests: {
-              where: {
-                status: { in: ["pending", "assigned", "in_progress", "under_review"] },
-              },
-            },
-          },
-        },
+    // Create timeline entry — status stays "pending"
+    await prisma.requestTimeline.create({
+      data: {
+        requestId: requestId,
+        status: "pending",
+        message: "Request submitted, awaiting admin review",
+        createdById: request.clientId,
       },
     })
 
-    if (staffMembers.length === 0) {
-      console.warn("[Workflow] No active pro_staff found for auto-assignment")
-      return
-    }
-
-    // Pick the one with fewest active requests
-    staffMembers.sort((a: any, b: any) => a._count.assignedRequests - b._count.assignedRequests)
-    const selectedStaff = staffMembers[0]
-
-    // Steps 2-4 in a transaction to prevent partial updates
-    await prisma.$transaction([
-      // Update the request with the assignment
-      prisma.serviceRequest.update({
-        where: { id: requestId },
-        data: {
-          assignedToId: selectedStaff.id,
-          status: "assigned",
-        },
-      }),
-      // Create timeline entry
-      prisma.requestTimeline.create({
-        data: {
-          requestId: requestId,
-          status: "assigned",
-          message: `Auto-assigned to ${selectedStaff.fullName}`,
-          createdById: selectedStaff.id,
-        },
-      }),
-      // Create DB notification for the assigned staff
-      prisma.notification.create({
-        data: {
-          userId: selectedStaff.id,
-          title: "New Task Assigned",
-          message: `You have been assigned a new ${request.serviceType || "service"} request${request.company ? ` for ${request.company.name}` : ""}`,
-          type: "info",
-          isRead: false,
-          link: `/staff/requests/${requestId}`,
-        },
-      }),
-    ])
-
-    // Step 4: Dispatch multi-channel notifications (WhatsApp + email + push)
-    // This is outside the transaction as external calls shouldn't block DB ops
-    await dispatchStaffAssignment({
-      id: requestId,
-      serviceType: request.serviceType || "Service Request",
-      companyName: request.company?.name || "N/A",
-      staffId: selectedStaff.id,
-      clientId: request.clientId,
+    // Notify all admins of the new request
+    const admins = await prisma.user.findMany({
+      where: { role: "admin" as any },
+      select: { id: true },
     })
 
-    console.log(`[Workflow] Request ${requestId} auto-assigned to ${selectedStaff.fullName}`)
+    if (admins.length > 0) {
+      await Promise.all(
+        admins.map((admin) =>
+          prisma.notification.create({
+            data: {
+              userId: admin.id,
+              title: "New Service Request",
+              message: `New ${request.serviceType || "service"} request submitted${request.company ? ` for ${request.company.name}` : ""}, awaiting assignment`,
+              type: "info" as any,
+              isRead: false,
+              link: `/admin/requests/${requestId}`,
+            },
+          })
+        )
+      )
+      console.log(`[Workflow] Notified ${admins.length} admin(s) about request ${requestId}`)
+    } else {
+      console.warn("[Workflow] No admins found to notify for request:", requestId)
+    }
+
+    console.log(`[Workflow] Request ${requestId} awaiting admin review`)
   } catch (err) {
     console.error("[Workflow] Error processing request:", requestId, err instanceof Error ? err.message : "unknown")
   }

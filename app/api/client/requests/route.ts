@@ -110,32 +110,44 @@ export async function POST(request: NextRequest) {
       throw err
     })
 
-    runNewRequestWorkflow(newRequest.id).catch((err: any) =>
-      console.error("[Workflow] Background error:", err.message)
-    )
-
-    // Notify admins of new request + create timeline (fire-and-forget, don't block response)
-    ;(async () => {
-      try {
-        const admins = await prisma.user.findMany({ where: { role: "admin" as any }, select: { id: true } })
-        console.log(`[Notify] Found ${admins.length} admins for new request ${newRequest.id}`)
-        for (const admin of admins) {
-          await prisma.notification.create({
-            data: { userId: admin.id, title: "New Service Request", message: `${result.data.serviceType} request submitted`, type: "info" as any, isRead: false, link: `/admin/requests` }
-          })
-          console.log(`[Notify] Created notification for admin ${admin.id}`)
-        }
-      } catch (err: any) {
-        console.error("[Notify] Admin notification failed:", err.message, err.stack)
+    // 1. Create admin notifications (await — don't fire-and-forget)
+    try {
+      const admins = await prisma.user.findMany({ where: { role: "admin" as any }, select: { id: true } })
+      console.log(`[Notify] Found ${admins.length} admins for new request ${newRequest.id}`)
+      if (admins.length > 0) {
+        await Promise.all(
+          admins.map((admin) =>
+            prisma.notification.create({
+              data: {
+                userId: admin.id,
+                title: "New Service Request",
+                message: `${result.data.serviceType} request submitted`,
+                type: "info" as any,
+                isRead: false,
+                link: `/admin/requests/${newRequest.id}`,
+              },
+            })
+          )
+        )
+        console.log(`[Notify] Created notifications for ${admins.length} admin(s)`)
       }
-      try {
-        await prisma.requestTimeline.create({
-          data: { requestId: newRequest.id, status: "pending", message: "Request submitted by client", createdById: user.id }
-        })
+    } catch (err: any) {
+      console.error("[Notify] Admin notification failed:", err.message, err.stack)
+    }
+
+    // 2. Create timeline entry (await)
+    try {
+      await prisma.requestTimeline.create({
+        data: { requestId: newRequest.id, status: "pending", message: "Request submitted by client", createdById: user.id }
+      })
     } catch (err: any) {
       console.error("[Timeline] Failed to create initial entry:", err.message)
     }
-    })()
+
+    // 3. Run workflow in background (fire-and-forget is ok)
+    runNewRequestWorkflow(newRequest.id).catch((err: any) =>
+      console.error("[Workflow] Background error:", err.message)
+    )
 
     return NextResponse.json({ request: newRequest }, { status: 201 })
   } catch (error) {
