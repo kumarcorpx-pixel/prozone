@@ -71,18 +71,25 @@ export default function ClientRequestsPage() {
         throw new Error(err.error || "Failed to submit request")
       }
       const newReq = await res.json()
-      // Upload attachments if any
-      if (attachments.length > 0 && newReq.request?.id) {
+      // Upload attachments if any (don't block on failure)
+      if (attachments.length > 0) {
+        const reqId = newReq.request?.id || newReq.id
+        const compId = formData.companyId || "general"
         for (const file of attachments) {
-          const fd = new FormData()
-          fd.append("file", file)
-          fd.append("name", file.name)
-          fd.append("companyId", formData.companyId || "general")
-          fd.append("documentType", "other")
-          await fetch("/api/documents/upload", { method: "POST", body: fd }).catch(() => {})
+          try {
+            const fd = new FormData()
+            fd.append("file", file)
+            fd.append("name", file.name)
+            fd.append("companyId", compId)
+            fd.append("documentType", "other")
+            const upRes = await fetch("/api/documents/upload", { method: "POST", body: fd })
+            if (!upRes.ok) console.error("Upload failed:", await upRes.text())
+          } catch (e) {
+            console.error("Upload error:", e)
+          }
         }
       }
-      toast.success("Request submitted successfully" + (attachments.length ? ` with ${attachments.length} attachment(s)` : ""))
+      toast.success("Request submitted successfully")
       setShowAddForm(false)
       setFormData(defaultRequestForm)
       setAttachments([])

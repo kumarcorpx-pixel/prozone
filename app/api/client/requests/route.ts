@@ -114,27 +114,28 @@ export async function POST(request: NextRequest) {
       console.error("[Workflow] Background error:", err.message)
     )
 
-    // Notify admins of new request
-    try {
-      const admins = await prisma.user.findMany({ where: { role: "admin" as any }, select: { id: true } })
-      console.log(`[Notify] Found ${admins.length} admins to notify about new request`)
-      for (const admin of admins) {
-        await prisma.notification.create({
-          data: { userId: admin.id, title: "New Service Request", message: `${result.data.serviceType} request submitted`, type: "info", isRead: false, link: `/admin/requests` }
-        })
+    // Notify admins of new request + create timeline (fire-and-forget, don't block response)
+    ;(async () => {
+      try {
+        const admins = await prisma.user.findMany({ where: { role: "admin" as any }, select: { id: true } })
+        console.log(`[Notify] Found ${admins.length} admins for new request ${newRequest.id}`)
+        for (const admin of admins) {
+          await prisma.notification.create({
+            data: { userId: admin.id, title: "New Service Request", message: `${result.data.serviceType} request submitted`, type: "info" as any, isRead: false, link: `/admin/requests` }
+          })
+          console.log(`[Notify] Created notification for admin ${admin.id}`)
+        }
+      } catch (err: any) {
+        console.error("[Notify] Admin notification failed:", err.message, err.stack)
       }
-    } catch (err: any) {
-      console.error("[Notify] Failed to notify admins:", err.message)
-    }
-
-    // Create initial timeline entry
-    try {
-      await prisma.requestTimeline.create({
-        data: { requestId: newRequest.id, status: "pending", message: "Request submitted by client", createdById: user.id }
-      })
+      try {
+        await prisma.requestTimeline.create({
+          data: { requestId: newRequest.id, status: "pending", message: "Request submitted by client", createdById: user.id }
+        })
     } catch (err: any) {
       console.error("[Timeline] Failed to create initial entry:", err.message)
     }
+    })()
 
     return NextResponse.json({ request: newRequest }, { status: 201 })
   } catch (error) {
