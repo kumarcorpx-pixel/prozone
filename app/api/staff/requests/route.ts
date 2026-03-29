@@ -3,6 +3,7 @@ import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { handleApiError } from "@/lib/api-error-handler"
+import { dispatchRequestLifecycle } from "@/lib/notify-dispatch"
 
 
 async function checkStaffAuth(request: NextRequest) {
@@ -96,7 +97,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const validStatuses = ["pending", "in_progress", "under_review", "completed", "cancelled"]
+    const validStatuses = ["pending", "assigned", "in_progress", "under_review", "completed", "cancelled"]
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
         { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
@@ -107,7 +108,7 @@ export async function PATCH(request: NextRequest) {
     // Verify the request is assigned to this staff member
     const existing = await prisma.serviceRequest.findUnique({
       where: { id },
-      select: { id: true, assignedToId: true },
+      select: { id: true, assignedToId: true, status: true, serviceType: true, clientId: true },
     })
 
     if (!existing) {
@@ -131,6 +132,29 @@ export async function PATCH(request: NextRequest) {
       where: { id },
       data: updateData,
     })
+
+    // Create timeline entry on status change
+    if (existing && status !== existing.status) {
+      prisma.requestTimeline.create({
+        data: {
+          requestId: id,
+          status,
+          message: `Status changed to ${status.replace(/_/g, " ")}`,
+          createdById: auth.user!.id,
+        },
+      }).catch(() => {})
+
+      // Dispatch lifecycle notifications
+      dispatchRequestLifecycle({
+        id,
+        serviceType: existing.serviceType || "PRO Service",
+        oldStatus: existing.status,
+        newStatus: status,
+        clientId: existing.clientId,
+        assignedToId: existing.assignedToId,
+        changedByRole: "pro_staff",
+      }).catch(err => console.error("[Notify] Lifecycle dispatch error:", err))
+    }
 
     return NextResponse.json({ request: updated })
   } catch (error) {

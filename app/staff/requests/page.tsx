@@ -15,12 +15,17 @@ const priorityColors: Record<string, string> = {
 
 const tabs = [
   { key: "all", label: "All" },
+  { key: "assigned", label: "Assigned" },
   { key: "in_progress", label: "In Progress" },
+  { key: "under_review", label: "Under Review" },
   { key: "pending", label: "Pending" },
   { key: "completed", label: "Completed" },
 ] as const
 
 type TabKey = (typeof tabs)[number]["key"]
+
+/** Statuses where the PRO staff member needs to take action */
+const needsActionStatuses = new Set(["assigned", "in_progress"])
 
 export default function StaffRequestsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("all")
@@ -89,10 +94,20 @@ export default function StaffRequestsPage() {
             <Link
               key={request.id}
               href={`/staff/requests/${request.id}`}
-              className="bg-white rounded-xl ring-1 ring-gray-200 p-5 hover:ring-[#1a3a6b] transition-all hover:shadow-sm"
+              className={`bg-white rounded-xl ring-1 p-5 hover:ring-[#1a3a6b] transition-all hover:shadow-sm ${
+                needsActionStatuses.has(request.status)
+                  ? "ring-amber-300 border-l-4 border-l-amber-400"
+                  : "ring-gray-200"
+              }`}
             >
               <div className="flex items-start justify-between mb-3">
                 <h3 className="font-semibold text-gray-900">{request.service_type}</h3>
+                {needsActionStatuses.has(request.status) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Action needed
+                  </span>
+                )}
               </div>
               <p className="text-sm text-gray-600 mb-3">{request.company?.name}</p>
               <div className="flex flex-wrap items-center gap-2 mb-3">

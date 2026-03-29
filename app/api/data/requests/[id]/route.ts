@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { dispatchStatusUpdate, dispatchStaffAssignment } from "@/lib/notify-dispatch"
+import { dispatchStatusUpdate, dispatchStaffAssignment, dispatchRequestLifecycle } from "@/lib/notify-dispatch"
 import { withAuth } from "@/lib/auth-middleware"
 import { requestUpdateSchema } from "@/lib/validation/schemas"
 import { validateBody } from "@/lib/validation/validate"
@@ -100,6 +100,26 @@ export async function PATCH(
     // Get old request to detect changes
     const old = await prisma.serviceRequest.findUnique({ where: { id }, select: { status: true, assignedToId: true } })
 
+    // State machine validation for status transitions
+    if (body.status && old && body.status !== old.status && auth.user.role !== "admin") {
+      const VALID_TRANSITIONS: Record<string, string[]> = {
+        pending: ["assigned", "in_progress", "rejected", "cancelled"],
+        assigned: ["in_progress", "cancelled"],
+        in_progress: ["under_review", "completed", "cancelled"],
+        under_review: ["completed", "in_progress", "rejected"],
+        completed: [], // terminal
+        rejected: ["pending"], // can reopen
+        cancelled: ["pending"], // can reopen
+      }
+      const allowed = VALID_TRANSITIONS[old.status] || []
+      if (!allowed.includes(body.status)) {
+        return NextResponse.json(
+          { error: `Invalid status transition from "${old.status}" to "${body.status}". Allowed: ${allowed.join(", ") || "none"}` },
+          { status: 400 }
+        )
+      }
+    }
+
     const r = await prisma.serviceRequest.update({
       where: { id },
       data,
@@ -131,14 +151,17 @@ export async function PATCH(
       }).catch(() => {})
     }
 
-    // Dispatch notifications on status change
+    // Dispatch lifecycle notifications on status change
     if (body.status && old && body.status !== old.status) {
-      dispatchStatusUpdate({
+      dispatchRequestLifecycle({
         id: r.id,
         serviceType: r.serviceType || "PRO Service",
-        status: r.status,
+        oldStatus: old.status,
+        newStatus: body.status,
         clientId: r.clientId,
-      }).catch(err => console.error("[Notify] Status dispatch error:", err))
+        assignedToId: r.assignedToId,
+        changedByRole: auth.user.role,
+      }).catch(err => console.error("[Notify] Lifecycle dispatch error:", err))
     }
 
     // Dispatch notifications on staff assignment

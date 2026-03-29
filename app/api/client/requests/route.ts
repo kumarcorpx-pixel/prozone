@@ -114,6 +114,14 @@ export async function POST(request: NextRequest) {
       console.error("[Workflow] Background error:", err.message)
     )
 
+    // Notify admins of new request
+    const admins = await prisma.user.findMany({ where: { role: "admin" }, select: { id: true } })
+    for (const admin of admins) {
+      await prisma.notification.create({
+        data: { userId: admin.id, title: "New Service Request", message: `${result.data.serviceType} request submitted`, type: "info", isRead: false, link: `/admin/requests` }
+      }).catch(() => {})
+    }
+
     return NextResponse.json({ request: newRequest }, { status: 201 })
   } catch (error) {
     return handleApiError(error)

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { fetchDocuments } from "@/lib/data-fetcher"
-import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/api"
+import { addTimelineEntry, getRequestTimeline } from "@/lib/api"
 import type { ServiceRequest, RequestTimeline } from "@/lib/types"
 import { toast } from "sonner"
 import { StatusBadge } from "@/components/dashboard/status-badge"
@@ -46,12 +46,21 @@ const docTypeColors: Record<string, string> = {
   general: "bg-gray-100 text-gray-600",
 }
 
-const statusOptions = [
-  { value: "pending", label: "Pending" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "under_review", label: "Under Review" },
-  { value: "completed", label: "Completed" },
-]
+/** Valid status transitions for PRO staff */
+const staffTransitions: Record<string, { value: string; label: string }[]> = {
+  assigned: [{ value: "in_progress", label: "In Progress" }],
+  in_progress: [
+    { value: "under_review", label: "Under Review" },
+    { value: "completed", label: "Completed" },
+  ],
+}
+
+/** Notification targets after status change */
+const notifyTargets: Record<string, string> = {
+  in_progress: "Client will be notified that work has started.",
+  under_review: "Admin will be notified for review.",
+  completed: "Client and admin will be notified of completion.",
+}
 
 export default function StaffRequestDetailPage() {
   const params = useParams()
@@ -60,7 +69,10 @@ export default function StaffRequestDetailPage() {
   const [request, setRequest] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabKey>("overview")
-  const [selectedStatus, setSelectedStatus] = useState<string>("pending")
+  const [selectedStatus, setSelectedStatus] = useState<string>("")
+  const [statusNote, setStatusNote] = useState("")
+  const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [lastNotification, setLastNotification] = useState("")
   const [noteText, setNoteText] = useState("")
   const [timelineNote, setTimelineNote] = useState("")
   const [checklistItems, setChecklistItems] = useState<RequestChecklist[]>([])
@@ -82,7 +94,9 @@ export default function StaffRequestDetailPage() {
       } catch {}
       setRequest(req)
       if (req) {
-        setSelectedStatus(req.status || "pending")
+        // Pre-select first valid transition, if any
+        const transitions = staffTransitions[req.status] || []
+        setSelectedStatus(transitions.length > 0 ? transitions[0].value : "")
         // Build checklist from service type template
         const templateItems = getChecklistForServiceType(req.service_type)
         setChecklistItems(templateItems.map((item, i) => ({
@@ -175,22 +189,52 @@ export default function StaffRequestDetailPage() {
   }
 
   const handleStatusUpdate = async () => {
+    if (!statusNote.trim()) {
+      toast.error("Please add a note explaining what was done before updating the status.")
+      return
+    }
+    if (!selectedStatus) return
+    setUpdatingStatus(true)
     try {
-      await updateServiceRequest(request.id, { status: selectedStatus as ServiceRequest["status"] })
+      // Use the staff-scoped PATCH endpoint (not admin data endpoint)
+      const res = await fetch("/api/staff/requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: request.id,
+          status: selectedStatus,
+          notes: statusNote.trim(),
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Failed to update status")
+      }
+      // Also add a timeline entry with the note
       await addTimelineEntry({
         request_id: request.id,
         status: selectedStatus,
-        message: `Status changed to ${selectedStatus}`,
+        message: statusNote.trim(),
         created_by: "staff",
-      } as Omit<RequestTimeline, "id" | "created_at" | "creator">)
-      toast.success("Status updated")
-      // Refresh
+      })
+      const statusLabel = (staffTransitions[request.status] || []).find(t => t.value === selectedStatus)?.label || selectedStatus
+      toast.success(`Status updated to ${statusLabel}`)
+      setLastNotification(notifyTargets[selectedStatus] || "")
+      setStatusNote("")
+      // Refresh request and timeline
       const reqRes = await fetch(`/api/data/requests/${requestId}`)
-      if (reqRes.ok) setRequest(await reqRes.json())
+      if (reqRes.ok) {
+        const updated = await reqRes.json()
+        setRequest(updated)
+        const transitions = staffTransitions[updated.status] || []
+        setSelectedStatus(transitions.length > 0 ? transitions[0].value : "")
+      }
       const timeline = await getRequestTimeline(requestId)
       setRealTimeline(timeline)
     } catch (err: any) {
       toast.error(err?.message || "Failed to update status")
+    } finally {
+      setUpdatingStatus(false)
     }
   }
 
@@ -342,28 +386,92 @@ export default function StaffRequestDetailPage() {
             {/* Status update */}
             <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Update Status</h2>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1 max-w-xs">
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent"
-                  >
-                    {statusOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                </div>
-                <button
-                  onClick={handleStatusUpdate}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
-                >
-                  Update Status
-                </button>
-              </div>
+              {(() => {
+                const transitions = staffTransitions[request.status] || []
+                if (request.status === "under_review") {
+                  return (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-purple-50 rounded-lg">
+                      <Clock className="h-5 w-5 text-purple-500 flex-shrink-0" />
+                      <p className="text-sm text-purple-800">
+                        This request is waiting for admin review. You will be notified when an update is available.
+                      </p>
+                    </div>
+                  )
+                }
+                if (request.status === "completed") {
+                  return (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-green-50 rounded-lg">
+                      <CheckSquare className="h-5 w-5 text-green-500 flex-shrink-0" />
+                      <p className="text-sm text-green-800">This request has been completed.</p>
+                    </div>
+                  )
+                }
+                if (request.status === "cancelled") {
+                  return (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">This request has been cancelled.</p>
+                    </div>
+                  )
+                }
+                if (transitions.length === 0) {
+                  return (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">No status transitions available from the current status.</p>
+                    </div>
+                  )
+                }
+                return (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1 max-w-xs">
+                        <select
+                          value={selectedStatus}
+                          onChange={(e) => setSelectedStatus(e.target.value)}
+                          className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent"
+                        >
+                          {transitions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Note <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={statusNote}
+                        onChange={(e) => setStatusNote(e.target.value)}
+                        placeholder="Describe what was done or why the status is changing..."
+                        rows={3}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent resize-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleStatusUpdate}
+                        disabled={updatingStatus || !statusNote.trim()}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors disabled:opacity-50"
+                      >
+                        {updatingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        {updatingStatus ? "Updating..." : "Update Status"}
+                      </button>
+                      {selectedStatus && notifyTargets[selectedStatus] && (
+                        <p className="text-xs text-gray-500">{notifyTargets[selectedStatus]}</p>
+                      )}
+                    </div>
+                    {lastNotification && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg">
+                        <MessageSquare className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        <p className="text-xs text-blue-700">{lastNotification}</p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Notes */}
@@ -381,6 +489,32 @@ export default function StaffRequestDetailPage() {
                 rows={3}
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b] focus:border-transparent resize-none"
               />
+              <div className="mt-3 flex justify-end">
+                <button
+                  disabled={!noteText.trim()}
+                  onClick={async () => {
+                    if (!noteText.trim()) return
+                    try {
+                      await addTimelineEntry({
+                        request_id: request.id,
+                        status: "",
+                        message: noteText.trim(),
+                        created_by: "staff",
+                      })
+                      toast.success("Note saved")
+                      setNoteText("")
+                      const timeline = await getRequestTimeline(requestId)
+                      setRealTimeline(timeline)
+                    } catch {
+                      toast.error("Failed to save note")
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors disabled:opacity-50"
+                >
+                  <Plus className="h-4 w-4" />
+                  Save Note
+                </button>
+              </div>
             </div>
           </div>
         )}

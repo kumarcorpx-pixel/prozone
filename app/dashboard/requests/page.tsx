@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { serviceCatalog, getCategories } from "@/lib/service-catalog"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Plus, Calendar, User, ArrowRight, X, Loader2 } from "lucide-react"
@@ -27,8 +26,6 @@ export default function ClientRequestsPage() {
   const [requests, setRequests] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [timelines, setTimelines] = useState<Record<string, any[]>>({})
-
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState(defaultRequestForm)
   const [saving, setSaving] = useState(false)
@@ -43,20 +40,6 @@ export default function ClientRequestsPage() {
         if (requestsRes.ok) {
           const reqs = await requestsRes.json()
           setRequests(reqs)
-          // Fetch timelines for each request to track actual progress
-          const timelineEntries: Record<string, any[]> = {}
-          await Promise.all(
-            reqs.map(async (r: any) => {
-              try {
-                const tlRes = await fetch(`/api/data/requests/${r.id}/timeline`)
-                if (tlRes.ok) {
-                  const tlData = await tlRes.json()
-                  timelineEntries[r.id] = Array.isArray(tlData) ? tlData : (tlData.timeline || [])
-                }
-              } catch {}
-            })
-          )
-          setTimelines(timelineEntries)
         }
         if (companiesRes.ok) setCompanies(await companiesRes.json())
       } catch {}
@@ -101,9 +84,9 @@ export default function ClientRequestsPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
   const filtered = requests.filter(r => {
-    if (tab === "active") return ["pending", "in_progress", "under_review"].includes(r.status)
+    if (tab === "active") return ["pending", "assigned", "in_progress", "under_review"].includes(r.status)
     if (tab === "completed") return r.status === "completed"
-    if (tab === "cancelled") return r.status === "rejected"
+    if (tab === "cancelled") return ["cancelled", "rejected"].includes(r.status)
     return true
   })
 
@@ -201,18 +184,25 @@ export default function ClientRequestsPage() {
       )}
 
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-md text-sm font-medium capitalize ${tab === t ? "bg-white text-[#1a3a6b] shadow-sm" : "text-gray-600"}`}>
-            {t}
-          </button>
-        ))}
+        {tabs.map(t => {
+          const tabLabels: Record<string, string> = { all: "All", active: "Active", completed: "Completed", cancelled: "Cancelled/Rejected" }
+          return (
+            <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-md text-sm font-medium ${tab === t ? "bg-white text-[#1a3a6b] shadow-sm" : "text-gray-600"}`}>
+              {tabLabels[t] || t}
+            </button>
+          )
+        })}
       </div>
 
       <div className="space-y-4">
         {filtered.map(req => {
-          const steps = getChecklistForServiceType(req.service_type)
-          const timelineEntries = timelines[req.id] || []
-          const completedSteps = Math.min(timelineEntries.length, steps.length)
+          const progressMap: Record<string, number> = {
+            pending: 10, assigned: 25, in_progress: 50, under_review: 80, completed: 100, rejected: 0, cancelled: 0,
+          }
+          const pct = progressMap[req.status] ?? 0
+          const progressLabel: Record<string, string> = {
+            pending: "Pending", assigned: "Assigned", in_progress: "In Progress", under_review: "Under Review", completed: "Completed", rejected: "Rejected", cancelled: "Cancelled",
+          }
           return (
             <Link key={req.id} href={`/dashboard/requests/${req.id}`} className="block bg-white rounded-xl ring-1 ring-gray-200 p-5 hover:ring-[#1a3a6b]/30 hover:shadow-md transition-all">
               <div className="flex items-start justify-between gap-4">
@@ -231,17 +221,15 @@ export default function ClientRequestsPage() {
                 <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(req.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
                 <span className="flex items-center gap-1"><User className="h-3 w-3" />{req.assignee_name || "Unassigned"}</span>
               </div>
-              {steps.length > 0 && (
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500">Progress</span>
-                    <span className="font-medium text-[#1a3a6b]">{completedSteps}/{steps.length} steps</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-200 rounded-full">
-                    <div className="h-1.5 bg-[#1a3a6b] rounded-full" style={{ width: `${(completedSteps / steps.length) * 100}%` }} />
-                  </div>
+              <div className="mt-3">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-500">Progress</span>
+                  <span className="font-medium text-[#1a3a6b]">{pct}% &middot; {progressLabel[req.status] || req.status}</span>
                 </div>
-              )}
+                <div className="h-1.5 bg-gray-200 rounded-full">
+                  <div className={`h-1.5 rounded-full ${["rejected", "cancelled"].includes(req.status) ? "bg-red-400" : "bg-[#1a3a6b]"}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
               <div className="flex items-center justify-end mt-3 text-xs text-[#1a3a6b]">
                 View Details <ArrowRight className="h-3 w-3 ml-1" />
               </div>

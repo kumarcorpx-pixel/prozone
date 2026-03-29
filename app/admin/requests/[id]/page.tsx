@@ -12,7 +12,15 @@ import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ArrowLeft, FileText, CheckSquare, Clock, Upload, Plus, ChevronDown, MessageSquare, User, Loader2 } from "lucide-react"
 import { AedIcon } from "@/components/ui/aed-icon"
 
-const statusOptions = ["pending", "in_progress", "under_review", "completed", "rejected"]
+const statusTransitions: Record<string, string[]> = {
+  pending: ["assigned", "in_progress", "rejected", "cancelled"],
+  assigned: ["in_progress", "cancelled"],
+  in_progress: ["under_review", "completed", "cancelled"],
+  under_review: ["completed", "in_progress", "rejected"],
+  completed: [],
+  rejected: ["pending"],
+  cancelled: ["pending"],
+}
 
 
 const feeStatusColors: Record<string, string> = {
@@ -39,6 +47,7 @@ export default function AdminRequestDetailPage() {
   const [realDocs, setRealDocs] = useState<any[]>([])
   const [staffList, setStaffList] = useState<any[]>([])
   const [assignedTo, setAssignedTo] = useState<string>("")
+  const [statusNote, setStatusNote] = useState("")
 
   useEffect(() => {
     async function load() {
@@ -113,17 +122,27 @@ export default function AdminRequestDetailPage() {
 
   const handleStatusUpdate = async () => {
     try {
+      const newStatusLabel = status.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())
+      const noteText = statusNote.trim()
+      const message = noteText
+        ? `Status changed to ${status}. Note: ${noteText}`
+        : `Status changed to ${status}`
       await updateServiceRequest(request.id, { status: status as ServiceRequest["status"] })
       await addTimelineEntry({
         request_id: request.id,
         status,
-        message: `Status changed to ${status}`,
+        message,
         created_by: "admin",
       } as Omit<RequestTimeline, "id" | "created_at" | "creator">)
-      toast.success("Status updated")
+      toast.success(`Status updated to ${newStatusLabel}`)
+      setStatusNote("")
       // Refresh
       const reqRes = await fetch(`/api/data/requests/${requestId}`)
-      if (reqRes.ok) setRequest(await reqRes.json())
+      if (reqRes.ok) {
+        const reqData = await reqRes.json()
+        setRequest(reqData)
+        setStatus(reqData.status)
+      }
       const timeline = await getRequestTimeline(requestId)
       setRealTimeline(timeline)
     } catch (err: any) {
@@ -234,23 +253,48 @@ export default function AdminRequestDetailPage() {
               ))}
             </div>
             <div className="border-t pt-4 space-y-4">
-              <div className="flex items-end gap-3">
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-gray-700">Update Status</label>
-                  <select
-                    value={status}
-                    onChange={e => setStatus(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  >
-                    {statusOptions.map(s => (
-                      <option key={s} value={s}>{s.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</option>
-                    ))}
-                  </select>
+              {(statusTransitions[request.status]?.length ?? 0) === 0 ? (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Status</label>
+                  <div className="mt-1"><StatusBadge status={request.status} /></div>
                 </div>
-                <button onClick={handleStatusUpdate} className="px-4 py-2 bg-[#1a3a6b] text-white text-sm rounded-lg hover:bg-[#15305a]">
-                  Update
-                </button>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-700">Update Status</label>
+                      <select
+                        value={status}
+                        onChange={e => setStatus(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      >
+                        <option value={request.status}>{request.status.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} (current)</option>
+                        {(statusTransitions[request.status] || []).map((s: string) => (
+                          <option key={s} value={s}>{s.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={handleStatusUpdate}
+                      disabled={status === request.status}
+                      className="px-4 py-2 bg-[#1a3a6b] text-white text-sm rounded-lg hover:bg-[#15305a] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Update
+                    </button>
+                  </div>
+                  {status !== request.status && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Note / Reason (optional)</label>
+                      <input
+                        value={statusNote}
+                        onChange={e => setStatusNote(e.target.value)}
+                        placeholder="Add a reason or comment for this status change..."
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex items-end gap-3">
                 <div className="flex-1">
                   <label className="text-sm font-medium text-gray-700">Assign Staff</label>

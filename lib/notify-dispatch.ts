@@ -220,6 +220,154 @@ export async function dispatchStaffAssignment(request: {
   }
 }
 
+export async function dispatchRequestLifecycle(params: {
+  id: string
+  serviceType: string
+  oldStatus: string
+  newStatus: string
+  clientId?: string | null
+  assignedToId?: string | null
+  changedByRole: string
+}) {
+  const { id, serviceType, oldStatus, newStatus, clientId, assignedToId, changedByRole } = params
+  const statusLabel = newStatus.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+  const transition = `${oldStatus} → ${newStatus}`
+
+  // Helper to load user
+  const loadUser = async (userId: string) =>
+    prisma.user.findUnique({ where: { id: userId }, select: { id: true, fullName: true, email: true, phone: true } })
+
+  // Helper to notify all admins via DB
+  const notifyAdminsDb = async (title: string, message: string) => {
+    const admins = await prisma.user.findMany({ where: { role: "admin" }, select: { id: true } })
+    for (const admin of admins) {
+      await createDbNotification(admin.id, title, message, "info", `/admin/requests`)
+    }
+  }
+
+  try {
+    if (oldStatus === "pending" && newStatus === "assigned") {
+      // Notify Client: DB + push + email
+      if (clientId) {
+        const client = await loadUser(clientId)
+        if (client) {
+          await createDbNotification(clientId, `Request Assigned: ${serviceType}`, `Your ${serviceType} request has been assigned`, "success", `/dashboard/requests/${id}`)
+          await notifyStatusUpdate(clientId, serviceType, newStatus, id)
+          if (client.email) {
+            await sendEmail(client.email, `YABS - ${serviceType} Assigned`,
+              emailTemplate("Request Assigned", `
+                <p style="color:#333;">Hi ${client.fullName},</p>
+                <p style="color:#333;">Your <strong>${serviceType}</strong> request has been assigned to a PRO staff member.</p>
+                <p style="color:#333;"><a href="https://corporatepro.cloud/dashboard/requests/${id}" style="display:inline-block;padding:10px 24px;background:#1a3a6b;color:#fff;border-radius:8px;text-decoration:none;">Track Your Request</a></p>
+              `))
+          }
+        }
+      }
+      // Notify PRO Staff: DB + push + email
+      if (assignedToId) {
+        const staff = await loadUser(assignedToId)
+        if (staff) {
+          await createDbNotification(assignedToId, "New Task Assigned", `${serviceType} request assigned to you`, "info", `/staff/requests/${id}`)
+          await notifyStaffNewTask(assignedToId, serviceType, "")
+          if (staff.email) {
+            await sendEmail(staff.email, `YABS - New Task: ${serviceType}`,
+              emailTemplate("New Task Assigned", `
+                <p style="color:#333;">Hi ${staff.fullName},</p>
+                <p style="color:#333;">A new <strong>${serviceType}</strong> task has been assigned to you.</p>
+                <p style="color:#333;"><a href="https://corporatepro.cloud/staff/requests/${id}" style="display:inline-block;padding:10px 24px;background:#1a3a6b;color:#fff;border-radius:8px;text-decoration:none;">View Task</a></p>
+              `))
+          }
+        }
+      }
+    } else if (oldStatus === "assigned" && newStatus === "in_progress") {
+      // Notify Client: DB + email
+      if (clientId) {
+        const client = await loadUser(clientId)
+        if (client) {
+          await createDbNotification(clientId, `In Progress: ${serviceType}`, `Your ${serviceType} request is now being worked on`, "info", `/dashboard/requests/${id}`)
+          if (client.email) {
+            await sendEmail(client.email, `YABS - ${serviceType} In Progress`,
+              emailTemplate("Request In Progress", `
+                <p style="color:#333;">Hi ${client.fullName},</p>
+                <p style="color:#333;">Your <strong>${serviceType}</strong> request is now <strong>In Progress</strong>.</p>
+                <p style="color:#333;"><a href="https://corporatepro.cloud/dashboard/requests/${id}" style="display:inline-block;padding:10px 24px;background:#1a3a6b;color:#fff;border-radius:8px;text-decoration:none;">Track Your Request</a></p>
+              `))
+          }
+        }
+      }
+      // Notify Admin: DB
+      await notifyAdminsDb(`Request In Progress`, `${serviceType} request is now in progress`)
+    } else if (oldStatus === "in_progress" && newStatus === "under_review") {
+      // Notify Admin: DB + email
+      const admins = await prisma.user.findMany({ where: { role: "admin" }, select: { id: true, fullName: true, email: true } })
+      for (const admin of admins) {
+        await createDbNotification(admin.id, `Review Needed: ${serviceType}`, `${serviceType} request is ready for review`, "warning", `/admin/requests`)
+        if (admin.email) {
+          await sendEmail(admin.email, `YABS - Review Needed: ${serviceType}`,
+            emailTemplate("Request Ready for Review", `
+              <p style="color:#333;">Hi ${admin.fullName},</p>
+              <p style="color:#333;">A <strong>${serviceType}</strong> request is now <strong>Under Review</strong> and needs your attention.</p>
+              <p style="color:#333;"><a href="https://corporatepro.cloud/admin/requests" style="display:inline-block;padding:10px 24px;background:#1a3a6b;color:#fff;border-radius:8px;text-decoration:none;">Review Request</a></p>
+            `))
+        }
+      }
+      // Notify Client: DB
+      if (clientId) {
+        await createDbNotification(clientId, `Under Review: ${serviceType}`, `Your ${serviceType} request is under review`, "info", `/dashboard/requests/${id}`)
+      }
+    } else if (oldStatus === "under_review" && newStatus === "completed") {
+      // Notify Client: DB + push + email + WhatsApp
+      if (clientId) {
+        const client = await loadUser(clientId)
+        if (client) {
+          await createDbNotification(clientId, `Completed: ${serviceType}`, `Your ${serviceType} request has been completed`, "success", `/dashboard/requests/${id}`)
+          await notifyStatusUpdate(clientId, serviceType, newStatus, id)
+          if (client.email) {
+            await sendEmail(client.email, `YABS - ${serviceType} Completed`,
+              emailTemplate("Request Completed", `
+                <p style="color:#333;">Hi ${client.fullName},</p>
+                <p style="color:#333;">Your <strong>${serviceType}</strong> request has been <strong>Completed</strong>.</p>
+                <p style="color:#333;"><a href="https://corporatepro.cloud/dashboard/requests/${id}" style="display:inline-block;padding:10px 24px;background:#1a3a6b;color:#fff;border-radius:8px;text-decoration:none;">View Details</a></p>
+              `))
+          }
+          if (client.phone) {
+            await sendWhatsAppMessage({ to: client.phone, text: whatsappMessages.requestStatusUpdate(client.fullName, serviceType, newStatus) })
+          }
+        }
+      }
+      // Notify PRO Staff: DB
+      if (assignedToId) {
+        await createDbNotification(assignedToId, `Request Completed`, `${serviceType} request has been marked as completed`, "success", `/staff/requests/${id}`)
+      }
+    } else if (newStatus === "rejected" || newStatus === "cancelled") {
+      // Any → rejected/cancelled: Notify Client (DB + push + email)
+      if (clientId) {
+        const client = await loadUser(clientId)
+        if (client) {
+          await createDbNotification(clientId, `Request ${statusLabel}: ${serviceType}`, `Your ${serviceType} request has been ${statusLabel.toLowerCase()}`, "error", `/dashboard/requests/${id}`)
+          await notifyStatusUpdate(clientId, serviceType, newStatus, id)
+          if (client.email) {
+            await sendEmail(client.email, `YABS - ${serviceType} ${statusLabel}`,
+              emailTemplate(`Request ${statusLabel}`, `
+                <p style="color:#333;">Hi ${client.fullName},</p>
+                <p style="color:#333;">Your <strong>${serviceType}</strong> request has been <strong>${statusLabel}</strong>.</p>
+                <p style="color:#333;"><a href="https://corporatepro.cloud/dashboard/requests/${id}" style="display:inline-block;padding:10px 24px;background:#1a3a6b;color:#fff;border-radius:8px;text-decoration:none;">View Details</a></p>
+              `))
+          }
+        }
+      }
+    } else {
+      // Fallback: generic status update notification to client
+      if (clientId) {
+        await createDbNotification(clientId, `Status Update: ${serviceType}`, `Your ${serviceType} request status changed to ${statusLabel}`, "info", `/dashboard/requests/${id}`)
+        await notifyStatusUpdate(clientId, serviceType, newStatus, id)
+      }
+    }
+  } catch (err: any) {
+    console.error("[dispatchRequestLifecycle] Error:", err.message)
+  }
+}
+
 export async function dispatchPaymentReminder(invoice: {
   invoiceNumber: string
   amount: number

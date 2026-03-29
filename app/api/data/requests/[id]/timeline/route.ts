@@ -74,6 +74,13 @@ export async function POST(
       include: { createdBy: { select: { fullName: true, role: true } } },
     })
 
+    // Notify client when pro_staff or admin adds a timeline entry
+    if (auth.user.role !== "client" && sr.clientId) {
+      prisma.notification.create({
+        data: { userId: sr.clientId, title: "Request Update", message: message.substring(0, 100), type: "info", isRead: false, link: `/dashboard/requests/${id}` }
+      }).catch(() => {})
+    }
+
     return NextResponse.json({
       id: entry.id,
       status: entry.status,

@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { addTimelineEntry } from "@/lib/api"
 import { toast } from "sonner"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { ArrowLeft, FileText, MessageSquare, CheckCircle2, Circle, Clock, Download, Loader2 } from "lucide-react"
+import { ArrowLeft, FileText, MessageSquare, CheckCircle2, Circle, Clock, Download, Loader2, Phone, UserCheck } from "lucide-react"
 import { AedIcon } from "@/components/ui/aed-icon"
 
 export default function ClientRequestDetailPage() {
@@ -69,8 +68,15 @@ export default function ClientRequestDetailPage() {
     )
   }
 
-  const steps = getChecklistForServiceType(request.service_type)
-  const completedSteps = Math.min(timeline.length, steps.length)
+  const lifecycleSteps = [
+    { key: "pending", label: "Submitted" },
+    { key: "assigned", label: "Assigned" },
+    { key: "in_progress", label: "In Progress" },
+    { key: "under_review", label: "Under Review" },
+    { key: "completed", label: "Completed" },
+  ]
+  const statusOrder = ["pending", "assigned", "in_progress", "under_review", "completed"]
+  const currentIdx = statusOrder.indexOf(request.status)
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) return
@@ -117,8 +123,45 @@ export default function ClientRequestDetailPage() {
           <h1 className="text-xl font-bold text-gray-900">{request.service_type}</h1>
           <p className="text-sm text-gray-500">{request.company_name || "N/A"} &middot; {new Date(request.created_at).toLocaleDateString()}</p>
         </div>
-        <StatusBadge status={request.status} />
+        <div className="text-right">
+          <StatusBadge status={request.status} />
+        </div>
       </div>
+
+      {/* Large status banner */}
+      {(() => {
+        const statusColors: Record<string, string> = {
+          pending: "bg-yellow-50 border-yellow-200 text-yellow-800",
+          assigned: "bg-indigo-50 border-indigo-200 text-indigo-800",
+          in_progress: "bg-blue-50 border-blue-200 text-blue-800",
+          under_review: "bg-purple-50 border-purple-200 text-purple-800",
+          completed: "bg-green-50 border-green-200 text-green-800",
+          rejected: "bg-red-50 border-red-200 text-red-800",
+          cancelled: "bg-gray-50 border-gray-200 text-gray-800",
+        }
+        const statusLabels: Record<string, string> = {
+          pending: "Pending Review", assigned: "Assigned to PRO Officer", in_progress: "Work In Progress",
+          under_review: "Under Review", completed: "Completed", rejected: "Rejected", cancelled: "Cancelled",
+        }
+        const progressMap: Record<string, number> = { pending: 10, assigned: 25, in_progress: 50, under_review: 80, completed: 100 }
+        const pct = progressMap[request.status] ?? 0
+        return (
+          <div className={`rounded-xl border p-4 ${statusColors[request.status] || "bg-gray-50 border-gray-200 text-gray-800"}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-lg font-semibold">{statusLabels[request.status] || request.status}</p>
+                <p className="text-sm opacity-75 mt-0.5">Last updated: {new Date(request.updated_at || request.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
+              </div>
+              {pct > 0 && <span className="text-2xl font-bold">{pct}%</span>}
+            </div>
+            {pct > 0 && (
+              <div className="h-2 bg-white/50 rounded-full mt-3">
+                <div className="h-2 bg-current rounded-full opacity-60" style={{ width: `${pct}%` }} />
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       <div className="flex gap-1 border-b overflow-x-auto">
         {tabs.map(tab => (
@@ -130,40 +173,56 @@ export default function ClientRequestDetailPage() {
 
       <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
         {activeTab === "progress" && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-gray-900">Service Progress</h3>
-              <span className="text-sm text-[#1a3a6b] font-medium">{completedSteps}/{steps.length} completed</span>
-            </div>
-            {steps.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No workflow steps available for this service type.</p>
+          <div className="space-y-6">
+            <h3 className="font-semibold text-gray-900">Request Lifecycle</h3>
+
+            {/* Lifecycle stepper */}
+            {["rejected", "cancelled"].includes(request.status) ? (
+              <div className="p-4 bg-red-50 rounded-lg text-center">
+                <p className="text-sm font-medium text-red-700">This request has been {request.status}.</p>
+              </div>
             ) : (
               <div className="space-y-0">
-                {steps.map((step, i) => {
-                  const done = i < completedSteps
-                  const current = i === completedSteps
+                {lifecycleSteps.map((step, i) => {
+                  const done = i < currentIdx || (i === currentIdx && request.status === "completed")
+                  const current = i === currentIdx && request.status !== "completed"
                   return (
-                    <div key={i} className="flex gap-4">
+                    <div key={step.key} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${done ? "bg-green-500 text-white" : current ? "bg-[#1a3a6b] text-white" : "bg-gray-200 text-gray-400"}`}>
                           {done ? <CheckCircle2 className="h-4 w-4" /> : current ? <Clock className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                         </div>
-                        {i < steps.length - 1 && <div className={`w-0.5 h-8 ${done ? "bg-green-500" : "bg-gray-200"}`} />}
+                        {i < lifecycleSteps.length - 1 && <div className={`w-0.5 h-8 ${done ? "bg-green-500" : "bg-gray-200"}`} />}
                       </div>
                       <div className="pb-6">
-                        <p className={`text-sm font-medium ${done ? "text-green-700" : current ? "text-[#1a3a6b]" : "text-gray-500"}`}>{step}</p>
+                        <p className={`text-sm font-medium ${done ? "text-green-700" : current ? "text-[#1a3a6b]" : "text-gray-500"}`}>{step.label}</p>
                         {done && <p className="text-xs text-gray-400 mt-0.5">Completed</p>}
-                        {current && <p className="text-xs text-[#1a3a6b] mt-0.5">In Progress</p>}
+                        {current && <p className="text-xs text-[#1a3a6b] mt-0.5">Current Step</p>}
                       </div>
                     </div>
                   )
                 })}
               </div>
             )}
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-[#1a3a6b]">PRO Officer: <strong>{request.assignee_name || "Assigned Staff"}</strong></p>
-              {request.assignee_phone && <p className="text-xs text-gray-500 mt-0.5">Contact: {request.assignee_phone}</p>}
-              <p className="text-xs text-gray-500 mt-1">Last updated: {new Date(request.updated_at || request.created_at).toLocaleDateString()}</p>
+
+            {/* Your PRO Officer card */}
+            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-10 w-10 rounded-full bg-[#1a3a6b] flex items-center justify-center">
+                  <UserCheck className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Your PRO Officer</p>
+                  <p className="text-sm font-semibold text-gray-900">{request.assignee_name || "Not yet assigned"}</p>
+                </div>
+              </div>
+              {request.assignee_phone && (
+                <div className="flex items-center gap-2 mt-2 ml-[52px]">
+                  <Phone className="h-3.5 w-3.5 text-gray-400" />
+                  <a href={`tel:${request.assignee_phone}`} className="text-sm text-[#1a3a6b] hover:underline">{request.assignee_phone}</a>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-2 ml-[52px]">Last updated: {new Date(request.updated_at || request.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
             </div>
           </div>
         )}
@@ -258,22 +317,26 @@ export default function ClientRequestDetailPage() {
 
         {activeTab === "messages" && (
           <div className="space-y-4">
-            <div className="space-y-3 max-h-80 overflow-y-auto">
+            <div className="space-y-3 max-h-96 overflow-y-auto">
               {timeline.length === 0 ? (
                 <p className="text-center text-gray-500 py-8">No messages yet. Send the first message below.</p>
               ) : (
                 timeline.map((entry: any) => {
                   const sender = entry.creator?.full_name || (typeof entry.created_by === "string" ? entry.created_by : "System")
-                  const role = entry.created_by_role === "client" ? "client" : "admin"
+                  const role = entry.created_by_role || (typeof entry.created_by === "string" ? entry.created_by : "system")
+                  const isClient = role === "client"
+                  const isProStaff = role === "pro_staff"
+                  const roleLabel = isClient ? "You" : isProStaff ? "PRO Staff" : role === "admin" ? "Admin" : "System"
                   return (
-                    <div key={entry.id} className={`flex gap-3 ${role === "client" ? "flex-row-reverse" : ""}`}>
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium text-white ${role === "client" ? "bg-green-600" : "bg-purple-600"}`}>
+                    <div key={entry.id} className={`flex gap-3 ${isClient ? "flex-row-reverse" : ""}`}>
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium text-white ${isClient ? "bg-blue-600" : isProStaff ? "bg-indigo-600" : "bg-gray-500"}`}>
                         {sender.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                       </div>
-                      <div className={`max-w-[70%] p-3 rounded-lg ${role === "client" ? "bg-[#1a3a6b] text-white" : "bg-gray-100"}`}>
-                        <p className={`text-xs font-medium mb-1 ${role === "client" ? "text-blue-200" : "text-gray-500"}`}>{sender}</p>
+                      <div className={`max-w-[70%] p-3 rounded-lg ${isClient ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"}`}>
+                        <p className={`text-xs font-medium mb-1 ${isClient ? "text-blue-200" : "text-gray-500"}`}>{sender} <span className="font-normal">({roleLabel})</span></p>
+                        {entry.status && <p className={`text-[10px] mb-1 font-medium ${isClient ? "text-blue-200" : "text-gray-400"}`}>Status: {entry.status}</p>}
                         <p className="text-sm">{entry.message}</p>
-                        <p className={`text-[10px] mt-1 ${role === "client" ? "text-blue-300" : "text-gray-400"}`}>{new Date(entry.created_at).toLocaleString()}</p>
+                        <p className={`text-[10px] mt-1 ${isClient ? "text-blue-300" : "text-gray-400"}`}>{new Date(entry.created_at).toLocaleString()}</p>
                       </div>
                     </div>
                   )

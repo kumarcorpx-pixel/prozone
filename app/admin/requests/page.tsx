@@ -9,7 +9,7 @@ import { Search, FileText, Plus, X, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
-const statusOptions = ["all", "pending", "in_progress", "under_review", "completed", "rejected"]
+const statusOptions = ["all", "pending", "assigned", "in_progress", "under_review", "completed", "rejected", "cancelled"]
 const priorityOptions = ["all", "urgent", "high", "medium", "low"]
 
 const priorityColors: Record<string, string> = {
