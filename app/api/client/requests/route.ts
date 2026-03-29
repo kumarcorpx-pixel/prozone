@@ -24,6 +24,10 @@ export async function GET(request: NextRequest) {
     try {
       const requests = await prisma.serviceRequest.findMany({
         where: { clientId: user.id },
+        include: {
+          company: { select: { name: true } },
+          assignedTo: { select: { fullName: true, phone: true } },
+        },
         orderBy: { createdAt: "desc" },
       })
 
@@ -31,11 +35,14 @@ export async function GET(request: NextRequest) {
         id: r.id,
         client_id: r.clientId,
         company_id: r.companyId,
+        company_name: r.company?.name || null,
         service_type: r.serviceType,
         description: r.description,
         status: r.status,
         priority: r.priority,
         assigned_to: r.assignedToId,
+        assignee_name: r.assignedTo?.fullName || null,
+        assignee_phone: r.assignedTo?.phone || null,
         notes: r.notes,
         due_date: r.dueDate,
         created_at: r.createdAt,

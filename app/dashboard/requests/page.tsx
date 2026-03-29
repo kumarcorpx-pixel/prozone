@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { createServiceRequest, getSession } from "@/lib/api"
+import { getSession } from "@/lib/api"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { serviceCatalog, getCategories } from "@/lib/service-catalog"
 import { StatusBadge } from "@/components/dashboard/status-badge"
@@ -17,8 +17,8 @@ const priorityColors: Record<string, string> = {
 
 
 const defaultRequestForm = {
-  company_id: "",
-  service_type: "",
+  companyId: "",
+  serviceType: "",
   description: "",
   priority: "medium" as const,
 }
