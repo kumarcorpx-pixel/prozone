@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getSession } from "@/lib/api"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { serviceCatalog, getCategories } from "@/lib/service-catalog"
 import { StatusBadge } from "@/components/dashboard/status-badge"
@@ -67,31 +66,26 @@ export default function ClientRequestsPage() {
   }, [])
 
   const handleAddRequest = async () => {
-    if (!formData.service_type) {
+    if (!formData.serviceType) {
       toast.error("Please select a service type")
       return
     }
     setSaving(true)
     try {
-      const session = await getSession()
-      const clientId = session?.user?.id
-      if (!clientId) {
-        toast.error("You must be logged in to create a request")
-        setSaving(false)
-        return
-      }
-      await createServiceRequest({
-        client_id: clientId,
-        company_id: formData.company_id || null,
-        service_type: formData.service_type,
-        description: formData.description || null,
-        status: "pending",
-        priority: formData.priority as any,
-        assigned_to: null,
-        notes: null,
-        due_date: null,
-        completed_date: null,
+      const res = await fetch("/api/client/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceType: formData.serviceType,
+          companyId: formData.companyId || null,
+          description: formData.description || null,
+          priority: formData.priority,
+        }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to submit request")
+      }
       toast.success("Request submitted successfully")
       setShowAddForm(false)
       setFormData(defaultRequestForm)
@@ -136,8 +130,8 @@ export default function ClientRequestsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
               <select
-                value={formData.company_id}
-                onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
+                value={formData.companyId}
+                onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
               >
                 <option value="">Select a company</option>
@@ -149,8 +143,8 @@ export default function ClientRequestsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Service Type *</label>
               <select
-                value={formData.service_type}
-                onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
+                value={formData.serviceType}
+                onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
               >
                 <option value="">Select a service</option>

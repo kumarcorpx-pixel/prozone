@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
-import { addTimelineEntry, getRequestTimeline } from "@/lib/api"
+import { addTimelineEntry } from "@/lib/api"
 import { toast } from "sonner"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ArrowLeft, FileText, MessageSquare, CheckCircle2, Circle, Clock, Download, Loader2 } from "lucide-react"
@@ -21,43 +21,30 @@ export default function ClientRequestDetailPage() {
   const [reqDocs, setReqDocs] = useState<any[]>([])
   const [timeline, setTimeline] = useState<any[]>([])
   const [fees, setFees] = useState<any[]>([])
+  const [uploading, setUploading] = useState(false)
 
-  useEffect(() => {
-    async function load() {
+  const loadRequest = async () => {
+    try {
+      const res = await fetch(`/api/client/requests/${requestId}`)
+      if (!res.ok) { setLoading(false); return }
+      const data = await res.json()
+      setRequest(data)
+      setTimeline(data.timeline || [])
+      setFees(data.fees || data.government_fees || [])
+      // Load documents for this request's company
       try {
-        const requestsRes = await fetch("/api/client/requests")
-        const requests = requestsRes.ok ? await requestsRes.json() : []
-        const found = requests.find((r: any) => r.id === requestId)
-        if (!found) { setLoading(false); return }
-        const req = found
-        setRequest(req)
-        if (req) {
-          // Load documents for this request's company
-          try {
-            const docsRes = await fetch("/api/client/documents")
-            if (docsRes.ok) {
-              const docs = await docsRes.json()
-              setReqDocs(docs.filter((d: any) => d.request_id === req.id || d.company_id === req.company_id))
-            }
-          } catch {}
-          // Load timeline/messages
-          try {
-            const tl = await getRequestTimeline(requestId)
-            setTimeline(tl)
-          } catch {}
-          // Load fees
-          try {
-            const feeRes = await fetch(`/api/client/requests/${requestId}`)
-            if (feeRes.ok) {
-              const feeData = await feeRes.json()
-              if (feeData.government_fees) setFees(feeData.government_fees)
-            }
-          } catch {}
+        const docsRes = await fetch("/api/client/documents")
+        if (docsRes.ok) {
+          const docs = await docsRes.json()
+          setReqDocs(docs.filter((d: any) => d.request_id === data.id || d.company_id === data.company_id))
         }
       } catch {}
-      setLoading(false)
-    }
-    load()
+    } catch {}
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadRequest()
   }, [requestId])
 
   if (loading) {
@@ -96,10 +83,13 @@ export default function ClientRequestDetailPage() {
       })
       setMessageInput("")
       toast.success("Message sent")
-      // Refresh timeline
+      // Refresh request data (includes timeline)
       try {
-        const tl = await getRequestTimeline(requestId)
-        setTimeline(tl)
+        const res = await fetch(`/api/client/requests/${requestId}`)
+        if (res.ok) {
+          const data = await res.json()
+          setTimeline(data.timeline || [])
+        }
       } catch {}
     } catch (err: any) {
       toast.error(err?.message || "Failed to send message")
@@ -198,9 +188,38 @@ export default function ClientRequestDetailPage() {
                 </div>
               ))
             )}
-            <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#1a3a6b] hover:text-[#1a3a6b]">
-              + Upload Document
-            </button>
+            <label className={`w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#1a3a6b] hover:text-[#1a3a6b] flex items-center justify-center cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+              <input
+                type="file"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setUploading(true)
+                  try {
+                    const formData = new FormData()
+                    formData.append("file", file)
+                    formData.append("request_id", request.id)
+                    if (request.company_id) formData.append("company_id", request.company_id)
+                    const res = await fetch("/api/documents/upload", { method: "POST", body: formData })
+                    if (!res.ok) throw new Error("Upload failed")
+                    toast.success("Document uploaded")
+                    // Refresh documents
+                    const docsRes = await fetch("/api/client/documents")
+                    if (docsRes.ok) {
+                      const docs = await docsRes.json()
+                      setReqDocs(docs.filter((d: any) => d.request_id === request.id || d.company_id === request.company_id))
+                    }
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to upload document")
+                  }
+                  setUploading(false)
+                  e.target.value = ""
+                }}
+              />
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {uploading ? "Uploading..." : "+ Upload Document"}
+            </label>
           </div>
         )}
 
@@ -245,7 +264,7 @@ export default function ClientRequestDetailPage() {
               ) : (
                 timeline.map((entry: any) => {
                   const sender = entry.creator?.full_name || (typeof entry.created_by === "string" ? entry.created_by : "System")
-                  const role = entry.created_by === "client" ? "client" : "admin"
+                  const role = entry.created_by_role === "client" ? "client" : "admin"
                   return (
                     <div key={entry.id} className={`flex gap-3 ${role === "client" ? "flex-row-reverse" : ""}`}>
                       <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium text-white ${role === "client" ? "bg-green-600" : "bg-purple-600"}`}>

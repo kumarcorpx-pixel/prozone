@@ -44,7 +44,7 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const [companies, setCompanies] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
-  const [documents, setDocuments] = useState<any[]>([])
+  const [documents, setDocuments] = useState<{ count: number }>({ count: 0 })
   const [requests, setRequests] = useState<any[]>([])
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -56,23 +56,48 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [companiesRes, employeesRes, documentsRes, requestsRes, notifsRes] = await Promise.all([
-          fetch(`${apiPrefix}/companies`),
-          fetch(`${apiPrefix}/employees`),
-          fetch(`${apiPrefix}/documents`),
-          fetch(`${apiPrefix}/requests`),
-          fetch("/api/notifications"),
-        ])
-        if (companiesRes.ok) setCompanies(await companiesRes.json())
-        if (employeesRes.ok) setEmployees(await employeesRes.json())
-        if (documentsRes.ok) setDocuments(await documentsRes.json())
-        if (requestsRes.ok) setRequests(await requestsRes.json())
-        if (notifsRes.ok) {
-          const d = await notifsRes.json()
-          setNotifications((d.notifications || []).map((n: any) => ({
-            id: n.id, title: n.title, message: n.message, type: n.type || "info",
-            is_read: n.isRead ?? n.is_read ?? false, created_at: n.createdAt || n.created_at || "",
-          })))
+        if (isAdmin) {
+          // Admin: use individual endpoints
+          const [companiesRes, employeesRes, documentsRes, requestsRes, notifsRes] = await Promise.all([
+            fetch(`${apiPrefix}/companies`),
+            fetch(`${apiPrefix}/employees`),
+            fetch(`${apiPrefix}/documents`),
+            fetch(`${apiPrefix}/requests`),
+            fetch("/api/notifications"),
+          ])
+          if (companiesRes.ok) setCompanies(await companiesRes.json())
+          if (employeesRes.ok) setEmployees(await employeesRes.json())
+          if (documentsRes.ok) { const docs = await documentsRes.json(); setDocuments({ count: Array.isArray(docs) ? docs.length : 0 }) }
+          if (requestsRes.ok) setRequests(await requestsRes.json())
+          if (notifsRes.ok) {
+            const d = await notifsRes.json()
+            setNotifications((d.notifications || []).map((n: any) => ({
+              id: n.id, title: n.title, message: n.message, type: n.type || "info",
+              is_read: n.isRead ?? n.is_read ?? false, created_at: n.createdAt || n.created_at || "",
+            })))
+          }
+        } else {
+          // Client: use aggregated dashboard endpoint + requests list + notifications
+          const [dashRes, requestsRes, notifsRes, employeesRes] = await Promise.all([
+            fetch("/api/client/dashboard"),
+            fetch("/api/client/requests"),
+            fetch("/api/notifications"),
+            fetch("/api/client/employees"),
+          ])
+          if (dashRes.ok) {
+            const dash = await dashRes.json()
+            setCompanies(dash.companies || [])
+            setDocuments({ count: dash.documents || 0 })
+          }
+          if (requestsRes.ok) setRequests(await requestsRes.json())
+          if (employeesRes.ok) setEmployees(await employeesRes.json())
+          if (notifsRes.ok) {
+            const d = await notifsRes.json()
+            setNotifications((d.notifications || []).map((n: any) => ({
+              id: n.id, title: n.title, message: n.message, type: n.type || "info",
+              is_read: n.isRead ?? n.is_read ?? false, created_at: n.createdAt || n.created_at || "",
+            })))
+          }
         }
       } catch (err: any) {
         setError(err?.message || "Failed to load dashboard data. Please try again.")
@@ -80,7 +105,7 @@ export default function DashboardPage() {
       setLoading(false)
     }
     load()
-  }, [apiPrefix])
+  }, [apiPrefix, isAdmin])
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -363,7 +388,7 @@ export default function DashboardPage() {
                   <FolderOpen className="h-4 w-4 text-purple-600" />
                   <span className="text-xs text-gray-500">Documents</span>
                 </div>
-                <p className="text-sm font-semibold text-gray-900">{documents.length}</p>
+                <p className="text-sm font-semibold text-gray-900">{documents.count}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-1">
