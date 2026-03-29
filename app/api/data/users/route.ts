@@ -61,7 +61,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { id, fullName, phone, isActive } = body
+    const { id, fullName, phone, isActive, password } = body
 
     if (!id) {
       return NextResponse.json({ error: "User id is required" }, { status: 400 })
@@ -71,6 +71,10 @@ export async function PATCH(request: NextRequest) {
     if (fullName !== undefined) data.fullName = fullName
     if (phone !== undefined) data.phone = phone
     if (isActive !== undefined) data.isActive = isActive
+    if (password) {
+      if (password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 })
+      data.password = await bcrypt.hash(password, 12)
+    }
 
     const updated = await prisma.user.update({
       where: { id },

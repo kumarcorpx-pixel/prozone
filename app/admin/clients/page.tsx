@@ -71,6 +71,26 @@ export default function ClientsPage() {
     }
   }
 
+  const handleResetPassword = async (userId: string, userName: string) => {
+    const newPassword = prompt(`Set new password for ${userName} (min 8 characters):`)
+    if (!newPassword) return
+    if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return }
+    try {
+      const res = await fetch("/api/data/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: userId, password: newPassword }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Failed to reset password")
+      }
+      toast.success(`Password updated for ${userName}`)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to reset password")
+    }
+  }
+
   const handleDeleteUser = async (userId: string, userName: string) => {
     if (!confirm(`Are you sure you want to delete ${userName}? This cannot be undone.`)) return
     try {
@@ -370,6 +390,12 @@ export default function ClientsPage() {
                       >
                         {togglingId === profile.id && <Loader2 className="h-3 w-3 animate-spin" />}
                         {profile.is_active ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        onClick={() => handleResetPassword(profile.id, profile.full_name)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                      >
+                        Password
                       </button>
                       <button
                         onClick={() => handleDeleteUser(profile.id, profile.full_name)}
