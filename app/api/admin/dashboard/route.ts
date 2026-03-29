@@ -4,23 +4,6 @@ import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { handleApiError } from "@/lib/api-error-handler"
 
-const demoStats = {
-  companies: 24,
-  employees: 156,
-  activeRequests: 18,
-  completedRequests: 243,
-  documents: 412,
-  revenue: {
-    thisMonth: 145000,
-    lastMonth: 128000,
-    currency: "AED",
-  },
-  recentActivity: [
-    { id: "act-1", type: "request_created", description: "New visa renewal request from ABC Corp", createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-    { id: "act-2", type: "request_completed", description: "Trade license renewal completed for XYZ LLC", createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
-    { id: "act-3", type: "document_uploaded", description: "Passport copy uploaded for employee John Doe", createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString() },
-  ],
-}
 
 export async function GET(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"
@@ -34,7 +17,7 @@ export async function GET(request: NextRequest) {
     const user = token ? await getUserFromToken(token) : null
 
     if (!user) {
-      return NextResponse.json({ ...demoStats, demo: true })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     if (user.role !== "admin") {

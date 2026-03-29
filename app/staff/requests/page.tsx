@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { fetchRequests } from "@/lib/data-fetcher"
+// Uses staff-scoped endpoint instead of admin data-fetcher
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 
@@ -29,8 +29,9 @@ export default function StaffRequestsPage() {
 
   useEffect(() => {
     async function load() {
-      const r = await fetchRequests()
-      setRequests(r)
+      const res = await fetch("/api/staff/requests")
+      const data = res.ok ? await res.json() : { requests: [] }
+      setRequests(data.requests || [])
       setLoading(false)
     }
     load()

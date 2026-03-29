@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
+// Staff sees only companies from their assigned requests
 import { Building2, MapPin, FileText, Users, Calendar } from "lucide-react"
 
 function getExpiryColor(date: string | null) {
@@ -19,12 +19,31 @@ export default function StaffCompaniesPage() {
 
   useEffect(() => {
     async function load() {
-      const [c, e] = await Promise.all([
-        fetchCompanies(),
-        fetchEmployees(),
-      ])
-      setCompanies(c)
-      setEmployees(e)
+      // Fetch staff's assigned requests to get their companies
+      const reqRes = await fetch("/api/staff/requests")
+      const reqData = reqRes.ok ? await reqRes.json() : { requests: [] }
+      const requests = reqData.requests || []
+      // Extract unique companies from assigned requests
+      const companyMap = new Map()
+      for (const r of requests) {
+        if (r.companyId && !companyMap.has(r.companyId)) {
+          companyMap.set(r.companyId, {
+            id: r.companyId,
+            name: r.companyName || r.company?.name || "Unknown",
+            ...r.company,
+          })
+        }
+      }
+      // Fetch full company details for each
+      const companyDetails = []
+      for (const [id] of companyMap) {
+        try {
+          const cRes = await fetch(`/api/data/companies/${id}`)
+          if (cRes.ok) companyDetails.push(await cRes.json())
+        } catch {}
+      }
+      setCompanies(companyDetails.length > 0 ? companyDetails : Array.from(companyMap.values()))
+      setEmployees([])
       setLoading(false)
     }
     load()

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { handleApiError } from "@/lib/api-error-handler"
+import { withAuth } from "@/lib/auth-middleware"
 
 function parseCSV(text: string): Record<string, string>[] {
   const lines = text.trim().split("\n")
@@ -42,6 +43,9 @@ function parseCSV(text: string): Record<string, string>[] {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin"])
+  if (!auth.success) return auth.response
+
   try {
     const contentType = request.headers.get("content-type") || ""
     let csvText: string

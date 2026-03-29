@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { fetchRequests, fetchCompanies, fetchEmployees, fetchDocuments } from "@/lib/data-fetcher"
+import { fetchDocuments } from "@/lib/data-fetcher"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import {
   FileText, CheckCircle2, Clock, ClipboardList, ArrowRight, Building2, Users,
@@ -28,13 +28,31 @@ export default function StaffDashboardPage() {
 
   useEffect(() => {
     async function load() {
-      const [r, c, e, d] = await Promise.all([
-        fetchRequests(), fetchCompanies(), fetchEmployees(), fetchDocuments(),
+      // Use staff-scoped endpoints instead of admin data-fetcher
+      const [reqRes, d] = await Promise.all([
+        fetch("/api/staff/requests").then(r => r.ok ? r.json() : { requests: [] }),
+        fetchDocuments(),
       ])
-      setRequests(r); setCompanies(c); setEmployees(e); setDocuments(d)
+      const staffRequests = reqRes.requests || []
+      setRequests(staffRequests)
+
+      // Extract unique companies and employees from assigned requests
+      const companyIds = new Set(staffRequests.map((r: any) => r.companyId).filter(Boolean))
+      const companyList = staffRequests
+        .filter((r: any) => r.companyId && r.companyName)
+        .reduce((acc: any[], r: any) => {
+          if (!acc.find((c: any) => c.id === r.companyId)) {
+            acc.push({ id: r.companyId, name: r.companyName || r.company?.name })
+          }
+          return acc
+        }, [])
+      setCompanies(companyList)
+      setEmployees([]) // Employees loaded per-company when needed
+      setDocuments(d.filter((doc: any) => !doc.company_id || companyIds.has(doc.company_id)))
+
       try {
-        const actRes = await fetch("/api/admin/activity")
-        if (actRes.ok) { const a = await actRes.json(); setActivityFeed(a.activities || []) }
+        const actRes = await fetch("/api/staff/dashboard")
+        if (actRes.ok) { const a = await actRes.json(); setActivityFeed(a.recentActivity || []) }
       } catch {}
       setLoading(false)
     }

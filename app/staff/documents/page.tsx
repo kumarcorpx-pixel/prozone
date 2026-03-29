@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { fetchDocuments, fetchRequests, fetchCompanies } from "@/lib/data-fetcher"
+// Staff sees only documents from companies in their assigned requests
 import { FileText, Download } from "lucide-react"
 
 const docTypeColors: Record<string, string> = {
@@ -20,14 +20,31 @@ export default function StaffDocumentsPage() {
 
   useEffect(() => {
     async function load() {
-      const [d, r, c] = await Promise.all([
-        fetchDocuments(),
-        fetchRequests(),
-        fetchCompanies(),
+      // Fetch staff's assigned requests to scope documents
+      const [reqRes, docRes] = await Promise.all([
+        fetch("/api/staff/requests").then(r => r.ok ? r.json() : { requests: [] }),
+        fetch("/api/data/documents").then(r => r.ok ? r.json() : []),
       ])
-      setDocuments(d)
-      setRequests(r)
-      setCompanies(c)
+      const staffRequests = reqRes.requests || []
+      const allDocs = Array.isArray(docRes) ? docRes : []
+
+      // Only show documents from companies in staff's assigned requests
+      const companyIds = new Set(staffRequests.map((r: any) => r.companyId).filter(Boolean))
+      const scopedDocs = companyIds.size > 0
+        ? allDocs.filter((d: any) => !d.company_id || companyIds.has(d.company_id))
+        : allDocs
+
+      // Build companies list from requests
+      const companyMap = new Map()
+      for (const r of staffRequests) {
+        if (r.companyId && !companyMap.has(r.companyId)) {
+          companyMap.set(r.companyId, { id: r.companyId, name: r.companyName || r.company?.name || "Unknown" })
+        }
+      }
+
+      setDocuments(scopedDocs)
+      setRequests(staffRequests)
+      setCompanies(Array.from(companyMap.values()))
       setLoading(false)
     }
     load()

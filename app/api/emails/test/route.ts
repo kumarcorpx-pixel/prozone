@@ -1,8 +1,12 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { withAuth } from "@/lib/auth-middleware"
 import { sendEmail } from "@/lib/email"
 import { handleApiError } from "@/lib/api-error-handler"
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin"])
+  if (!auth.success) return auth.response
+
   try {
     const timestamp = new Date().toISOString()
     const result = await sendEmail({
