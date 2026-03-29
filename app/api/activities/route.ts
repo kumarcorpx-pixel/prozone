@@ -18,7 +18,7 @@ interface Activity {
   isic4?: string
 }
 
-const DATA_FILE = path.join(process.cwd(), "data", "ded-activities.json")
+const DATA_FILE = "/var/www/prozone/data/ded-activities.json"
 
 // Fallback sample data — used when no uploaded data exists
 const ACTIVITIES_SAMPLE: Activity[] = [
@@ -122,14 +122,15 @@ const ACTIVITIES_SAMPLE: Activity[] = [
  * Returns an empty array if the file doesn't exist yet.
  */
 async function loadUploadedActivities(): Promise<Activity[]> {
-  try {
-    const raw = await readFile(DATA_FILE, "utf-8")
-    const data = JSON.parse(raw)
-    return Array.isArray(data) ? data : []
-  } catch {
-    // File doesn't exist or is invalid — return empty
-    return []
+  // Try hardcoded path first, then process.cwd() path
+  for (const filePath of [DATA_FILE, path.join(process.cwd(), "data", "ded-activities.json")]) {
+    try {
+      const raw = await readFile(filePath, "utf-8")
+      const data = JSON.parse(raw)
+      if (Array.isArray(data) && data.length > 0) return data
+    } catch {}
   }
+  return []
 }
 
 /**
@@ -156,14 +157,34 @@ async function getAllActivities(): Promise<Activity[]> {
  * Expected columns: activity_desc_en, activity_name_en, activity_category_en,
  *                   activity_code_isic_4, activity_code, activity_group_en
  */
+function parseCSVLine(line: string, sep: string): string[] {
+  const result: string[] = []
+  let current = ""
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++ }
+      else { inQuotes = !inQuotes }
+    } else if (ch === sep && !inQuotes) {
+      result.push(current.trim())
+      current = ""
+    } else {
+      current += ch
+    }
+  }
+  result.push(current.trim())
+  return result
+}
+
 function parseTSV(tsv: string): Activity[] {
   const lines = tsv.split(/\r?\n/).filter((line) => line.trim() !== "")
   if (lines.length < 2) return []
 
-  // Parse header to find column indices
+  // Parse header to find column indices — detect separator
   const headerLine = lines[0]
   const sep = headerLine.includes("\t") ? "\t" : ","
-  const headers = headerLine.split(sep).map((h) => h.trim().toLowerCase())
+  const headers = parseCSVLine(headerLine, sep).map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ""))
 
   const colMap: Record<string, number> = {}
   headers.forEach((h, i) => {
@@ -189,7 +210,7 @@ function parseTSV(tsv: string): Activity[] {
   const seenCodes = new Set<string>()
 
   for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(sep)
+    const cols = parseCSVLine(lines[i], sep)
     const code = cols[codeIdx]?.trim()
     const name = cols[nameIdx]?.trim()
 
@@ -287,11 +308,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure the data directory exists
-    const dataDir = path.dirname(DATA_FILE)
-    await mkdir(dataDir, { recursive: true })
+    try {
+      const dataDir = path.dirname(DATA_FILE)
+      await mkdir(dataDir, { recursive: true })
+    } catch {}
 
     // Write deduplicated activities to JSON file
-    await writeFile(DATA_FILE, JSON.stringify(activities, null, 2), "utf-8")
+    try {
+      await writeFile(DATA_FILE, JSON.stringify(activities, null, 2), "utf-8")
+    } catch (writeErr) {
+      // If hardcoded path fails, try process.cwd() path
+      const fallbackPath = path.join(process.cwd(), "data", "ded-activities.json")
+      try {
+        await mkdir(path.dirname(fallbackPath), { recursive: true })
+        await writeFile(fallbackPath, JSON.stringify(activities, null, 2), "utf-8")
+      } catch (fallbackErr) {
+        console.error("[Activities] Write failed:", writeErr, fallbackErr)
+        return NextResponse.json({ error: `Failed to save: ${writeErr}` }, { status: 500 })
+      }
+    }
 
     return NextResponse.json({
       success: true,

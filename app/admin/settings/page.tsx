@@ -489,7 +489,7 @@ export default function SettingsPage() {
                 const res = await fetch("/api/activities", { method: "POST", body: fd })
                 const data = await res.json()
                 if (!res.ok) throw new Error(data.error || "Upload failed")
-                toast.success(`Imported ${data.imported} activities (${data.deduplicated} unique)`)
+                toast.success(`Imported ${data.count || 0} unique activities`)
               } catch (err: any) { toast.error(err.message || "Upload failed") }
               e.target.value = ""
             }} />
