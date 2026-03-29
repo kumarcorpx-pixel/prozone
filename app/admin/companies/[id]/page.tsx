@@ -150,15 +150,16 @@ export default function CompanyDetailPage() {
         name: c.name || "", trade_name: c.trade_name || "", license_number: c.license_number || "",
         license_expiry: c.license_expiry?.split("T")[0] || "", license_type: c.license_type || "",
         jurisdiction: c.jurisdiction || "", legal_form: c.legal_form || "", emirate: c.emirate || "",
-        free_zone_authority: c.free_zone_authority || "",
         phone: c.phone || "", email: c.email || "", address: c.address || "", industry: c.industry || "",
         status: c.status || "active",
-        mohre_company_number: c.mohre_company_number || "", mol_number: c.mol_number || "",
+        mol_number: c.mol_number || "",
         establishment_card_number: c.establishment_card_number || "",
         establishment_card_expiry: c.establishment_card_expiry?.split("T")[0] || "",
-        immigration_file_number: c.immigration_file_number || "", computer_card_number: c.computer_card_number || "",
-        chamber_commerce_number: c.chamber_commerce_number || "", ejari_tawtheeq_number: c.ejari_tawtheeq_number || "",
-        ejari_tawtheeq_type: c.ejari_tawtheeq_type || "", ejari_tawtheeq_expiry: c.ejari_tawtheeq_expiry?.split("T")[0] || "",
+        immigration_file_number: c.immigration_file_number || "",
+        ejari_tawtheeq_number: c.ejari_tawtheeq_number || "",
+        ejari_tawtheeq_type: c.ejari_tawtheeq_type || "", ejari_duration: c.ejari_duration || "",
+        ejari_issue_date: c.ejari_issue_date?.split("T")[0] || "",
+        ejari_tawtheeq_expiry: c.ejari_tawtheeq_expiry?.split("T")[0] || "",
         lease_expiry: c.lease_expiry?.split("T")[0] || "",
         vat_trn: c.vat_trn || "", corporate_tax_number: c.corporate_tax_number || "",
         sponsor_name: c.sponsor_name || "", sponsor_eid: c.sponsor_eid || "",
@@ -420,7 +421,6 @@ export default function CompanyDetailPage() {
                   </span>
                 } />
                 <LabelValue label="Legal Form" value={ec.legal_form} />
-                <LabelValue label="DED/Free Zone Authority" value={ec.free_zone_authority || ec.jurisdiction} />
                 <LabelValue label="Status" value={<StatusBadge status={ec.status} />} />
                 <LabelValue label="Emirate" value={ec.emirate} />
                 <LabelValue label="Jurisdiction" value={ec.jurisdiction} />
@@ -432,20 +432,21 @@ export default function CompanyDetailPage() {
                 <LabelValue label="Establishment Card #" value={ec.establishment_card_number} className="font-mono" />
                 <LabelValue label="Establishment Card Expiry" value={<span className={getExpiryColor(ec.establishment_card_expiry)}>{formatDate(ec.establishment_card_expiry)}</span>} />
                 <LabelValue label="Immigration File # (GDRFA)" value={ec.immigration_file_number} className="font-mono" />
-                <LabelValue label="MOHRE Company #" value={ec.mohre_company_number} className="font-mono" />
                 <LabelValue label="MOL Number" value={ec.mol_number} className="font-mono" />
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection title="Office & Lease">
+            <CollapsibleSection title="Ejari & Lease">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <LabelValue label="Ejari/Tawtheeq #" value={ec.ejari_tawtheeq_number} className="font-mono" />
-                <LabelValue label="Ejari/Tawtheeq Type" value={
+                <LabelValue label="Ejari #" value={ec.ejari_tawtheeq_number} className="font-mono" />
+                <LabelValue label="Ejari Type" value={
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 capitalize">
-                    {ec.ejari_tawtheeq_type}
+                    {ec.ejari_tawtheeq_type || "N/A"}
                   </span>
                 } />
-                <LabelValue label="Ejari/Tawtheeq Expiry" value={<span className={getExpiryColor(ec.ejari_tawtheeq_expiry)}>{formatDate(ec.ejari_tawtheeq_expiry)}</span>} />
+                <LabelValue label="Ejari Duration" value={ec.ejari_duration || "N/A"} />
+                <LabelValue label="Ejari Issue Date" value={formatDate(ec.ejari_issue_date)} />
+                <LabelValue label="Ejari Expiry" value={<span className={getExpiryColor(ec.ejari_tawtheeq_expiry)}>{formatDate(ec.ejari_tawtheeq_expiry)}</span>} />
                 <LabelValue label="Lease Expiry" value={<span className={getExpiryColor(ec.lease_expiry)}>{formatDate(ec.lease_expiry)}</span>} />
                 <LabelValue label="Address" value={ec.address} />
               </div>
@@ -1080,20 +1081,19 @@ export default function CompanyDetailPage() {
                 { key: "jurisdiction", label: "Jurisdiction", type: "select", options: ["Mainland", "Free Zone", "Offshore"] },
                 { key: "legal_form", label: "Legal Form", type: "select", options: ["LLC", "FZE", "FZCO", "Branch", "Sole Establishment", "Civil Company"] },
                 { key: "emirate", label: "Emirate", type: "select", options: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain"] },
-                { key: "free_zone_authority", label: "DED / Free Zone Authority", type: "text" },
                 { key: "phone", label: "Phone", type: "text" },
                 { key: "email", label: "Email", type: "email" },
                 { key: "address", label: "Address", type: "text" },
                 { key: "industry", label: "Industry", type: "text" },
-                { key: "mohre_company_number", label: "MOHRE Company Number", type: "text" },
                 { key: "mol_number", label: "MOL Number", type: "text" },
                 { key: "establishment_card_number", label: "Establishment Card Number", type: "text" },
                 { key: "establishment_card_expiry", label: "Establishment Card Expiry", type: "date" },
                 { key: "immigration_file_number", label: "Immigration File Number (GDRFA)", type: "text" },
-                { key: "chamber_commerce_number", label: "Chamber of Commerce Number", type: "text" },
-                { key: "ejari_tawtheeq_number", label: "Ejari/Tawtheeq Number", type: "text" },
-                { key: "ejari_tawtheeq_type", label: "Ejari/Tawtheeq Type", type: "select", options: ["Ejari", "Tawtheeq"] },
-                { key: "ejari_tawtheeq_expiry", label: "Ejari/Tawtheeq Expiry", type: "date" },
+                { key: "ejari_tawtheeq_number", label: "Ejari Number", type: "text" },
+                { key: "ejari_tawtheeq_type", label: "Ejari Type", type: "select", options: ["Virtual", "Physical"] },
+                { key: "ejari_duration", label: "Ejari Duration", type: "select", options: ["1 Month", "3 Months", "1 Year"] },
+                { key: "ejari_issue_date", label: "Ejari Issue Date", type: "date" },
+                { key: "ejari_tawtheeq_expiry", label: "Ejari Expiry (auto-calculated)", type: "date" },
                 { key: "lease_expiry", label: "Lease Expiry", type: "date" },
                 { key: "vat_trn", label: "VAT TRN", type: "text" },
                 { key: "corporate_tax_number", label: "Corporate Tax Number", type: "text" },
@@ -1111,7 +1111,22 @@ export default function CompanyDetailPage() {
                 <div key={field.key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
                   {field.type === "select" ? (
-                    <select value={editData[field.key] || ""} onChange={e => setEditData({ ...editData, [field.key]: e.target.value })}
+                    <select value={editData[field.key] || ""} onChange={e => {
+                      const updated = { ...editData, [field.key]: e.target.value }
+                      // Auto-calculate Ejari expiry from issue date + duration
+                      if (field.key === "ejari_duration" || field.key === "ejari_issue_date") {
+                        const issueDate = field.key === "ejari_issue_date" ? e.target.value : updated.ejari_issue_date
+                        const duration = field.key === "ejari_duration" ? e.target.value : updated.ejari_duration
+                        if (issueDate && duration) {
+                          const d = new Date(issueDate)
+                          if (duration === "1 Month") d.setMonth(d.getMonth() + 1)
+                          else if (duration === "3 Months") d.setMonth(d.getMonth() + 3)
+                          else if (duration === "1 Year") d.setFullYear(d.getFullYear() + 1)
+                          updated.ejari_tawtheeq_expiry = d.toISOString().split("T")[0]
+                        }
+                      }
+                      setEditData(updated)
+                    }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20">
                       <option value="">Select...</option>
                       {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
@@ -1123,7 +1138,18 @@ export default function CompanyDetailPage() {
                       {clients.map((c: any) => <option key={c.id} value={c.id}>{c.full_name} ({c.email})</option>)}
                     </select>
                   ) : (
-                    <input type={field.type} value={editData[field.key] || ""} onChange={e => setEditData({ ...editData, [field.key]: field.type === "number" ? Number(e.target.value) : e.target.value })}
+                    <input type={field.type} value={editData[field.key] || ""} onChange={e => {
+                      const updated = { ...editData, [field.key]: field.type === "number" ? Number(e.target.value) : e.target.value }
+                      // Auto-calculate Ejari expiry when issue date changes
+                      if (field.key === "ejari_issue_date" && updated.ejari_duration) {
+                        const d = new Date(e.target.value)
+                        if (updated.ejari_duration === "1 Month") d.setMonth(d.getMonth() + 1)
+                        else if (updated.ejari_duration === "3 Months") d.setMonth(d.getMonth() + 3)
+                        else if (updated.ejari_duration === "1 Year") d.setFullYear(d.getFullYear() + 1)
+                        updated.ejari_tawtheeq_expiry = d.toISOString().split("T")[0]
+                      }
+                      setEditData(updated)
+                    }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20" />
                   )}
                 </div>
