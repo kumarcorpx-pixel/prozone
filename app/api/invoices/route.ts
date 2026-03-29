@@ -1,153 +1,155 @@
 import { NextRequest, NextResponse } from "next/server"
-import { listInvoices, createInvoice, isZohoConfigured } from "@/lib/zoho"
-import type { ZohoInvoiceInput } from "@/types/zoho"
 import { handleApiError } from "@/lib/api-error-handler"
+import { withAuth } from "@/lib/auth-middleware"
 import prisma from "@/lib/prisma"
 
 export async function GET(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+
   try {
     const { searchParams } = request.nextUrl
     const status = searchParams.get("status") || undefined
-    const page = parseInt(searchParams.get("page") || "1")
     const search = searchParams.get("search") || undefined
 
-    let zohoInvoices: any[] = []
-    let pageContext: any = undefined
+    const where: any = {}
+    if (status && status !== "all") where.status = status
+    if (auth.user.role === "client") where.clientId = auth.user.id
 
-    if (isZohoConfigured()) {
+    const invoices = await prisma.invoice.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    })
+
+    const mapped = invoices.map((inv: any) => {
+      let customerName = "Client"
+      let lineItems: any[] = []
       try {
-        const result = await listInvoices({
-          page,
-          per_page: 25,
-          status,
-          search_text: search,
-          sort_column: "date",
-          sort_order: "D",
-        })
-        zohoInvoices = result.invoices || []
-        pageContext = result.page_context
-      } catch {
-        // Zoho fetch failed, continue with local invoices only
-      }
-    }
+        const items = typeof inv.items === "string" ? JSON.parse(inv.items) : inv.items
+        lineItems = items || []
+        customerName = items?.[0]?.customerName || items?.[0]?.description || "Client"
+      } catch {}
 
-    // Also fetch local invoices from DB
-    try {
-      const localInvoices = await prisma.invoice.findMany({
-        orderBy: { createdAt: "desc" },
-      })
-      const localMapped = localInvoices.map((inv: any) => ({
+      return {
         invoice_id: inv.id,
         invoice_number: inv.invoiceNumber,
-        customer_name: inv.items ? (() => {
-          try {
-            const items = JSON.parse(typeof inv.items === "string" ? inv.items : JSON.stringify(inv.items))
-            return items[0]?.description || "Local Client"
-          } catch { return "Local Client" }
-        })() : "Local Client",
+        customer_name: customerName,
         date: inv.createdAt?.toISOString().split("T")[0],
         due_date: inv.dueDate?.toISOString().split("T")[0],
         total: Number(inv.totalAmount),
+        sub_total: Number(inv.subtotal),
+        tax_total: Number(inv.vatAmount),
         balance: inv.status === "paid" ? 0 : Number(inv.totalAmount),
         status: inv.status,
-      }))
-      const zohoConfigured = isZohoConfigured()
-      return NextResponse.json({ invoices: [...zohoInvoices, ...localMapped], page_context: pageContext, zoho_configured: zohoConfigured })
-    } catch {
-      const zohoConfigured = isZohoConfigured()
-      return NextResponse.json({ invoices: zohoInvoices, page_context: pageContext, zoho_configured: zohoConfigured })
+        line_items: lineItems,
+        notes: inv.items ? (() => { try { const p = typeof inv.items === "string" ? JSON.parse(inv.items) : inv.items; return p?.notes } catch { return "" } })() : "",
+        client_id: inv.clientId,
+        paid_date: inv.paidDate?.toISOString().split("T")[0],
+        payment_method: inv.paymentMethod,
+      }
+    })
+
+    // Filter by search
+    let filtered = mapped
+    if (search) {
+      const q = search.toLowerCase()
+      filtered = mapped.filter((inv: any) =>
+        inv.invoice_number.toLowerCase().includes(q) ||
+        inv.customer_name.toLowerCase().includes(q)
+      )
     }
+
+    // Summary stats
+    const totalInvoiced = mapped.reduce((s: number, i: any) => s + i.total, 0)
+    const totalPaid = mapped.filter((i: any) => i.status === "paid").reduce((s: number, i: any) => s + i.total, 0)
+    const outstanding = mapped.filter((i: any) => i.status !== "paid" && i.status !== "cancelled").reduce((s: number, i: any) => s + i.total, 0)
+    const overdue = mapped.filter((i: any) => {
+      if (i.status === "paid" || i.status === "cancelled") return false
+      return i.due_date && new Date(i.due_date) < new Date()
+    }).reduce((s: number, i: any) => s + i.total, 0)
+
+    return NextResponse.json({
+      invoices: filtered,
+      summary: { totalInvoiced, totalPaid, outstanding, overdue },
+      total: filtered.length,
+    })
   } catch (error) {
     return handleApiError(error)
   }
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff"])
+  if (!auth.success) return auth.response
+
   try {
     const body = await request.json()
-    const { customer_id, customer_name, service_type, gov_fees, service_fee, due_date, notes, company_name, client_id } = body
+    const { customer_name, company_name, client_id, line_items, due_date, notes, terms } = body
 
-    // If Zoho is not configured or customer_id is missing, create local invoice
-    if (!isZohoConfigured() || !customer_id) {
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
-      const govFeesNum = parseFloat(gov_fees) || 0
-      const serviceFeeNum = parseFloat(service_fee) || 0
-      const subtotal = govFeesNum + serviceFeeNum
-      const vat = subtotal * 0.05
-      const total = subtotal + vat
+    if (!line_items || !Array.isArray(line_items) || line_items.length === 0) {
+      return NextResponse.json({ error: "At least one line item is required" }, { status: 400 })
+    }
 
-      if (subtotal === 0) {
-        return NextResponse.json({ error: "At least one fee is required" }, { status: 400 })
-      }
+    if (!customer_name && !company_name) {
+      return NextResponse.json({ error: "Customer or company name is required" }, { status: 400 })
+    }
 
-      const invoice = await prisma.invoice.create({
-        data: {
-          invoiceNumber,
-          clientId: client_id || null,
-          subtotal,
-          vatPercentage: 5,
-          vatAmount: vat,
-          totalAmount: total,
-          status: "pending",
-          dueDate: due_date ? new Date(due_date) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          items: JSON.stringify([
-            ...(govFeesNum > 0 ? [{ name: "Government Fees", description: service_type || "PRO Service", rate: govFeesNum, quantity: 1 }] : []),
-            ...(serviceFeeNum > 0 ? [{ name: "Service Charge", description: company_name || "", rate: serviceFeeNum, quantity: 1 }] : []),
-          ]),
-        },
-      })
+    const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
 
-      return NextResponse.json({ success: true, invoice: {
+    // Calculate totals
+    const items = line_items.map((item: any) => ({
+      name: item.name || "Service",
+      description: item.description || "",
+      rate: Number(item.rate) || 0,
+      quantity: Number(item.quantity) || 1,
+      item_total: (Number(item.rate) || 0) * (Number(item.quantity) || 1),
+    }))
+
+    const subtotal = items.reduce((s: number, i: any) => s + i.item_total, 0)
+    const vatPercent = 5
+    const vatAmount = Math.round(subtotal * vatPercent) / 100
+    const totalAmount = subtotal + vatAmount
+
+    // Store with customer info in items JSON
+    const itemsWithMeta = {
+      customerName: customer_name || company_name,
+      companyName: company_name || customer_name,
+      notes: notes || "",
+      terms: terms || "Payment due within 30 days. Bank transfer to YABS account.",
+      lineItems: items,
+    }
+
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNumber,
+        clientId: client_id || null,
+        subtotal,
+        vatPercentage: vatPercent,
+        vatAmount,
+        totalAmount,
+        discount: 0,
+        status: "pending",
+        dueDate: due_date ? new Date(due_date) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        items: JSON.stringify(itemsWithMeta),
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      invoice: {
         invoice_id: invoice.id,
         invoice_number: invoice.invoiceNumber,
-        customer_name: customer_name || company_name || "Client",
+        customer_name: customer_name || company_name,
         total: Number(invoice.totalAmount),
+        sub_total: Number(invoice.subtotal),
+        tax_total: Number(invoice.vatAmount),
         balance: Number(invoice.totalAmount),
         status: invoice.status,
-        date: invoice.createdAt,
-        due_date: invoice.dueDate,
-      }})
-    }
-
-    // Build line items
-    const line_items: ZohoInvoiceInput["line_items"] = []
-
-    if (gov_fees && gov_fees > 0) {
-      line_items.push({
-        name: "Government Fees",
-        description: `${service_type || "PRO Service"} - Government fees for ${company_name || "client"}`,
-        rate: gov_fees,
-        quantity: 1,
-      })
-    }
-
-    if (service_fee && service_fee > 0) {
-      line_items.push({
-        name: "YABS Service Charge",
-        description: `${service_type || "PRO Service"} - Professional service charge`,
-        rate: service_fee,
-        quantity: 1,
-      })
-    }
-
-    if (line_items.length === 0) {
-      return NextResponse.json({ error: "At least one fee is required" }, { status: 400 })
-    }
-
-    const today = new Date().toISOString().split("T")[0]
-
-    const invoiceData: ZohoInvoiceInput = {
-      customer_id,
-      date: today,
-      due_date: due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      line_items,
-      notes: notes || `Invoice for ${service_type || "PRO Services"}\nCompany: ${company_name || "N/A"}`,
-      terms: "Payment due within 30 days. Bank transfer to YABS account.",
-      is_inclusive_tax: false,
-    }
-
-    const invoice = await createInvoice(invoiceData)
-    return NextResponse.json({ success: true, invoice })
+        date: invoice.createdAt.toISOString().split("T")[0],
+        due_date: invoice.dueDate?.toISOString().split("T")[0],
+        line_items: items,
+      },
+    })
   } catch (error) {
     return handleApiError(error)
   }
