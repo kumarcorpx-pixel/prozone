@@ -211,119 +211,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const fileName = `${companyId}/${documentType}-${timestamp}.${uploadExt}`
+    // Persistent upload directory (survives deploys)
+    const UPLOAD_ROOT = process.env.UPLOAD_DIR || "/var/www/uploads"
 
-    // Try MinIO first
-    try {
-      const { uploadToMinio } = await import("@/lib/minio")
-      await uploadToMinio(uploadBuffer, fileName, uploadMime)
-
-      const docData: any = {
-          name,
-          documentType,
-          fileUrl: fileName,
-          fileSize: finalSize,
-          expiryDate: expiryDate ? new Date(expiryDate) : null,
-          status: "valid",
-          notes: [
-            notes,
-            `file:${file.name}`,
-            `mime:${uploadMime}`,
-            thumbnailPath ? `thumb:${thumbnailPath}` : null,
-            compressionSaved > 0 ? `compressed:${compressionSaved}%` : null,
-          ].filter(Boolean).join("\n") || null,
-      }
-      // Use connect for relations (works with both schema versions)
-      if (companyId && companyId !== "general") docData.companyId = companyId
-      if (employeeId) docData.employeeId = employeeId
-      // Try adding fileName/mimeType (may not exist in VPS schema)
-      try { docData.fileName = file.name; docData.mimeType = uploadMime } catch {}
-
-      const doc = await prisma.document.create({ data: docData }).catch(async (err: any) => {
-        // Retry without optional fields if they don't exist in schema
-        if (err.message?.includes("fileName") || err.message?.includes("mimeType")) {
-          delete docData.fileName
-          delete docData.mimeType
-          return prisma.document.create({ data: docData })
-        }
-        // Retry with connect syntax if direct ID fails
-        if (err.message?.includes("companyId") || err.message?.includes("employeeId")) {
-          delete docData.companyId
-          delete docData.employeeId
-          if (companyId && companyId !== "general") docData.company = { connect: { id: companyId } }
-          if (employeeId) docData.employee = { connect: { id: employeeId } }
-          return prisma.document.create({ data: docData })
-        }
-        throw err
-      })
-
-      // Auto-populate expiry fields
-      if (expiryDate && companyId && companyId !== "general") {
-        if (documentType === "trade_license") {
-          await prisma.company.update({ where: { id: companyId }, data: { licenseExpiry: new Date(expiryDate) } }).catch(() => {})
-        }
-      }
-      if (expiryDate && employeeId) {
-        const expiryField: Record<string, string> = {
-          visa: "visaExpiry",
-          emirates_id: "emiratesIdExpiry",
-          passport: "passportExpiry",
-          labor_card: "laborCardExpiry",
-        }
-        const field = expiryField[documentType]
-        if (field) {
-          await prisma.employee.update({ where: { id: employeeId }, data: { [field]: new Date(expiryDate) } }).catch(() => {})
-        }
-      }
-
-      // Run OCR in background to extract document data
-      const ocrResult = await runOcrAndUpdate(buffer, documentType, companyId, employeeId, expiryDate)
-
-      // If OCR found an expiry date and none was provided, update the document record
-      if (ocrResult.extractedData && !expiryDate) {
-        const ed = ocrResult.extractedData as any
-        if (ed.expiryDate?.value) {
-          try {
-            const parsed = parseFlexDate(ed.expiryDate.value)
-            if (parsed) await prisma.document.update({ where: { id: doc.id }, data: { expiryDate: parsed } }).catch(() => {})
-          } catch {}
-        }
-      }
-
-      await onDocumentChange()
-      logAudit(auth.user.id, "UPLOAD", "document", doc.id, { name, documentType, companyId }).catch(() => {})
-      return NextResponse.json({
-        success: true,
-        id: doc.id,
-        fileName: file.name,
-        storedName: fileName,
-        fileUrl: fileName,
-        thumbnailUrl: thumbnailPath,
-        fileSize: finalSize,
-        originalSize: file.size,
-        compressionSaved: `${compressionSaved}%`,
-        mimeType: uploadMime,
-        storage: "minio",
-        ocrData: ocrResult.extractedData,
-        detectedType: ocrResult.detectedType,
-      })
-    } catch (minioErr) {
-      console.error("[Upload] MinIO failed, falling back to local:", minioErr)
-    }
-
-    // Fallback: local filesystem
+    // Store file to persistent local directory
     const { writeFile, mkdir } = await import("fs/promises")
     const path = await import("path")
-    const uploadDir = path.join(process.cwd(), "public", "uploads", companyId)
+    const uploadDir = path.join(UPLOAD_ROOT, companyId)
     await mkdir(uploadDir, { recursive: true })
     const localFileName = `${documentType}-${timestamp}.${uploadExt}`
     await writeFile(path.join(uploadDir, localFileName), uploadBuffer)
 
-    // Save thumbnail locally too
+    // Save thumbnail
     if (imageFile && thumbnailPath === null) {
       try {
         const processed = await processImage(buffer)
-        const thumbDir = path.join(process.cwd(), "public", "uploads", companyId, "thumb")
+        const thumbDir = path.join(UPLOAD_ROOT, companyId, "thumb")
         await mkdir(thumbDir, { recursive: true })
         const thumbFile = `${documentType}-${timestamp}.jpg`
         await writeFile(path.join(thumbDir, thumbFile), processed.thumbnail)
@@ -333,7 +236,7 @@ export async function POST(request: NextRequest) {
 
     const localFileUrl = `/uploads/${companyId}/${localFileName}`
 
-    const localDocData: any = {
+    const docData: any = {
         name,
         documentType,
         fileUrl: localFileUrl,
@@ -348,21 +251,27 @@ export async function POST(request: NextRequest) {
           compressionSaved > 0 ? `compressed:${compressionSaved}%` : null,
         ].filter(Boolean).join("\n") || null,
     }
-    if (companyId && companyId !== "general") localDocData.companyId = companyId
-    if (employeeId) localDocData.employeeId = employeeId
+    if (companyId && companyId !== "general") docData.companyId = companyId
+    if (employeeId) docData.employeeId = employeeId
+    try { docData.fileName = file.name; docData.mimeType = uploadMime } catch {}
 
-    const doc = await prisma.document.create({ data: localDocData }).catch(async (err: any) => {
+    const doc = await prisma.document.create({ data: docData }).catch(async (err: any) => {
+      if (err.message?.includes("fileName") || err.message?.includes("mimeType")) {
+        delete docData.fileName
+        delete docData.mimeType
+        return prisma.document.create({ data: docData })
+      }
       if (err.message?.includes("companyId") || err.message?.includes("employeeId")) {
-        delete localDocData.companyId
-        delete localDocData.employeeId
-        if (companyId && companyId !== "general") localDocData.company = { connect: { id: companyId } }
-        if (employeeId) localDocData.employee = { connect: { id: employeeId } }
-        return prisma.document.create({ data: localDocData })
+        delete docData.companyId
+        delete docData.employeeId
+        if (companyId && companyId !== "general") docData.company = { connect: { id: companyId } }
+        if (employeeId) docData.employee = { connect: { id: employeeId } }
+        return prisma.document.create({ data: docData })
       }
       throw err
     })
 
-    // Auto-populate expiry fields
+    // Auto-populate expiry fields on company/employee
     if (expiryDate && companyId && companyId !== "general") {
       if (documentType === "trade_license") {
         await prisma.company.update({ where: { id: companyId }, data: { licenseExpiry: new Date(expiryDate) } }).catch(() => {})
@@ -381,18 +290,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Run OCR to extract document data
-    const ocrResult = await runOcrAndUpdate(buffer, documentType, companyId, employeeId, expiryDate)
-
-    if (ocrResult.extractedData && !expiryDate) {
-      const ed = ocrResult.extractedData as any
-      if (ed.expiryDate?.value) {
-        try {
-          const parsed = parseFlexDate(ed.expiryDate.value)
-          if (parsed) await prisma.document.update({ where: { id: doc.id }, data: { expiryDate: parsed } }).catch(() => {})
-        } catch {}
+    // OCR in background (don't block response)
+    runOcrAndUpdate(buffer, documentType, companyId, employeeId, expiryDate).then(async (ocrResult) => {
+      if (ocrResult.extractedData && !expiryDate) {
+        const ed = ocrResult.extractedData as any
+        if (ed.expiryDate?.value) {
+          try {
+            const parsed = parseFlexDate(ed.expiryDate.value)
+            if (parsed) await prisma.document.update({ where: { id: doc.id }, data: { expiryDate: parsed } }).catch(() => {})
+          } catch {}
+        }
       }
-    }
+    }).catch(() => {})
 
     await onDocumentChange()
     logAudit(auth.user.id, "UPLOAD", "document", doc.id, { name, documentType, companyId }).catch(() => {})
@@ -400,7 +309,6 @@ export async function POST(request: NextRequest) {
       success: true,
       id: doc.id,
       fileName: file.name,
-      storedName: fileName,
       fileUrl: localFileUrl,
       thumbnailUrl: thumbnailPath,
       fileSize: finalSize,
@@ -408,8 +316,6 @@ export async function POST(request: NextRequest) {
       compressionSaved: `${compressionSaved}%`,
       mimeType: uploadMime,
       storage: "local",
-      ocrData: ocrResult.extractedData,
-      detectedType: ocrResult.detectedType,
     })
   } catch (error) {
     return handleApiError(error)

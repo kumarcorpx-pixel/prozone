@@ -24,73 +24,67 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // If file is stored locally (starts with /uploads/)
-    if (doc.fileUrl.startsWith("/uploads/")) {
-      try {
-        const { readFile } = await import("fs/promises")
-        const path = await import("path")
-        const filePath = path.join(process.cwd(), "public", doc.fileUrl)
-        const fileBuffer = await readFile(filePath)
+    // Helper to resolve file path — checks persistent dir first, then public
+    const resolveFilePath = async (fileUrl: string) => {
+      const { access, readFile } = await import("fs/promises")
+      const path = await import("path")
+      const UPLOAD_ROOT = process.env.UPLOAD_DIR || "/var/www/uploads"
 
-        // Get filename from notes or fileUrl
-        const notesLine = doc.notes?.split("\n").find((l: string) => l.startsWith("file:"))
-        const fileName = notesLine?.replace("file:", "") || doc.fileUrl.split("/").pop() || "document"
+      // Path 1: Persistent upload dir (/var/www/uploads/companyId/file.pdf)
+      if (fileUrl.startsWith("/uploads/")) {
+        const relativePath = fileUrl.replace("/uploads/", "")
+        const persistentPath = path.join(UPLOAD_ROOT, relativePath)
+        try { await access(persistentPath); return await readFile(persistentPath) } catch {}
 
-        // Get mime type from notes or guess from extension
-        const mimeLine = doc.notes?.split("\n").find((l: string) => l.startsWith("mime:"))
-        const ext = fileName.split(".").pop()?.toLowerCase()
-        const mimeType = mimeLine?.replace("mime:", "") ||
-          (ext === "pdf" ? "application/pdf" :
-           ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
-           ext === "png" ? "image/png" :
-           "application/octet-stream")
-
-        return new NextResponse(fileBuffer, {
-          headers: {
-            "Content-Type": mimeType,
-            "Content-Disposition": `inline; filename="${fileName}"`,
-            "Cache-Control": "private, max-age=3600",
-          },
-        })
-      } catch {
-        return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
+        // Path 2: Public dir (old location)
+        const publicPath = path.join(process.cwd(), "public", fileUrl)
+        try { await access(publicPath); return await readFile(publicPath) } catch {}
       }
+
+      // Path 3: MinIO-style path (companyId/doctype-timestamp.ext)
+      const persistentPath = path.join(UPLOAD_ROOT, fileUrl)
+      try { await access(persistentPath); return await readFile(persistentPath) } catch {}
+
+      const publicPath = path.join(process.cwd(), "public", "uploads", fileUrl)
+      try { await access(publicPath); return await readFile(publicPath) } catch {}
+
+      return null
     }
 
-    // Try MinIO presigned URL
+    // Get filename and mime type from document metadata
+    const notesLine = doc.notes?.split("\n").find((l: string) => l.startsWith("file:"))
+    const fileName = notesLine?.replace("file:", "") || doc.fileUrl.split("/").pop() || "document"
+    const mimeLine = doc.notes?.split("\n").find((l: string) => l.startsWith("mime:"))
+    const ext = fileName.split(".").pop()?.toLowerCase()
+    const mimeType = mimeLine?.replace("mime:", "") ||
+      (ext === "pdf" ? "application/pdf" :
+       ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
+       ext === "png" ? "image/png" :
+       ext === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" :
+       ext === "xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" :
+       ext === "csv" ? "text/csv" :
+       "application/octet-stream")
+
+    // Try local file first
+    const fileBuffer = await resolveFilePath(doc.fileUrl)
+    if (fileBuffer) {
+      return new NextResponse(fileBuffer, {
+        headers: {
+          "Content-Type": mimeType,
+          "Content-Disposition": `inline; filename="${fileName}"`,
+          "Cache-Control": "private, max-age=3600",
+        },
+      })
+    }
+
+    // Try MinIO presigned URL as last resort
     try {
       const { getMinioUrl } = await import("@/lib/minio")
       const presignedUrl = await getMinioUrl(doc.fileUrl)
       return NextResponse.redirect(presignedUrl)
-    } catch {
-      // MinIO failed — try reading from local fallback
-      try {
-        const { readFile } = await import("fs/promises")
-        const path = await import("path")
-        const filePath = path.join(process.cwd(), "public", "uploads", doc.fileUrl)
-        const fileBuffer = await readFile(filePath)
+    } catch {}
 
-        const notesLine = doc.notes?.split("\n").find((l: string) => l.startsWith("file:"))
-        const fileName = notesLine?.replace("file:", "") || doc.fileUrl.split("/").pop() || "document"
-        const mimeLine = doc.notes?.split("\n").find((l: string) => l.startsWith("mime:"))
-        const ext = fileName.split(".").pop()?.toLowerCase()
-        const mimeType = mimeLine?.replace("mime:", "") ||
-          (ext === "pdf" ? "application/pdf" :
-           ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
-           ext === "png" ? "image/png" :
-           "application/octet-stream")
-
-        return new NextResponse(fileBuffer, {
-          headers: {
-            "Content-Type": mimeType,
-            "Content-Disposition": `inline; filename="${fileName}"`,
-            "Cache-Control": "private, max-age=3600",
-          },
-        })
-      } catch {
-        return NextResponse.json({ error: "File not accessible" }, { status: 404 })
-      }
-    }
+    return NextResponse.json({ error: "File not found. It may have been uploaded before the current storage was configured." }, { status: 404 })
   } catch (error) {
     return handleApiError(error)
   }
