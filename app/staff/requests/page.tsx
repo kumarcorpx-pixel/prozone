@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 // Uses staff-scoped endpoint instead of admin data-fetcher
-import { getChecklistForServiceType } from "@/lib/checklist-templates"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 
 const priorityColors: Record<string, string> = {
@@ -52,14 +51,6 @@ export default function StaffRequestsPage() {
       ? allRequests
       : allRequests.filter((r) => r.status === activeTab)
 
-  function getChecklistProgress(request: any) {
-    const items = getChecklistForServiceType(request.service_type || request.serviceType)
-    const total = items.length
-    if (total === 0) return null
-    const completed = 0 // No persistent checklist state yet
-    return { completed, total }
-  }
-
   return (
     <div className="space-y-6">
       <div>
@@ -89,7 +80,6 @@ export default function StaffRequestsPage() {
       {/* Request Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredRequests.map((request) => {
-          const progress = getChecklistProgress(request)
           return (
             <Link
               key={request.id}
@@ -131,24 +121,6 @@ export default function StaffRequestsPage() {
                   year: "numeric",
                 })}
               </p>
-              {progress && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                    <span>Checklist</span>
-                    <span>
-                      {progress.completed}/{progress.total} items completed
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-1.5">
-                    <div
-                      className="bg-[#1a3a6b] h-1.5 rounded-full transition-all"
-                      style={{
-                        width: `${(progress.completed / progress.total) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
             </Link>
           )
         })}

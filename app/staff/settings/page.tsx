@@ -16,6 +16,7 @@ export default function StaffSettingsPage() {
 
   const [currentPw, setCurrentPw] = useState("")
   const [newPw, setNewPw] = useState("")
+  const [confirmPw, setConfirmPw] = useState("")
   const [changingPw, setChangingPw] = useState(false)
 
   const handleSave = async () => {
@@ -41,6 +42,7 @@ export default function StaffSettingsPage() {
   const handleChangePassword = async () => {
     if (!currentPw || !newPw) { toast.error("Both passwords required"); return }
     if (newPw.length < 8) { toast.error("New password must be at least 8 characters"); return }
+    if (newPw !== confirmPw) { toast.error("Passwords do not match"); return }
     setChangingPw(true)
     try {
       const res = await fetch("/api/auth/change-password", {
@@ -49,7 +51,7 @@ export default function StaffSettingsPage() {
         body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
       })
       const data = await res.json()
-      if (res.ok) { toast.success("Password changed"); setCurrentPw(""); setNewPw("") }
+      if (res.ok) { toast.success("Password changed"); setCurrentPw(""); setNewPw(""); setConfirmPw("") }
       else toast.error(data.error || "Failed to change password")
     } catch { toast.error("Failed to change password") }
     setChangingPw(false)
@@ -77,7 +79,7 @@ export default function StaffSettingsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} type="email" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+            <input value={email} readOnly className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
@@ -109,6 +111,16 @@ export default function StaffSettingsPage() {
               placeholder="New password (min 8 chars)"
               value={newPw}
               onChange={e => setNewPw(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+            <input
+              type="password"
+              placeholder="Re-enter new password"
+              value={confirmPw}
+              onChange={e => setConfirmPw(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
             />
           </div>

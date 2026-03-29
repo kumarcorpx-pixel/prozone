@@ -106,7 +106,7 @@ export default function StaffDashboardPage() {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold">{documents.filter(d => !d.expiry_date).length}</p>
-              <p className="text-xs text-blue-200">Pending Docs</p>
+              <p className="text-xs text-blue-200">No Expiry Set</p>
             </div>
           </div>
         </div>

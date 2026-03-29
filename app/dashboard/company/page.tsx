@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { documentCategories } from "@/lib/company-data"
 import { toast } from "sonner"
@@ -24,6 +25,7 @@ function getExpiryInfo(date: string | null) {
 
 export default function CompanyPage() {
   const { user } = useAuth()
+  const searchParams = useSearchParams()
   const [companies, setCompanies] = useState<any[]>([])
   const [allEmployees, setAllEmployees] = useState<any[]>([])
   const [documents, setDocuments] = useState<any[]>([])
@@ -81,7 +83,12 @@ export default function CompanyPage() {
         setCompanies(c)
         setAllEmployees(e)
         setDocuments(d)
-        if (c.length > 0) setSelectedId(c[0].id)
+        const deepLinkId = searchParams.get("id")
+        if (deepLinkId && c.some((co: any) => co.id === deepLinkId)) {
+          setSelectedId(deepLinkId)
+        } else if (c.length > 0) {
+          setSelectedId(c[0].id)
+        }
       } catch {}
       setLoading(false)
     }

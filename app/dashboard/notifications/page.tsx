@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, Bell, Info, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react"
 
 const typeIcons: Record<string, typeof Info> = { info: Info, warning: AlertTriangle, error: AlertCircle, success: CheckCircle2 }
@@ -23,6 +24,7 @@ const tabs = ["all", "expiry", "request", "payment"] as const
 const tabLabels: Record<string, string> = { all: "All", expiry: "Expiry Alerts", request: "Request Updates", payment: "Payments" }
 
 export default function ClientNotificationsPage() {
+  const router = useRouter()
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<string>("all")
@@ -41,6 +43,7 @@ export default function ClientNotificationsPage() {
             read: n.isRead ?? n.is_read ?? false,
             time: n.createdAt ? getRelativeTime(n.createdAt) : (n.created_at ? getRelativeTime(n.created_at) : ""),
             category: n.category || "request",
+            link: n.link || null,
           })))
         }
       } catch {}
@@ -107,6 +110,7 @@ export default function ClientNotificationsPage() {
                   } catch {}
                 }
                 setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
+                if (n.link) { router.push(n.link) }
               }} className={`flex gap-4 p-4 cursor-pointer transition-colors ${n.read ? "hover:bg-gray-50" : "bg-blue-50/30 hover:bg-blue-50/50"}`}>
                 <div className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ${typeColors[n.type]}`}><Icon className="h-4 w-4" /></div>
                 <div className="flex-1 min-w-0">
