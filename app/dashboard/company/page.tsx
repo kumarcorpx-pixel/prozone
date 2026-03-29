@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { documentCategories } from "@/lib/company-data"
 import { toast } from "sonner"
 import {
   Building2, Users, FileText, Shield, CheckCircle2, XCircle,
   Upload, MapPin, Calendar, Phone, Mail, Loader2,
-  Download, AlertTriangle, Search, Briefcase, Globe, Eye
+  Download, AlertTriangle, Search, Briefcase, Globe, Eye,
+  ChevronLeft, ChevronRight
 } from "lucide-react"
 import { DocumentPreview } from "@/components/ui/document-preview"
 
@@ -32,6 +33,38 @@ export default function CompanyPage() {
   const [empSearch, setEmpSearch] = useState("")
   const [docSearch, setDocSearch] = useState("")
   const [previewDoc, setPreviewDoc] = useState<any>(null)
+  const [autoPlay, setAutoPlay] = useState(true)
+  const [transitioning, setTransitioning] = useState(false)
+  const autoPlayRef = useRef<NodeJS.Timeout | null>(null)
+
+  const switchCompany = useCallback((id: string) => {
+    setTransitioning(true)
+    setTimeout(() => {
+      setSelectedId(id)
+      setTransitioning(false)
+    }, 200)
+  }, [])
+
+  const goNext = useCallback(() => {
+    if (companies.length <= 1) return
+    const idx = companies.findIndex((c: any) => c.id === selectedId)
+    const nextIdx = (idx + 1) % companies.length
+    switchCompany(companies[nextIdx].id)
+  }, [companies, selectedId, switchCompany])
+
+  const goPrev = useCallback(() => {
+    if (companies.length <= 1) return
+    const idx = companies.findIndex((c: any) => c.id === selectedId)
+    const prevIdx = (idx - 1 + companies.length) % companies.length
+    switchCompany(companies[prevIdx].id)
+  }, [companies, selectedId, switchCompany])
+
+  // Auto-rotate every 8 seconds
+  useEffect(() => {
+    if (!autoPlay || companies.length <= 1) return
+    autoPlayRef.current = setInterval(goNext, 8000)
+    return () => { if (autoPlayRef.current) clearInterval(autoPlayRef.current) }
+  }, [autoPlay, goNext, companies.length])
 
   useEffect(() => {
     async function load() {
@@ -157,6 +190,7 @@ export default function CompanyPage() {
 
   return (
     <div className="space-y-6">
+      <style>{`@keyframes progress { from { width: 0% } to { width: 100% } }`}</style>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -165,24 +199,66 @@ export default function CompanyPage() {
         </div>
       </div>
 
-      {/* Multi-Company Selector Cards */}
+      {/* Multi-Company Navigation */}
       {companies.length > 1 && (
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          {companies.map(c => (
-            <button key={c.id} onClick={() => setSelectedId(c.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl ring-1 text-left flex-shrink-0 transition-all ${c.id === selectedId ? "ring-2 ring-[#1a3a6b] bg-white shadow-sm" : "ring-gray-200 bg-white hover:ring-gray-300"}`}>
-              <span className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${c.status === "active" ? "bg-green-500" : c.status === "inactive" ? "bg-gray-400" : "bg-yellow-500"}`} />
-              <div>
-                <p className={`text-sm font-medium ${c.id === selectedId ? "text-[#1a3a6b]" : "text-gray-700"}`}>{c.name}</p>
-                <p className="text-xs text-gray-400 capitalize">{c.status}</p>
-              </div>
-            </button>
-          ))}
+        <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-700">Your Companies</h3>
+              <span className="text-xs text-gray-400">({companies.findIndex(c => c.id === selectedId) + 1} of {companies.length})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { setAutoPlay(!autoPlay) }}
+                className={`text-xs px-2 py-1 rounded-full transition-colors ${autoPlay ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-500"}`}>
+                {autoPlay ? "Auto ●" : "Auto ○"}
+              </button>
+              <button onClick={() => { setAutoPlay(false); goPrev() }}
+                className="h-7 w-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                <ChevronLeft className="h-4 w-4 text-gray-600" />
+              </button>
+              <button onClick={() => { setAutoPlay(false); goNext() }}
+                className="h-7 w-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                <ChevronRight className="h-4 w-4 text-gray-600" />
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {companies.map((c, i) => {
+              const empCount = allEmployees.filter((e: any) => e.company_id === c.id).length
+              const docCount = documents.filter((d: any) => d.company_id === c.id).length
+              const isActive = c.id === selectedId
+              return (
+                <button key={c.id} onClick={() => { setAutoPlay(false); switchCompany(c.id) }}
+                  className={`relative flex-shrink-0 px-4 py-2.5 rounded-xl text-left transition-all duration-300 ${isActive ? "bg-[#1a3a6b] text-white shadow-lg scale-[1.02]" : "bg-gray-50 hover:bg-gray-100 text-gray-700"}`}
+                  style={{ minWidth: "160px" }}>
+                  <p className={`text-sm font-semibold truncate ${isActive ? "text-white" : ""}`}>{c.name}</p>
+                  <div className={`flex items-center gap-3 mt-1 text-xs ${isActive ? "text-blue-200" : "text-gray-400"}`}>
+                    <span>{empCount} emp</span>
+                    <span>{docCount} docs</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${c.status === "active" ? "bg-green-400" : "bg-gray-400"}`} />
+                  </div>
+                  {/* Active indicator bar */}
+                  {isActive && autoPlay && (
+                    <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-white/30 rounded-full overflow-hidden">
+                      <div className="h-full bg-white/70 rounded-full animate-[progress_8s_linear]" style={{ animation: "progress 8s linear forwards" }} />
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+          {/* Dot indicators */}
+          <div className="flex justify-center gap-1.5 mt-3">
+            {companies.map((c, i) => (
+              <button key={c.id} onClick={() => { setAutoPlay(false); switchCompany(c.id) }}
+                className={`h-1.5 rounded-full transition-all duration-300 ${c.id === selectedId ? "w-6 bg-[#1a3a6b]" : "w-1.5 bg-gray-300 hover:bg-gray-400"}`} />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Summary Cards — fade on company switch */}
+      <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-200 ${transitioning ? "opacity-0" : "opacity-100"}`}>
         <div className="bg-white rounded-xl ring-1 ring-gray-200 p-5">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center"><Building2 className="h-5 w-5 text-[#1a3a6b]" /></div>
