@@ -254,8 +254,8 @@ export default function ExpiryCalendarPage() {
             const color = getStatusColor(item.daysLeft)
             return (
               <div key={item.id} className="flex items-center gap-3 px-4 py-2">
-                <div className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
-                  <Icon className="h-4 w-4" />
+                <div className={`h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
+                  <Icon className="h-3.5 w-3.5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{item.name}</p>

@@ -60,9 +60,11 @@ export default function AdminRequestDetailPage() {
           setStatus(reqData.status)
           setAssignedTo(reqData.assigned_to || "")
           if (reqData.government_fees) setGovernmentFees(reqData.government_fees)
-          // Fetch real documents for this request's company
+          // Fetch real documents for this request's company (fallback to all if no company_id)
           try {
-            const docs = await fetchDocuments(reqData.company_id)
+            const docs = reqData.company_id
+              ? await fetchDocuments(reqData.company_id)
+              : await fetchDocuments()
             setRealDocs(docs)
           } catch {}
         }

@@ -31,6 +31,32 @@ General guidelines:
 - Be professional but friendly. Use simple English as many clients may not be native speakers.
 - Do not discuss topics unrelated to UAE PRO services, business, or the YABS portal.`
 
+function getRoleContext(userRole: string): string {
+  switch (userRole) {
+    case "admin":
+      return "The user is an admin. They can manage companies, employees, documents, requests, invoices, staff, and clients. Help them with admin tasks like assigning requests to staff, managing users, generating invoices, and tracking expiry dates."
+    case "pro_staff":
+      return "The user is a PRO staff member. They handle assigned service requests. Help them with status updates, document requirements for specific services, government department processes, and checklist items."
+    case "client":
+      return "The user is a client. They can view their companies, submit service requests, upload documents, and track progress. Help them understand their request status, what documents they need to provide, and how to use the portal."
+    default:
+      return ""
+  }
+}
+
+function getFallbackResponse(userRole: string): string {
+  switch (userRole) {
+    case "admin":
+      return `I'm currently offline, but here are some quick actions you can take:\n\n- [Manage Requests](/admin/requests) - View and assign service requests\n- [Manage Companies](/admin/companies) - Add or edit companies\n- [Expiry Calendar](/admin/expiry-calendar) - Check upcoming expirations\n- [Invoices](/admin/invoices) - Generate and manage invoices\n- [Staff Management](/admin/staff) - Manage PRO staff assignments\n\nFor urgent issues, contact support@yabs.ae`
+    case "pro_staff":
+      return `I'm currently offline, but here are some quick actions you can take:\n\n- [My Assigned Requests](/staff/requests) - View your assigned requests\n- [Update Request Status](/staff/requests) - Update progress on requests\n- [Document Checklist](/staff/requests) - Check required documents\n\nFor urgent issues, contact support@yabs.ae`
+    case "client":
+      return `I'm currently offline, but here are some quick actions you can take:\n\n- [My Requests](/client/requests) - Track your service requests\n- [Submit New Request](/client/requests/new) - Create a new service request\n- [My Documents](/client/documents) - Upload or view documents\n- [My Companies](/client/companies) - View your company details\n\nFor urgent issues, contact support@yabs.ae`
+    default:
+      return `I'm currently offline. Please try again later or contact support@yabs.ae`
+  }
+}
+
 export async function chatWithAI(
   messages: { role: string; content: string }[],
   userRole: string = "client",
@@ -40,13 +66,16 @@ export async function chatWithAI(
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 60000)
 
+    const roleContext = getRoleContext(userRole)
+    const systemContent = `${YABS_SYSTEM_PROMPT}\n\nThe user is ${userName}, logged in as ${userRole}.${roleContext ? `\n\n${roleContext}` : ""}`
+
     const res = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: OLLAMA_MODEL,
         messages: [
-          { role: "system", content: `${YABS_SYSTEM_PROMPT}\n\nThe user is ${userName}, logged in as ${userRole}.` },
+          { role: "system", content: systemContent },
           ...messages,
         ],
         stream: false,
@@ -65,7 +94,7 @@ export async function chatWithAI(
       return "Response took too long. Please try a shorter question."
     }
     console.error("[AI Chat] Error:", err.message)
-    return "I'm currently unavailable. Please contact support@yabs.ae"
+    return getFallbackResponse(userRole)
   }
 }
 
@@ -80,7 +109,7 @@ export async function chatWithAIStream(
     body: JSON.stringify({
       model: OLLAMA_MODEL,
       messages: [
-        { role: "system", content: `${YABS_SYSTEM_PROMPT}\n\nThe user is ${userName}, logged in as ${userRole}.` },
+        { role: "system", content: `${YABS_SYSTEM_PROMPT}\n\nThe user is ${userName}, logged in as ${userRole}.${getRoleContext(userRole) ? `\n\n${getRoleContext(userRole)}` : ""}` },
         ...messages,
       ],
       stream: true,

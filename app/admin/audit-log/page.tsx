@@ -43,7 +43,7 @@ export default function AuditLogPage() {
           const data = await res.json()
           setAuditLog(((data.data || data.activities || []) as any[]).map((a: any) => ({
             id: a.id,
-            user: a.user_name || a.user_role || "System",
+            user: a.user_name || "System",
             role: a.user_role || "",
             action: formatActionLabel(a.action || ""),
             entity: a.entity_type ? `${a.entity_type}${a.entity_id ? ` #${a.entity_id.substring(0, 8)}` : ""}` : "",
