@@ -759,7 +759,9 @@ export default function CompanyDetailPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4 flex-shrink-0">
-                          <span className={`text-sm ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
+                          {doc.expiry_date ? (
+                            <span className={`text-xs font-medium ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
+                          ) : null}
                           <StatusBadge status={doc.status} />
                           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                             {doc.file_url ? (
