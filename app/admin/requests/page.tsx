@@ -113,15 +113,21 @@ export default function RequestsPage() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="page-entrance space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1a3a6b]">Service Requests</h1>
           <p className="text-sm text-gray-500 mt-1">Manage all service requests across clients</p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full">{requests.length} Total</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">{requests.filter(r => r.status === "pending").length} Pending</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">{requests.filter(r => r.status === "in_progress").length} In Progress</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">{requests.filter(r => r.status === "completed").length} Completed</span>
+          </div>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? "Cancel" : "New Request"}
@@ -218,7 +224,7 @@ export default function RequestsPage() {
             <button
               onClick={handleAddRequest}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {saving ? "Creating..." : "Create Request"}

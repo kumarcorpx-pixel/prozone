@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { fetchEmployees, fetchCompanies } from "@/lib/data-fetcher"
 import { createEmployee } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye, Loader2, X, Upload, FileSpreadsheet, Download } from "lucide-react"
+import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye, Loader2, X, Upload, FileSpreadsheet, Download, Building2 } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -207,7 +207,7 @@ export default function EmployeesPage() {
   const expired = allEmployees.filter((e) => e.visa_status === "expired").length
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

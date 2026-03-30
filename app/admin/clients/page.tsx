@@ -195,15 +195,29 @@ export default function ClientsPage() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1a3a6b]">User Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage all users — Admin, PRO Staff, and Clients</p>
+          <div className="flex items-center gap-4 mt-3">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+              <Users className="h-3 w-3" /> {profiles.length} Users
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">
+              <Users className="h-3 w-3" /> {profiles.filter((p: any) => p.role === "admin").length} Admins
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-violet-700 bg-violet-50 px-2.5 py-1 rounded-full">
+              <Users className="h-3 w-3" /> {profiles.filter((p: any) => p.role === "pro_staff").length} PRO Staff
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+              <Users className="h-3 w-3" /> {profiles.filter((p: any) => p.role === "client").length} Clients
+            </span>
+          </div>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? "Cancel" : "Create User"}
@@ -218,7 +232,7 @@ export default function ClientsPage() {
           { id: "pro_staff", label: `PRO Staff (${profiles.filter((p: any) => p.role === "pro_staff").length})` },
           { id: "client", label: `Clients (${profiles.filter((p: any) => p.role === "client").length})` },
         ].map(f => (
-          <button key={f.id} onClick={() => setRoleFilter(f.id)} className={`px-3 py-1.5 text-xs font-medium rounded-full ${roleFilter === f.id ? "bg-[#1a3a6b] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+          <button key={f.id} onClick={() => setRoleFilter(f.id)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${roleFilter === f.id ? "bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
             {f.label}
           </button>
         ))}
@@ -277,7 +291,7 @@ export default function ClientsPage() {
           placeholder="Search clients by name, email, or role..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
         />
       </div>
 
@@ -285,14 +299,14 @@ export default function ClientsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Name</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Email</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Phone</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Role</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Status</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Joined</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Actions</th>
+              <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Name</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Email</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Phone</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Role</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Status</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Joined</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -414,7 +428,11 @@ export default function ClientsPage() {
                 <tr key={profile.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-[#1a3a6b] flex items-center justify-center flex-shrink-0">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        profile.role === "admin" ? "bg-gradient-to-br from-blue-500 to-blue-700" :
+                        profile.role === "pro_staff" ? "bg-gradient-to-br from-violet-500 to-violet-700" :
+                        "bg-gradient-to-br from-emerald-500 to-emerald-700"
+                      }`}>
                         <span className="text-white text-xs font-medium">
                           {profile.full_name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                         </span>

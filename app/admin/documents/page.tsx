@@ -179,6 +179,14 @@ export default function DocumentsPage() {
     }
   }
 
+  const stats = useMemo(() => {
+    const total = documents.length
+    const valid = documents.filter(d => d.status === "valid").length
+    const expiringSoon = documents.filter(d => d.status === "expiring_soon").length
+    const expired = documents.filter(d => d.status === "expired").length
+    return { total, valid, expiringSoon, expired }
+  }, [documents])
+
   const sorted = useMemo(() => {
     const filtered = documents.filter((doc) => {
       const matchesSearch = doc.name.toLowerCase().includes(search.toLowerCase())
@@ -206,11 +214,17 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-entrance space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1a3a6b]">Document Management</h1>
           <p className="text-sm text-gray-500 mt-1">All documents across companies with expiry tracking</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full">{stats.total} Total</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">{stats.valid} Valid</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">{stats.expiringSoon} Expiring Soon</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">{stats.expired} Expired</span>
+          </div>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}

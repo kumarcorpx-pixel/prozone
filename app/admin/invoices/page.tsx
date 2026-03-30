@@ -232,13 +232,19 @@ export default function InvoicesPage() {
   }, {})
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Invoicing</h1>
-          <p className="text-sm text-gray-500">Create and manage tax invoices</p>
+          <p className="text-sm text-gray-500 mb-2">Create and manage tax invoices</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-50 px-2.5 py-1 rounded-full">{invoices.length} Total</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">{invoices.filter(i => i.status === "paid").length} Paid</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">{invoices.filter(i => i.status === "pending").length} Pending</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">{invoices.filter(i => i.status === "overdue").length} Overdue</span>
+          </div>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
+        <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5">
           {showForm ? <><X className="h-4 w-4" /> Cancel</> : <><Plus className="h-4 w-4" /> New Invoice</>}
         </button>
       </div>
@@ -416,7 +422,7 @@ export default function InvoicesPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search invoices..." className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 text-sm" />
+            placeholder="Search invoices..." className="w-full pl-10 pr-4 py-2 shadow-sm rounded-xl border-gray-200 border text-sm" />
         </div>
       </div>
 
