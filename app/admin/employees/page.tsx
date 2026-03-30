@@ -589,15 +589,15 @@ export default function EmployeesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
-                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Sr No</th>
-                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Person Code</th>
-                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Person Name</th>
-                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Company</th>
-                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Job</th>
-                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Passport</th>
-                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Emirates ID</th>
-                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Visa</th>
-                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Actions</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Sr No</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Person Code</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Person Name</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Company</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Job</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Passport</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Emirates ID</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Visa</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
