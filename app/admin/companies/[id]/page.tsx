@@ -633,15 +633,19 @@ export default function CompanyDetailPage() {
                     ))}
                   </select>
                   <select id="doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                    <option value="visa">Visa</option>
+                    <option value="visa">Visa Copy</option>
                     <option value="emirates_id">Emirates ID</option>
-                    <option value="passport">Passport</option>
-                    <option value="labor_card">Labor Card</option>
-                    <option value="contract">Contract</option>
-                    <option value="medical_insurance">Medical Insurance</option>
+                    <option value="passport">Passport (Front)</option>
+                    <option value="passport_back">Passport (Back)</option>
+                    <option value="national_id">National ID Card</option>
+                    <option value="labor_card">Approved Labor Contract</option>
+                    <option value="health_insurance">Health Insurance</option>
+                    <option value="medical_fitness">Medical Fitness Certificate</option>
                     <option value="offer_letter">Offer Letter</option>
-                    <option value="noc">No Objection Certificate</option>
-                    <option value="photo">Photo</option>
+                    <option value="noc">NOC Letter</option>
+                    <option value="salary_certificate">Salary Certificate</option>
+                    <option value="educational_degree">Educational Degree</option>
+                    <option value="photo">Photo / JPEG</option>
                     <option value="other">Other</option>
                   </select>
                   <input id="expiry-select" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Expiry Date (optional)" placeholder="Expiry" />
