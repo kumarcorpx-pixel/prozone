@@ -503,29 +503,23 @@ export default function CompanyDetailPage() {
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Name</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Designation</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Nationality</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Visa Type</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Visa Status</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Visa Expiry</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">EID Expiry</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Passport Expiry</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Medical</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Insurance</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">WPS</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Labor Card</th>
                       <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {employees.map((emp) => {
-                      const medicalOk = emp.medical_fitness_result === "fit" || (emp.medical_fitness_date && new Date(emp.medical_fitness_date) > new Date(Date.now() - 365 * 24 * 60 * 60 * 1000))
-                      const insured = !!emp.health_insurance_number && (!emp.health_insurance_expiry || new Date(emp.health_insurance_expiry) > new Date())
-                      const wpsOk = emp.wps_status === "active" || emp.wps_status === "covered"
                       return (
                         <tr key={emp.id} className="border-b border-gray-50 hover:bg-gray-50">
                           <td className="px-4 py-3"><a href={`/admin/employees/${emp.id}`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">{emp.full_name}</a></td>
                           <td className="px-4 py-3 text-gray-600">{emp.designation || "-"}</td>
                           <td className="px-4 py-3 text-gray-600">{emp.nationality || "-"}</td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${visaTypeBadge[emp.visa_status] || "bg-gray-100 text-gray-600"}`}>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${emp.visa_status === "valid" ? "bg-green-100 text-green-800" : emp.visa_status === "expired" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-600"}`}>
                               {emp.visa_status === "valid" ? "Employment" : emp.visa_status === "processing" ? "New Visa" : emp.visa_status === "expiring_soon" ? "Employment" : "Employment"}
                             </span>
                           </td>
@@ -533,21 +527,7 @@ export default function CompanyDetailPage() {
                           <td className={`px-4 py-3 ${getExpiryColor(emp.visa_expiry)}`}>{formatDate(emp.visa_expiry)}</td>
                           <td className={`px-4 py-3 ${getExpiryColor(emp.emirates_id_expiry)}`}>{formatDate(emp.emirates_id_expiry)}</td>
                           <td className={`px-4 py-3 ${getExpiryColor(emp.passport_expiry)}`}>{formatDate(emp.passport_expiry)}</td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${medicalOk ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                              {medicalOk ? "Fit" : "Pending"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${insured ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                              {insured ? "Active" : "Missing"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${wpsOk ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
-                              {wpsOk ? "Covered" : "Pending"}
-                            </span>
-                          </td>
+                          <td className={`px-4 py-3 ${getExpiryColor(emp.labor_card_expiry)}`}>{emp.labor_card_expiry ? formatDate(emp.labor_card_expiry) : "-"}</td>
                           <td className="px-4 py-3"><StatusBadge status={emp.status} /></td>
                         </tr>
                       )
