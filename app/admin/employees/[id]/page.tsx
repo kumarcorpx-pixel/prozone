@@ -250,11 +250,17 @@ export default function EmployeeDetailPage() {
                 <select id="emp-doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
                   <option value="visa">Visa</option>
                   <option value="emirates_id">Emirates ID</option>
-                  <option value="passport">Passport</option>
+                  <option value="passport">Passport (Front)</option>
+                  <option value="passport_back">Passport (Back)</option>
+                  <option value="national_id">National ID Card</option>
                   <option value="labor_card">Labor Card</option>
-                  <option value="contract">Contract</option>
+                  <option value="contract">Employment Contract</option>
+                  <option value="offer_letter">Offer Letter</option>
                   <option value="medical_insurance">Medical Insurance</option>
-                  <option value="photo">Photo</option>
+                  <option value="medical_fitness">Medical Fitness</option>
+                  <option value="photo">Photo / JPEG</option>
+                  <option value="salary_certificate">Salary Certificate</option>
+                  <option value="noc">NOC Letter</option>
                   <option value="other">Other</option>
                 </select>
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
@@ -315,6 +321,21 @@ export default function EmployeeDetailPage() {
                           <Download className="h-4 w-4" />
                         </a>
                       )}
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete "${doc.name}"? This cannot be undone.`)) return
+                          try {
+                            const res = await fetch(`/api/documents/${doc.id}`, { method: "DELETE" })
+                            if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Delete failed") }
+                            toast.success("Document deleted")
+                            const docs = await fetchDocuments()
+                            setDocuments(docs.filter((d: any) => d.employee_id === employeeId))
+                          } catch (err: any) { toast.error(err?.message || "Failed to delete") }
+                        }}
+                        className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 ))}
