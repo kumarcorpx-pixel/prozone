@@ -384,7 +384,7 @@ export default function InvoicesPage() {
 
           <div className="flex justify-end gap-3">
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-            <button onClick={handleCreate} disabled={creating} className="px-6 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] disabled:opacity-50 flex items-center gap-2">
+            <button onClick={handleCreate} disabled={creating} className="px-6 py-2 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2">
               {creating ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</> : <><Plus className="h-4 w-4" /> Create Invoice</>}
             </button>
           </div>
@@ -430,14 +430,14 @@ export default function InvoicesPage() {
       <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="bg-gray-50 border-b">
-              <th className="text-left px-4 py-3 text-gray-500 font-medium">Invoice #</th>
-              <th className="text-left px-4 py-3 text-gray-500 font-medium">Date</th>
-              <th className="text-left px-4 py-3 text-gray-500 font-medium">Customer</th>
-              <th className="text-right px-4 py-3 text-gray-500 font-medium">Total (AED)</th>
-              <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
-              <th className="text-left px-4 py-3 text-gray-500 font-medium">Due Date</th>
-              <th className="text-right px-4 py-3 text-gray-500 font-medium">Actions</th>
+            <thead><tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+              <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Invoice #</th>
+              <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Date</th>
+              <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Customer</th>
+              <th className="text-right px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Total (AED)</th>
+              <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Status</th>
+              <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Due Date</th>
+              <th className="text-right px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Actions</th>
             </tr></thead>
             <tbody>
               {loading ? (

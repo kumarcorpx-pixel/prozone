@@ -242,7 +242,7 @@ export default function RequestsPage() {
             placeholder="Search by company, service type..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
           />
         </div>
         <select
@@ -274,14 +274,14 @@ export default function RequestsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Client</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Company</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Service Type</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Status</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Priority</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Assigned To</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Created</th>
+              <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Client</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Company</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Service Type</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Status</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Priority</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Assigned To</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Created</th>
               </tr>
             </thead>
             <tbody>

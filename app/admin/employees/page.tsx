@@ -213,6 +213,11 @@ export default function EmployeesPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#1a3a6b]">Employee Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage employees across all companies</p>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full"><Users className="h-3 w-3" /> {totalEmployees} Employees</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full"><UserCheck className="h-3 w-3" /> {activeVisas} Active</span>
+            {companies.length > 0 && <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 bg-blue-100 px-2.5 py-1 rounded-full"><Building2 className="h-3 w-3" /> {companies.length} Companies</span>}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -224,7 +229,7 @@ export default function EmployeesPage() {
           </button>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
           >
             {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showAddForm ? "Cancel" : "Add Employee"}
@@ -404,7 +409,7 @@ export default function EmployeesPage() {
             <button
               onClick={handleAddEmployee}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {saving ? "Saving..." : "Add Employee"}
@@ -521,7 +526,7 @@ export default function EmployeesPage() {
           placeholder="Search by name, company, nationality, designation..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
         />
       </div>
 
