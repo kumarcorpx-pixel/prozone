@@ -633,7 +633,7 @@ export default function CompanyDetailPage() {
                     ))}
                   </select>
                   <select id="doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                    <option value="visa">Visa Copy</option>
+                    <option value="visa">Visa / Residency</option>
                     <option value="emirates_id">Emirates ID</option>
                     <option value="passport">Passport (Front)</option>
                     <option value="passport_back">Passport (Back)</option>

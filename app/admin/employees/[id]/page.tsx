@@ -248,7 +248,7 @@ export default function EmployeeDetailPage() {
               <p className="text-sm text-gray-500">{documents.length} document(s)</p>
               <div className="flex items-center gap-2">
                 <select id="emp-doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                  <option value="visa">Visa Copy</option>
+                  <option value="visa">Visa / Residency</option>
                   <option value="emirates_id">Emirates ID</option>
                   <option value="passport">Passport (Front)</option>
                   <option value="passport_back">Passport (Back)</option>
