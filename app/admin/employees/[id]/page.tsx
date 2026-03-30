@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { fetchEmployees, fetchCompanies, fetchDocuments } from "@/lib/data-fetcher"
+import { documentCategories } from "@/lib/company-data"
 import { updateEmployee } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { toast } from "sonner"
@@ -307,13 +308,15 @@ export default function EmployeeDetailPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {documents.map((doc: any) => (
+                {documents.map((doc: any) => {
+                  const cat = documentCategories[doc.document_type] || documentCategories.other
+                  return (
                   <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                     <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-[#1a3a6b]" />
+                      <span className={`inline-flex items-center justify-center h-8 w-8 rounded-lg text-[10px] font-bold flex-shrink-0 ${cat.color}`}>{cat.icon}</span>
                       <div>
                         <p className="text-sm font-medium">{doc.name}</p>
-                        <p className="text-xs text-gray-500">{doc.document_type || "Document"}</p>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cat.color}`}>{cat.label}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -346,7 +349,8 @@ export default function EmployeeDetailPage() {
                       </button>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

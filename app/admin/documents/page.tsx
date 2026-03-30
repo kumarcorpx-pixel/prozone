@@ -389,14 +389,14 @@ export default function DocumentsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Name</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Company</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Employee</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Type</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Expiry Date</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Status</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Actions</th>
+              <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Name</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Company</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Employee</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Type</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Expiry Date</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Status</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -409,7 +409,7 @@ export default function DocumentsPage() {
                   <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span className={`inline-flex items-center justify-center h-8 w-8 rounded-lg text-[10px] font-bold ${cat.color}`}>{cat.icon}</span>
                         <span className="font-medium text-gray-900">{doc.name}</span>
                       </div>
                     </td>
