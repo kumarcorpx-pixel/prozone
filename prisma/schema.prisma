@@ -108,6 +108,7 @@ model Company {
   emirate                 String?
   jurisdiction            String?
   freeZone                String?       @map("free_zone")
+  freeZoneAuthority       String?       @map("free_zone_authority")
   address                 String?
   poBox                   String?       @map("po_box")
   phone                   String?
@@ -129,6 +130,7 @@ model Company {
   chamberCommerceExpiry   DateTime?     @map("chamber_commerce_expiry")
   ejariTawtheeqNumber     String?       @map("ejari_tawtheeq_number")
   ejariTawtheeqExpiry     DateTime?     @map("ejari_tawtheeq_expiry")
+  ejariTawtheeqType       String?       @map("ejari_tawtheeq_type")
   leaseExpiry             DateTime?     @map("lease_expiry")
   vatTrn                  String?       @map("vat_trn")
   corporateTaxNumber      String?       @map("corporate_tax_number")
@@ -193,6 +195,20 @@ model Employee {
   joinDate            DateTime?      @map("join_date")
   status              EmployeeStatus @default(active)
   notes               String?
+  personCode          String?        @map("person_code")
+  maritalStatus       String?        @map("marital_status")
+  emergencyContactName String?       @map("emergency_contact_name")
+  emergencyContactPhone String?      @map("emergency_contact_phone")
+  uaeAddress          String?        @map("uae_address")
+  homeCountryAddress  String?        @map("home_country_address")
+  bloodGroup          String?        @map("blood_group")
+  contractEndDate     DateTime?      @map("contract_end_date")
+  probationEndDate    DateTime?      @map("probation_end_date")
+  noticePeriod        String?        @map("notice_period")
+  entryPermitNumber   String?        @map("entry_permit_number")
+  entryPermitExpiry   DateTime?      @map("entry_permit_expiry")
+  residencyFileNumber String?        @map("residency_file_number")
+  visaSponsor         String?        @map("visa_sponsor")
   createdAt           DateTime       @default(now()) @map("created_at")
   updatedAt           DateTime       @updatedAt @map("updated_at")
 
@@ -226,6 +242,10 @@ model Document {
   reminderDays    Int?      @map("reminder_days") @default(30)
   status          String?   @default("valid")
   notes           String?
+  visibility          String?        @default("all")
+  isRenewal           Boolean?       @default(false) @map("is_renewal")
+  previousDocId       String?        @map("previous_doc_id")
+  downloadCount       Int?           @default(0) @map("download_count")
   uploadedById    String?   @map("uploaded_by")
   uploadedBy      User?     @relation("Uploader", fields: [uploadedById], references: [id])
   createdAt       DateTime  @default(now()) @map("created_at")

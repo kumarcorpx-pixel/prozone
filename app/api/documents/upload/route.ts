@@ -137,6 +137,10 @@ export async function POST(request: NextRequest) {
     let documentType = (formData.get("documentType") as string) || "other"
     const expiryDate = formData.get("expiryDate") as string | null
     const notes = (formData.get("notes") as string) || null
+    const issueDate = formData.get("issueDate") as string | null
+    const referenceNumber = (formData.get("referenceNumber") as string) || null
+    const issuingAuthority = (formData.get("issuingAuthority") as string) || null
+    const reminderDays = parseInt((formData.get("reminderDays") as string) || "30", 10)
 
     // Normalize Labour → Labor (British/American spelling)
     if (documentType === "labour_card") documentType = "labor_card"
@@ -242,6 +246,11 @@ export async function POST(request: NextRequest) {
         fileUrl: localFileUrl,
         fileSize: finalSize,
         expiryDate: expiryDate ? new Date(expiryDate) : null,
+        issueDate: issueDate ? new Date(issueDate) : null,
+        referenceNumber,
+        issuingAuthority,
+        reminderDays,
+        uploadedById: auth.user.id,
         status: "valid",
         notes: [
           notes,

@@ -579,6 +579,9 @@ export default function CompanyDetailPage() {
                   })()}
                 </select>
                 <input id="company-expiry-select" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Expiry Date" placeholder="Expiry Date" />
+                <input id="company-issuedate" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Issue Date" />
+                <input id="company-docnum" type="text" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white w-32" placeholder="Doc #" title="Document Number" />
+                <input id="company-issuedby" type="text" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white w-32" placeholder="Authority" title="Issued By" />
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
                   <Upload className="h-4 w-4" />
                   Choose File
@@ -596,6 +599,12 @@ export default function CompanyDetailPage() {
                         fd.append("companyId", companyId)
                         fd.append("documentType", compDocType)
                         if (compExpiry) fd.append("expiryDate", compExpiry)
+                        const issueDate = (document.getElementById("company-issuedate") as HTMLInputElement)?.value
+                        const docNum = (document.getElementById("company-docnum") as HTMLInputElement)?.value
+                        const issuedBy = (document.getElementById("company-issuedby") as HTMLInputElement)?.value
+                        if (issueDate) fd.append("issueDate", issueDate)
+                        if (docNum) fd.append("referenceNumber", docNum)
+                        if (issuedBy) fd.append("issuingAuthority", issuedBy)
                         const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
                         if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
                         toast.success("Document uploaded!")
@@ -645,6 +654,9 @@ export default function CompanyDetailPage() {
                     })()}
                   </select>
                   <input id="expiry-select" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Expiry Date (optional)" placeholder="Expiry" />
+                  <input id="emp-issuedate" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Issue Date" />
+                  <input id="emp-docnum" type="text" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white w-32" placeholder="Doc #" title="Document Number" />
+                  <input id="emp-issuedby" type="text" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white w-32" placeholder="Authority" title="Issued By" />
                   <label className="inline-flex items-center gap-2 px-4 py-2 border border-[#1a3a6b] text-[#1a3a6b] rounded-lg text-sm font-medium cursor-pointer hover:bg-[#1a3a6b]/5 transition-colors">
                     <Upload className="h-4 w-4" />
                     Choose File
@@ -663,6 +675,12 @@ export default function CompanyDetailPage() {
                           if (empId) fd.append("employeeId", empId)
                           fd.append("documentType", docType)
                           if (expiryVal) fd.append("expiryDate", expiryVal)
+                          const issueDate = (document.getElementById("emp-issuedate") as HTMLInputElement)?.value
+                          const docNum = (document.getElementById("emp-docnum") as HTMLInputElement)?.value
+                          const issuedBy = (document.getElementById("emp-issuedby") as HTMLInputElement)?.value
+                          if (issueDate) fd.append("issueDate", issueDate)
+                          if (docNum) fd.append("referenceNumber", docNum)
+                          if (issuedBy) fd.append("issuingAuthority", issuedBy)
                           const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
                           if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
                           toast.success("Employee document uploaded!")
@@ -681,24 +699,36 @@ export default function CompanyDetailPage() {
             <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
               <h3 className="font-semibold text-[#1a3a6b] mb-4">Company Documents</h3>
               {companyDocs.length > 0 ? (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-3">
                   {companyDocs.map((doc) => {
                     const cat = documentCategories[doc.document_type] || documentCategories.other
                     return (
-                      <div key={doc.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className={`inline-flex items-center justify-center h-8 w-8 rounded-lg text-[10px] font-bold flex-shrink-0 ${cat.color}`}>{cat.icon}</span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cat.color}`}>{cat.label}</span>
+                      <div key={doc.id} className={`rounded-xl border-l-4 p-4 bg-white ring-1 ring-gray-100 hover:ring-blue-200 hover:shadow-md transition-all ${
+                        !doc.expiry_date ? "border-l-gray-300" :
+                        (() => { const d = Math.ceil((new Date(doc.expiry_date).getTime() - Date.now()) / 86400000); return d < 0 ? "border-l-red-500" : d <= 30 ? "border-l-amber-500" : d <= 90 ? "border-l-yellow-400" : "border-l-emerald-500" })()
+                      }`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0 flex-1">
+                            <span className={`inline-flex items-center justify-center h-10 w-10 rounded-xl text-xs font-bold flex-shrink-0 ${cat.color}`}>{cat.icon}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-gray-900 truncate">{doc.name}</p>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${cat.color}`}>{cat.label}</span>
+                              </div>
+                              <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
+                                {doc.reference_number && <span>Doc #: {doc.reference_number}</span>}
+                                {doc.issuing_authority && <span>Issued by: {doc.issuing_authority}</span>}
+                                {doc.expiry_date && <span className={getExpiryColor(doc.expiry_date)}>Exp: {formatDate(doc.expiry_date)}</span>}
+                                {doc.issue_date && <span>Issued: {formatDate(doc.issue_date)}</span>}
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
+                                <StatusBadge status={doc.status} />
+                                {doc.uploaded_by_name && <span>By: {doc.uploaded_by_name}</span>}
+                                <span>{formatDate(doc.created_at)}</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          {doc.expiry_date ? (
-                            <span className={`text-xs ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
-                          ) : null}
-                          <StatusBadge status={doc.status} />
-                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             {doc.file_url ? (
                               <>
                               <button onClick={() => setPreviewDoc(doc)}
@@ -742,24 +772,36 @@ export default function CompanyDetailPage() {
             {Object.entries(employeeDocGroups).map(([empName, docs]) => (
               <div key={empName} className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
                 <h3 className="font-semibold text-gray-800 mb-4">{empName}</h3>
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-3">
                   {docs.map((doc) => {
                     const cat = documentCategories[doc.document_type] || documentCategories.other
                     return (
-                      <div key={doc.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className={`inline-flex items-center justify-center h-8 w-8 rounded-lg text-[10px] font-bold flex-shrink-0 ${cat.color}`}>{cat.icon}</span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cat.color}`}>{cat.label}</span>
+                      <div key={doc.id} className={`rounded-xl border-l-4 p-4 bg-white ring-1 ring-gray-100 hover:ring-blue-200 hover:shadow-md transition-all ${
+                        !doc.expiry_date ? "border-l-gray-300" :
+                        (() => { const d = Math.ceil((new Date(doc.expiry_date).getTime() - Date.now()) / 86400000); return d < 0 ? "border-l-red-500" : d <= 30 ? "border-l-amber-500" : d <= 90 ? "border-l-yellow-400" : "border-l-emerald-500" })()
+                      }`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0 flex-1">
+                            <span className={`inline-flex items-center justify-center h-10 w-10 rounded-xl text-xs font-bold flex-shrink-0 ${cat.color}`}>{cat.icon}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-gray-900 truncate">{doc.name}</p>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${cat.color}`}>{cat.label}</span>
+                              </div>
+                              <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
+                                {doc.reference_number && <span>Doc #: {doc.reference_number}</span>}
+                                {doc.issuing_authority && <span>Issued by: {doc.issuing_authority}</span>}
+                                {doc.expiry_date && <span className={getExpiryColor(doc.expiry_date)}>Exp: {formatDate(doc.expiry_date)}</span>}
+                                {doc.issue_date && <span>Issued: {formatDate(doc.issue_date)}</span>}
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
+                                <StatusBadge status={doc.status} />
+                                {doc.uploaded_by_name && <span>By: {doc.uploaded_by_name}</span>}
+                                <span>{formatDate(doc.created_at)}</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-4 flex-shrink-0">
-                          {doc.expiry_date ? (
-                            <span className={`text-xs font-medium ${getExpiryColor(doc.expiry_date)}`}>{formatDate(doc.expiry_date)}</span>
-                          ) : null}
-                          <StatusBadge status={doc.status} />
-                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             {doc.file_url ? (
                               <>
                               <button onClick={() => setPreviewDoc(doc)}
