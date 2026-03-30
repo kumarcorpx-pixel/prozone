@@ -583,16 +583,16 @@ export default function EmployeesPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Sr No</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Person Code</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Person Name</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Company</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Job</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Passport</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Emirates ID</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Visa</th>
-                <th className="text-left py-3 px-4 text-gray-500 font-medium">Actions</th>
+              <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Sr No</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Person Code</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Person Name</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Company</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Job</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Passport</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Emirates ID</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Visa</th>
+                <th className="text-left py-3 px-4 text-[#1a3a6b] font-bold">Actions</th>
               </tr>
             </thead>
             <tbody>

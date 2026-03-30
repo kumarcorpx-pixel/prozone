@@ -499,16 +499,16 @@ export default function CompanyDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr style={{background: "linear-gradient(135deg, #0F2B46, #1a3a6b)"}}>
-                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Name</th>
-                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Designation</th>
-                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Nationality</th>
-                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Visa Status</th>
-                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Visa Expiry</th>
-                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">EID Expiry</th>
-                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Passport Expiry</th>
-                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Labor Card</th>
-                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Status</th>
+                    <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                      <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Name</th>
+                      <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Designation</th>
+                      <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Nationality</th>
+                      <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Visa Status</th>
+                      <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Visa Expiry</th>
+                      <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">EID Expiry</th>
+                      <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Passport Expiry</th>
+                      <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Labor Card</th>
+                      <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -687,10 +687,10 @@ export default function CompanyDetailPage() {
                     return (
                       <div key={doc.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div className="flex items-center gap-3 min-w-0">
-                          <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className={`inline-flex items-center justify-center h-8 w-8 rounded-lg text-[10px] font-bold flex-shrink-0 ${cat.color}`}>{cat.icon}</span>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cat.color}`}>{cat.label}</span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cat.color}`}>{cat.label}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
@@ -748,10 +748,10 @@ export default function CompanyDetailPage() {
                     return (
                       <div key={doc.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div className="flex items-center gap-3 min-w-0">
-                          <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className={`inline-flex items-center justify-center h-8 w-8 rounded-lg text-[10px] font-bold flex-shrink-0 ${cat.color}`}>{cat.icon}</span>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cat.color}`}>{cat.label}</span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cat.color}`}>{cat.label}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-4 flex-shrink-0">
@@ -1044,13 +1044,13 @@ export default function CompanyDetailPage() {
             {shareholders.length > 0 ? (
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead><tr style={{background: "linear-gradient(135deg, #0F2B46, #1a3a6b)"}}>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Name</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Role</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Nationality</th>
-                    <th className="text-right px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Share %</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Emirates ID</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Mobile</th>
+                  <thead><tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                    <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Name</th>
+                    <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Role</th>
+                    <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Nationality</th>
+                    <th className="text-right px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Share %</th>
+                    <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Emirates ID</th>
+                    <th className="text-left px-4 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Mobile</th>
                   </tr></thead>
                   <tbody>
                     {shareholders.map((sh: any) => (
