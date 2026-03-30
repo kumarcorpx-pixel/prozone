@@ -222,8 +222,157 @@ body {
 /* Mobile fixes */
 @media (max-width: 640px) {
   .space-y-6 > * + * { margin-top: 1rem; }
-
-  /* Fix table overflow */
   table { font-size: 0.8125rem; }
   th, td { padding: 0.5rem 0.75rem; }
+}
+
+/* ========== PORTAL ANIMATIONS ========== */
+
+/* Page entrance - fade + slide up */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.space-y-6, .space-y-4, .space-y-3 {
+  animation: page-enter 0.4s ease-out;
+}
+
+/* Card entrance - staggered */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Stat cards, table rows, grid items get staggered entrance */
+.grid > div, .grid > a, .grid > button {
+  animation: card-enter 0.35s ease-out backwards;
+}
+.grid > div:nth-child(1), .grid > a:nth-child(1) { animation-delay: 0.05s; }
+.grid > div:nth-child(2), .grid > a:nth-child(2) { animation-delay: 0.1s; }
+.grid > div:nth-child(3), .grid > a:nth-child(3) { animation-delay: 0.15s; }
+.grid > div:nth-child(4), .grid > a:nth-child(4) { animation-delay: 0.2s; }
+.grid > div:nth-child(5), .grid > a:nth-child(5) { animation-delay: 0.25s; }
+.grid > div:nth-child(6), .grid > a:nth-child(6) { animation-delay: 0.3s; }
+
+/* Enhanced card hover — lift + shadow */
+.rounded-xl, .rounded-2xl {
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+.bg-white.rounded-xl:hover, .bg-white.rounded-2xl:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(15, 43, 70, 0.08);
+}
+
+/* Table row hover — subtle highlight */
+tbody tr {
+  transition: background-color 0.15s ease !important;
+}
+tbody tr:hover {
+  background-color: rgba(26, 58, 107, 0.03) !important;
+}
+
+/* Button press effect */
+button:active:not(:disabled), a.bg-\[\\#1a3a6b\]:active {
+  transform: scale(0.97) !important;
+}
+
+/* Gold accent gradient line on active sidebar items */
+.bg-\[\\#1a3a6b\].rounded-lg, .bg-\[\\#1a3a6b\].rounded-xl {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Tab underline animation */
+.border-b-2 {
+  transition: border-color 0.3s ease, color 0.3s ease !important;
+}
+
+/* Status badge pulse for urgent items */
+.bg-red-100.text-red-800 {
+  animation: pulse-dot 3s ease-in-out infinite;
+}
+
+/* Notification dropdown entrance */
+@keyframes dropdown-enter {
+  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.absolute.right-0.mt-2 {
+  animation: dropdown-enter 0.2s ease-out;
+}
+
+/* Gradient text for headings */
+.text-2xl.font-bold, .text-xl.font-bold {
+  background: linear-gradient(135deg, #1a3a6b 0%, #2d6cb5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gold accent for important numbers/stats */
+.text-2xl.font-bold.text-gray-900, .text-3xl.font-bold {
+  background: none;
+  -webkit-text-fill-color: inherit;
+}
+
+/* Smooth progress bars */
+.bg-\[\\#1a3a6b\].h-2, .bg-\[\\#1a3a6b\].h-2\.5, .bg-\[\\#D4A843\].h-2 {
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Loading spinner enhancement */
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Floating action button glow */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(26, 58, 107, 0.2); }
+  50% { box-shadow: 0 0 25px rgba(26, 58, 107, 0.4); }
+}
+
+/* Form input focus glow */
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 3px rgba(26, 58, 107, 0.1) !important;
+  border-color: #1a3a6b !important;
+}
+
+/* Toast notification entrance */
+[data-sonner-toast] {
+  animation: slide-up 0.3s ease-out !important;
+}
+
+/* Sidebar nav item hover effect */
+nav a, nav button {
+  position: relative;
+  overflow: hidden;
+}
+nav a::after, nav button::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #c9a96e, #e8c068);
+  transition: width 0.3s ease;
+}
+nav a:hover::after, nav button:hover::after {
+  width: 100%;
+}
+
+/* Search bar glow on focus */
+input[type="text"]:focus, input[type="search"]:focus {
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #1a3a6b, #c9a96e) border-box !important;
+  border: 2px solid transparent !important;
+}
+
+/* Counter animation for stat numbers */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.font-bold.text-gray-900, .font-bold.text-green-600, .font-bold.text-yellow-600, .font-bold.text-red-600 {
+  animation: count-up 0.5s ease-out;
 }
