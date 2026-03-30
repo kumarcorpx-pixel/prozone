@@ -164,15 +164,44 @@ export default function AdminDashboard() {
     <div className="space-y-6 bg-[#f8f9fb] min-h-screen -m-6 p-6">
       {/* Welcome Banner */}
       <FadeIn>
-        <div className="bg-gradient-to-r from-[#1a3a6b] via-[#1e4a7e] to-[#234d85] rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-          }} />
-          <div className="relative">
-            <p className="text-blue-200 text-sm font-medium">Good {getTimeOfDay()}</p>
-            <h1 className="text-3xl font-bold mt-1">Welcome, {user?.full_name || "Admin"}</h1>
-            <p className="text-blue-200 mt-2">YABS Public Relations Management LLC &middot; {companies.length} companies &middot; {totalEmployees} employees</p>
+        <div className="relative rounded-2xl overflow-hidden" style={{background: "linear-gradient(135deg, #0f2340 0%, #1a3a6b 30%, #2563eb 70%, #1e40af 100%)"}}>
+          {/* Animated background elements */}
+          <div className="absolute inset-0">
+            <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10" style={{background: "radial-gradient(circle, #c9a96e 0%, transparent 70%)", transform: "translate(30%, -30%)"}} />
+            <div className="absolute bottom-0 left-1/3 w-64 h-64 rounded-full opacity-5" style={{background: "radial-gradient(circle, #fff 0%, transparent 70%)", transform: "translate(0, 40%)"}} />
+            <div className="absolute top-1/2 right-1/4 w-32 h-32 rounded-full opacity-10" style={{background: "radial-gradient(circle, #c9a96e 0%, transparent 70%)"}} />
           </div>
+          {/* Content */}
+          <div className="relative px-8 py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm mb-3">
+                <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-xs font-medium text-blue-100">Good {getTimeOfDay()} — {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Welcome back, <span className="text-transparent bg-clip-text" style={{backgroundImage: "linear-gradient(90deg, #c9a96e, #e8c068, #c9a96e)"}}>{user?.full_name || "Admin"}</span></h1>
+              <p className="text-blue-200 mt-2 text-base">YABS Public Relations Management LLC</p>
+            </div>
+            <div className="flex gap-3 flex-wrap sm:flex-nowrap">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-center min-w-[90px] border border-white/10">
+                <p className="text-2xl font-extrabold text-white">{companies.length}</p>
+                <p className="text-[11px] text-blue-200 mt-0.5 uppercase tracking-wide">Companies</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-center min-w-[90px] border border-white/10">
+                <p className="text-2xl font-extrabold text-white">{totalEmployees}</p>
+                <p className="text-[11px] text-blue-200 mt-0.5 uppercase tracking-wide">Employees</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-center min-w-[90px] border border-white/10">
+                <p className="text-2xl font-extrabold text-white">{requests.filter(r => r.status !== "completed" && r.status !== "rejected").length}</p>
+                <p className="text-[11px] text-blue-200 mt-0.5 uppercase tracking-wide">Active</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-center min-w-[90px] border border-white/10">
+                <p className="text-2xl font-extrabold text-white">{documents.length}</p>
+                <p className="text-[11px] text-blue-200 mt-0.5 uppercase tracking-wide">Documents</p>
+              </div>
+            </div>
+          </div>
+          {/* Bottom gold accent line */}
+          <div className="h-1" style={{background: "linear-gradient(90deg, #c9a96e, #e8c068, #c9a96e, #e8c068)"}} />
         </div>
       </FadeIn>
 
