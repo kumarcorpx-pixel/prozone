@@ -136,7 +136,7 @@ export default function CompanyDetailPage() {
   const [feeForm, setFeeForm] = useState({ description: "", amount: "", date: "", status: "pending", receipt_number: "" })
   const [shareholders, setShareholders] = useState<any[]>([])
   const [showShareholderForm, setShowShareholderForm] = useState(false)
-  const [shareholderForm, setShareholderForm] = useState({ name: "", nationality: "", share_percentage: "", passport_number: "" })
+  const [shareholderForm, setShareholderForm] = useState({ name: "", nationality: "", share_percentage: "", emirates_id: "", role: "Partner", mobile: "" })
 
   useEffect(() => {
     async function load() {
@@ -499,35 +499,34 @@ export default function CompanyDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Name</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Designation</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Nationality</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Visa Status</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Visa Expiry</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">EID Expiry</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Passport Expiry</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Labor Card</th>
-                      <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
+                    <tr style={{background: "linear-gradient(135deg, #0F2B46, #1a3a6b)"}}>
+                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Name</th>
+                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Designation</th>
+                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Nationality</th>
+                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Visa Status</th>
+                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Visa Expiry</th>
+                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">EID Expiry</th>
+                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Passport Expiry</th>
+                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Labor Card</th>
+                      <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {employees.map((emp) => {
                       return (
-                        <tr key={emp.id} className="border-b border-gray-50 hover:bg-gray-50">
+                        <tr key={emp.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                           <td className="px-4 py-3"><a href={`/admin/employees/${emp.id}`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">{emp.full_name}</a></td>
                           <td className="px-4 py-3 text-gray-600">{emp.designation || "-"}</td>
                           <td className="px-4 py-3 text-gray-600">{emp.nationality || "-"}</td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${emp.visa_status === "valid" ? "bg-green-100 text-green-800" : emp.visa_status === "expired" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-600"}`}>
-                              {emp.visa_status === "valid" ? "Employment" : emp.visa_status === "processing" ? "New Visa" : emp.visa_status === "expiring_soon" ? "Employment" : "Employment"}
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${emp.visa_status === "valid" ? "bg-green-100 text-green-800" : emp.visa_status === "expired" ? "bg-red-100 text-red-800" : emp.visa_status === "processing" ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-600"}`}>
+                              {emp.visa_status ? emp.visa_status.charAt(0).toUpperCase() + emp.visa_status.slice(1).replace(/_/g, " ") : "N/A"}
                             </span>
                           </td>
-                          <td className="px-4 py-3"><StatusBadge status={emp.visa_status} /></td>
-                          <td className={`px-4 py-3 ${getExpiryColor(emp.visa_expiry)}`}>{formatDate(emp.visa_expiry)}</td>
-                          <td className={`px-4 py-3 ${getExpiryColor(emp.emirates_id_expiry)}`}>{formatDate(emp.emirates_id_expiry)}</td>
-                          <td className={`px-4 py-3 ${getExpiryColor(emp.passport_expiry)}`}>{formatDate(emp.passport_expiry)}</td>
-                          <td className={`px-4 py-3 ${getExpiryColor(emp.labor_card_expiry)}`}>{emp.labor_card_expiry ? formatDate(emp.labor_card_expiry) : "-"}</td>
+                          <td className={`px-4 py-3 font-medium ${getExpiryColor(emp.visa_expiry)}`}>{formatDate(emp.visa_expiry)}</td>
+                          <td className={`px-4 py-3 font-medium ${getExpiryColor(emp.emirates_id_expiry)}`}>{formatDate(emp.emirates_id_expiry)}</td>
+                          <td className={`px-4 py-3 font-medium ${getExpiryColor(emp.passport_expiry)}`}>{formatDate(emp.passport_expiry)}</td>
+                          <td className={`px-4 py-3 font-medium ${getExpiryColor(emp.labor_card_expiry)}`}>{emp.labor_card_expiry ? formatDate(emp.labor_card_expiry) : "-"}</td>
                           <td className="px-4 py-3"><StatusBadge status={emp.status} /></td>
                         </tr>
                       )
@@ -980,17 +979,24 @@ export default function CompanyDetailPage() {
 
             {showShareholderForm && (
               <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
-                <h3 className="font-semibold text-gray-900">Add Shareholder</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <h3 className="font-semibold text-gray-900">Add Shareholder / Partner</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                     <input type="text" value={shareholderForm.name} onChange={e => setShareholderForm({...shareholderForm, name: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Full name" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
-                    <input type="text" value={shareholderForm.nationality} onChange={e => setShareholderForm({...shareholderForm, nationality: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="e.g. UAE" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                    <select value={shareholderForm.role} onChange={e => setShareholderForm({...shareholderForm, role: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                      <option value="Partner">Partner</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Partner & Manager">Partner & Manager</option>
+                      <option value="Silent Partner">Silent Partner</option>
+                      <option value="Investor">Investor</option>
+                      <option value="Local Sponsor">Local Sponsor</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Share % *</label>
@@ -998,9 +1004,19 @@ export default function CompanyDetailPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="0" min="0" max="100" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Passport #</label>
-                    <input type="text" value={shareholderForm.passport_number} onChange={e => setShareholderForm({...shareholderForm, passport_number: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Passport number" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Emirates ID</label>
+                    <input type="text" value={shareholderForm.emirates_id} onChange={e => setShareholderForm({...shareholderForm, emirates_id: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="784-XXXX-XXXXXXX-X" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
+                    <input type="text" value={shareholderForm.nationality} onChange={e => setShareholderForm({...shareholderForm, nationality: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="e.g. UAE" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+                    <input type="text" value={shareholderForm.mobile} onChange={e => setShareholderForm({...shareholderForm, mobile: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="+971 XX XXX XXXX" />
                   </div>
                 </div>
                 <button onClick={async () => {
@@ -1017,7 +1033,7 @@ export default function CompanyDetailPage() {
                     })
                     toast.success("Shareholder added")
                     setShowShareholderForm(false)
-                    setShareholderForm({ name: "", nationality: "", share_percentage: "", passport_number: "" })
+                    setShareholderForm({ name: "", nationality: "", share_percentage: "", emirates_id: "", role: "Partner", mobile: "" })
                   } catch (err: any) { toast.error(err?.message || "Failed to add shareholder") }
                 }} className="px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a]">
                   Save Shareholder
@@ -1028,26 +1044,32 @@ export default function CompanyDetailPage() {
             {shareholders.length > 0 ? (
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead><tr className="bg-gray-50 border-b">
-                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Name</th>
-                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Nationality</th>
-                    <th className="text-right px-4 py-3 text-gray-500 font-medium">Share %</th>
-                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Passport #</th>
+                  <thead><tr style={{background: "linear-gradient(135deg, #0F2B46, #1a3a6b)"}}>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Name</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Role</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Nationality</th>
+                    <th className="text-right px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Share %</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Emirates ID</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs uppercase tracking-wider">Mobile</th>
                   </tr></thead>
                   <tbody>
                     {shareholders.map((sh: any) => (
-                      <tr key={sh.id} className="border-b border-gray-50">
+                      <tr key={sh.id} className="border-b border-gray-50 hover:bg-blue-50/30">
                         <td className="px-4 py-3 font-medium">{sh.name}</td>
+                        <td className="px-4 py-3"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{sh.role || "Partner"}</span></td>
                         <td className="px-4 py-3 text-gray-500">{sh.nationality || "\u2014"}</td>
                         <td className="px-4 py-3 text-right font-semibold">{sh.share_percentage}%</td>
-                        <td className="px-4 py-3 text-gray-500 font-mono text-xs">{sh.passport_number || "\u2014"}</td>
+                        <td className="px-4 py-3 text-gray-500 font-mono text-xs">{sh.emirates_id || sh.passport_number || "\u2014"}</td>
+                        <td className="px-4 py-3 text-gray-500">{sh.mobile || "\u2014"}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot><tr className="bg-gray-50 font-semibold">
                     <td className="px-4 py-3">Total</td>
                     <td className="px-4 py-3" />
+                    <td className="px-4 py-3" />
                     <td className="px-4 py-3 text-right">{shareholders.reduce((s: number, sh: any) => s + Number(sh.share_percentage), 0)}%</td>
+                    <td className="px-4 py-3" />
                     <td className="px-4 py-3" />
                   </tr></tfoot>
                 </table>
