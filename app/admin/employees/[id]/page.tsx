@@ -261,6 +261,7 @@ export default function EmployeeDetailPage() {
                   <option value="photo">Photo / JPEG</option>
                   <option value="salary_certificate">Salary Certificate</option>
                   <option value="noc">NOC Letter</option>
+                  <option value="educational_degree">Educational Degree</option>
                   <option value="other">Other</option>
                 </select>
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
