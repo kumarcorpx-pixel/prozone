@@ -272,14 +272,13 @@ tbody tr:hover {
 }
 
 /* Button press effect */
-button:active:not(:disabled), a.bg-\[\\#1a3a6b\]:active {
+button:active:not(:disabled) {
   transform: scale(0.97) !important;
 }
 
-/* Gold accent gradient line on active sidebar items */
-.bg-\[\\#1a3a6b\].rounded-lg, .bg-\[\\#1a3a6b\].rounded-xl {
-  position: relative;
-  overflow: hidden;
+/* Progress bars smooth animation */
+[class*="h-2"][class*="rounded-full"] {
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Tab underline animation */
@@ -301,22 +300,23 @@ button:active:not(:disabled), a.bg-\[\\#1a3a6b\]:active {
   animation: dropdown-enter 0.2s ease-out;
 }
 
-/* Gradient text for headings */
-.text-2xl.font-bold, .text-xl.font-bold {
-  background: linear-gradient(135deg, #1a3a6b 0%, #2d6cb5 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* Colorful stat card top borders */
+.ring-1.ring-gray-200.rounded-xl {
+  border-top: 3px solid transparent;
+  background-clip: padding-box;
 }
+.ring-1.ring-gray-200.rounded-xl:nth-child(1) { border-top-color: #1a3a6b; }
+.ring-1.ring-gray-200.rounded-xl:nth-child(2) { border-top-color: #16a34a; }
+.ring-1.ring-gray-200.rounded-xl:nth-child(3) { border-top-color: #c9a96e; }
+.ring-1.ring-gray-200.rounded-xl:nth-child(4) { border-top-color: #dc2626; }
 
-/* Gold accent for important numbers/stats */
-.text-2xl.font-bold.text-gray-900, .text-3xl.font-bold {
-  background: none;
-  -webkit-text-fill-color: inherit;
-}
+/* Gradient backgrounds for stat numbers */
+.text-2xl.font-bold.text-green-600 { color: #059669 !important; }
+.text-2xl.font-bold.text-yellow-600 { color: #d97706 !important; }
+.text-2xl.font-bold.text-red-600 { color: #dc2626 !important; }
 
 /* Smooth progress bars */
-.bg-\[\\#1a3a6b\].h-2, .bg-\[\\#1a3a6b\].h-2\.5, .bg-\[\\#D4A843\].h-2 {
+[class*="rounded-full"][class*="h-2"] {
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
@@ -375,4 +375,86 @@ input[type="text"]:focus, input[type="search"]:focus {
 }
 .font-bold.text-gray-900, .font-bold.text-green-600, .font-bold.text-yellow-600, .font-bold.text-red-600 {
   animation: count-up 0.5s ease-out;
+}
+
+/* ========== COLORFUL ENHANCEMENTS ========== */
+
+/* Gradient primary buttons */
+.bg-\[\\#1a3a6b\] {
+  background: linear-gradient(135deg, #1a3a6b 0%, #2563eb 100%) !important;
+  box-shadow: 0 4px 14px rgba(26, 58, 107, 0.25);
+}
+.bg-\[\\#1a3a6b\]:hover {
+  background: linear-gradient(135deg, #15305a 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 6px 20px rgba(26, 58, 107, 0.35);
+}
+
+/* Colorful status badges */
+.bg-green-100 { background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important; }
+.bg-red-100 { background: linear-gradient(135deg, #fee2e2, #fecaca) !important; }
+.bg-yellow-100 { background: linear-gradient(135deg, #fef9c3, #fef08a) !important; }
+.bg-blue-100 { background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important; }
+.bg-purple-100 { background: linear-gradient(135deg, #f3e8ff, #e9d5ff) !important; }
+.bg-indigo-100 { background: linear-gradient(135deg, #e0e7ff, #c7d2fe) !important; }
+.bg-orange-100 { background: linear-gradient(135deg, #ffedd5, #fed7aa) !important; }
+
+/* Colorful icon backgrounds */
+.bg-blue-50 { background: linear-gradient(135deg, #eff6ff, #dbeafe) !important; }
+.bg-green-50 { background: linear-gradient(135deg, #f0fdf4, #dcfce7) !important; }
+.bg-purple-50 { background: linear-gradient(135deg, #faf5ff, #f3e8ff) !important; }
+.bg-amber-50 { background: linear-gradient(135deg, #fffbeb, #fef3c7) !important; }
+.bg-red-50 { background: linear-gradient(135deg, #fef2f2, #fee2e2) !important; }
+
+/* Sidebar active item gradient */
+.bg-\[\\#1a3a6b\].rounded-lg {
+  background: linear-gradient(135deg, #1a3a6b 0%, #1e4a8e 100%) !important;
+}
+
+/* White card subtle gradient background */
+.bg-white.rounded-xl, .bg-white.rounded-2xl {
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfe 100%) !important;
+}
+
+/* Table header gradient */
+.bg-gray-50 th, thead .bg-gray-50 {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+/* Gold accent on filter pills */
+.rounded-full.bg-\[\\#1a3a6b\] {
+  background: linear-gradient(135deg, #1a3a6b 0%, #2563eb 100%) !important;
+}
+.rounded-full.bg-\[\\#c9a96e\] {
+  background: linear-gradient(135deg, #c9a96e 0%, #e8c068 100%) !important;
+}
+
+/* Colorful ring on hover for cards */
+.ring-1.ring-gray-200:hover {
+  ring-color: rgba(26, 58, 107, 0.15) !important;
+}
+
+/* Vibrant loading spinner */
+.animate-spin {
+  background: conic-gradient(from 0deg, transparent, #1a3a6b);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+}
+
+/* Hero sections gradient enhancement */
+.bg-gradient-to-r {
+  background-size: 200% 200% !important;
+  animation: gradient-shift 8s ease infinite;
+}
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Smooth border glow for active elements */
+@keyframes border-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(26, 58, 107, 0.1); }
+  50% { box-shadow: 0 0 15px rgba(26, 58, 107, 0.2); }
+}
+.ring-2 {
+  animation: border-glow 2s ease-in-out infinite;
 }
