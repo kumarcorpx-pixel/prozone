@@ -273,8 +273,16 @@ export async function POST(request: NextRequest) {
 
     // Auto-populate expiry fields on company/employee
     if (expiryDate && companyId && companyId !== "general") {
-      if (documentType === "trade_license") {
-        await prisma.company.update({ where: { id: companyId }, data: { licenseExpiry: new Date(expiryDate) } }).catch(() => {})
+      const companyExpiryMap: Record<string, string> = {
+        trade_license: "licenseExpiry",
+        establishment_card: "establishmentCardExpiry",
+        ejari: "ejariTawtheeqExpiry",
+        chamber_commerce: "chamberCommerceExpiry",
+        lease: "leaseExpiry",
+      }
+      const compField = companyExpiryMap[documentType]
+      if (compField) {
+        await prisma.company.update({ where: { id: companyId }, data: { [compField]: new Date(expiryDate) } }).catch(() => {})
       }
     }
     if (expiryDate && employeeId) {
@@ -282,7 +290,11 @@ export async function POST(request: NextRequest) {
         visa: "visaExpiry",
         emirates_id: "emiratesIdExpiry",
         passport: "passportExpiry",
+        passport_back: "passportExpiry",
         labor_card: "laborCardExpiry",
+        medical_insurance: "healthInsuranceExpiry",
+        health_insurance: "healthInsuranceExpiry",
+        medical_fitness: "medicalFitnessDate",
       }
       const field = expiryField[documentType]
       if (field) {

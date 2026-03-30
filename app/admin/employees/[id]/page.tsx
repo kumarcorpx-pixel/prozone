@@ -248,16 +248,15 @@ export default function EmployeeDetailPage() {
               <p className="text-sm text-gray-500">{documents.length} document(s)</p>
               <div className="flex items-center gap-2">
                 <select id="emp-doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                  <option value="visa">Visa</option>
+                  <option value="visa">Visa Copy</option>
                   <option value="emirates_id">Emirates ID</option>
                   <option value="passport">Passport (Front)</option>
                   <option value="passport_back">Passport (Back)</option>
                   <option value="national_id">National ID Card</option>
-                  <option value="labor_card">Labor Card</option>
-                  <option value="contract">Employment Contract</option>
+                  <option value="labor_card">Approved Labor Contract</option>
                   <option value="offer_letter">Offer Letter</option>
-                  <option value="medical_insurance">Medical Insurance</option>
-                  <option value="medical_fitness">Medical Fitness</option>
+                  <option value="health_insurance">Health Insurance</option>
+                  <option value="medical_fitness">Medical Fitness Certificate</option>
                   <option value="photo">Photo / JPEG</option>
                   <option value="salary_certificate">Salary Certificate</option>
                   <option value="noc">NOC Letter</option>

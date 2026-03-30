@@ -582,15 +582,16 @@ export default function CompanyDetailPage() {
                   <option value="ejari">Ejari / Tawtheeq</option>
                   <option value="moa">Memorandum of Association</option>
                   <option value="poa">Power of Attorney</option>
-                  <option value="immigration_card">Immigration Card</option>
-                  <option value="wps">Wage Protection System / Salary Information File</option>
+                  <option value="chamber_commerce">Chamber of Commerce</option>
+                  <option value="lease">Lease Agreement</option>
+                  <option value="wps">WPS / SIF File</option>
                   <option value="noc">No Objection Certificate</option>
                   <option value="contract">Contract</option>
-                  <option value="financial">Financial</option>
-                  <option value="legal">Legal</option>
+                  <option value="financial">Financial / VAT</option>
+                  <option value="legal">Legal Document</option>
                   <option value="other">Other</option>
                 </select>
-                <input id="company-expiry-select" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Expiry Date (optional)" />
+                <input id="company-expiry-select" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Expiry Date" placeholder="Expiry Date" />
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
                   <Upload className="h-4 w-4" />
                   Choose File
