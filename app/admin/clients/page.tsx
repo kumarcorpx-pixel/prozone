@@ -334,32 +334,69 @@ export default function ClientsPage() {
                             </select>
                           </div>
                           <div className="sm:col-span-3">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Assigned Companies (click to assign/unassign)</label>
-                            <div className="flex flex-wrap gap-1.5">
-                              {companies.map((c: any) => {
-                                const isAssigned = c.created_by === profile.id
-                                return (
-                                  <button key={c.id} onClick={async () => {
-                                    try {
-                                      await fetch(`/api/data/companies/${c.id}`, {
-                                        method: "PATCH", headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ created_by: isAssigned ? null : profile.id }),
-                                      })
-                                      const comps = await fetchCompanies()
-                                      setCompanies(comps)
-                                      toast.success(isAssigned ? `${c.name} unassigned` : `${c.name} assigned to ${profile.full_name}`)
-                                    } catch { toast.error("Failed to update") }
-                                  }}
-                                    className={`px-2 py-1 text-xs rounded-full border transition-colors ${
-                                      isAssigned ? "bg-[#1a3a6b] text-white border-[#1a3a6b]" : "bg-white text-gray-600 border-gray-300 hover:border-[#1a3a6b]"
-                                    }`}
-                                  >
-                                    {isAssigned ? "✓ " : ""}{c.name}
-                                  </button>
-                                )
-                              })}
-                              {companies.length === 0 && <span className="text-xs text-gray-400">No companies created yet</span>}
-                            </div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Assigned Companies</label>
+                            {(() => {
+                              const assigned = companies.filter((c: any) => c.created_by === profile.id)
+                              const unassigned = companies.filter((c: any) => c.created_by !== profile.id)
+                              return (
+                                <div className="space-y-2">
+                                  {/* Assigned companies */}
+                                  {assigned.length > 0 && (
+                                    <div>
+                                      <p className="text-[10px] text-green-600 font-semibold uppercase tracking-wide mb-1">Assigned ({assigned.length})</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {assigned.map((c: any) => (
+                                          <button key={c.id} onClick={async () => {
+                                            try {
+                                              await fetch(`/api/data/companies/${c.id}`, {
+                                                method: "PATCH", headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ created_by: null }),
+                                              })
+                                              const comps = await fetchCompanies()
+                                              setCompanies(comps)
+                                              toast.success(`${c.name} unassigned`)
+                                            } catch { toast.error("Failed to update") }
+                                          }}
+                                            className="px-2 py-0.5 text-[11px] rounded bg-[#1a3a6b] text-white hover:bg-red-600 transition-colors truncate max-w-[200px]"
+                                            title={`Click to unassign ${c.name}`}
+                                          >
+                                            ✓ {c.name}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {assigned.length === 0 && <p className="text-xs text-gray-400 italic">No companies assigned</p>}
+                                  {/* Add companies dropdown */}
+                                  <div>
+                                    <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-1">Add Company</p>
+                                    <select
+                                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20"
+                                      value=""
+                                      onChange={async (e) => {
+                                        const compId = e.target.value
+                                        if (!compId) return
+                                        const comp = companies.find((c: any) => c.id === compId)
+                                        try {
+                                          await fetch(`/api/data/companies/${compId}`, {
+                                            method: "PATCH", headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ created_by: profile.id }),
+                                          })
+                                          const comps = await fetchCompanies()
+                                          setCompanies(comps)
+                                          toast.success(`${comp?.name || "Company"} assigned to ${profile.full_name}`)
+                                        } catch { toast.error("Failed to assign") }
+                                      }}
+                                    >
+                                      <option value="">Select company to assign...</option>
+                                      {unassigned.map((c: any) => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                              )
+                            })()}
                           </div>
                         </div>
                         <div className="flex justify-end gap-2 pt-1">
