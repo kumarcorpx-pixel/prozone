@@ -248,20 +248,27 @@ export default function EmployeeDetailPage() {
               <p className="text-sm text-gray-500">{documents.length} document(s)</p>
               <div className="flex items-center gap-2">
                 <select id="emp-doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                  <option value="visa">Visa / Residency</option>
-                  <option value="emirates_id">Emirates ID</option>
-                  <option value="passport">Passport (Front)</option>
-                  <option value="passport_back">Passport (Back)</option>
-                  <option value="national_id">National ID Card</option>
-                  <option value="labor_card">Approved Labor Contract</option>
-                  <option value="offer_letter">Offer Letter</option>
-                  <option value="health_insurance">Health Insurance</option>
-                  <option value="medical_fitness">Medical Fitness Certificate</option>
-                  <option value="photo">Photo / JPEG</option>
-                  <option value="salary_certificate">Salary Certificate</option>
-                  <option value="noc">NOC Letter</option>
-                  <option value="educational_degree">Educational Degree</option>
-                  <option value="other">Other</option>
+                  {(() => {
+                    const uploadedTypes = new Set(documents.map((d: any) => d.document_type))
+                    const types = [
+                      { value: "visa", label: "Visa / Residency" },
+                      { value: "emirates_id", label: "Emirates ID" },
+                      { value: "passport", label: "Passport (Front)" },
+                      { value: "passport_back", label: "Passport (Back)" },
+                      { value: "national_id", label: "National ID Card" },
+                      { value: "labor_card", label: "Labor Card / Contract" },
+                      { value: "health_insurance", label: "Health Insurance" },
+                      { value: "medical_fitness", label: "Medical Fitness Certificate" },
+                      { value: "salary_certificate", label: "Salary Certificate" },
+                      { value: "noc", label: "NOC Letter" },
+                      { value: "educational_degree", label: "Educational Degree" },
+                      { value: "photo", label: "Photo / JPEG" },
+                      { value: "other", label: "Other" },
+                    ]
+                    return types
+                      .filter(t => !uploadedTypes.has(t.value) || t.value === "other" || t.value === "photo")
+                      .map(t => <option key={t.value} value={t.value}>{t.label}</option>)
+                  })()}
                 </select>
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
                   <Upload className="h-4 w-4" />
