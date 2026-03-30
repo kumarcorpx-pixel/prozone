@@ -577,19 +577,27 @@ export default function CompanyDetailPage() {
               <p className="text-sm font-medium text-gray-700 mb-2">Upload Company Document</p>
               <div className="flex flex-wrap gap-2">
                 <select id="company-doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white flex-1 min-w-[180px]">
-                  <option value="trade_license">Trade License</option>
-                  <option value="establishment_card">Establishment Card</option>
-                  <option value="ejari">Ejari / Tawtheeq</option>
-                  <option value="moa">Memorandum of Association</option>
-                  <option value="poa">Power of Attorney</option>
-                  <option value="chamber_commerce">Chamber of Commerce</option>
-                  <option value="lease">Lease Agreement</option>
-                  <option value="wps">WPS / SIF File</option>
-                  <option value="noc">No Objection Certificate</option>
-                  <option value="contract">Contract</option>
-                  <option value="financial">Financial / VAT</option>
-                  <option value="legal">Legal Document</option>
-                  <option value="other">Other</option>
+                  {(() => {
+                    const uploadedCompTypes = new Set(companyDocs.filter((d: any) => !d.employee_id).map((d: any) => d.document_type))
+                    const compTypes = [
+                      { value: "trade_license", label: "Trade License" },
+                      { value: "establishment_card", label: "Establishment Card" },
+                      { value: "ejari", label: "Ejari / Tawtheeq" },
+                      { value: "moa", label: "Memorandum of Association" },
+                      { value: "poa", label: "Power of Attorney" },
+                      { value: "chamber_commerce", label: "Chamber of Commerce" },
+                      { value: "lease", label: "Lease Agreement" },
+                      { value: "wps", label: "WPS / SIF File" },
+                      { value: "noc", label: "No Objection Certificate" },
+                      { value: "contract", label: "Contract" },
+                      { value: "financial", label: "Financial / VAT" },
+                      { value: "legal", label: "Legal Document" },
+                      { value: "other", label: "Other" },
+                    ]
+                    return compTypes
+                      .filter(t => !uploadedCompTypes.has(t.value) || t.value === "other" || t.value === "wps" || t.value === "financial")
+                      .map(t => <option key={t.value} value={t.value}>{t.label}{uploadedCompTypes.has(t.value) ? " ✓" : ""}</option>)
+                  })()}
                 </select>
                 <input id="company-expiry-select" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Expiry Date" placeholder="Expiry Date" />
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
@@ -633,20 +641,28 @@ export default function CompanyDetailPage() {
                     ))}
                   </select>
                   <select id="doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                    <option value="visa">Visa / Residency</option>
-                    <option value="emirates_id">Emirates ID</option>
-                    <option value="passport">Passport (Front)</option>
-                    <option value="passport_back">Passport (Back)</option>
-                    <option value="national_id">National ID Card</option>
-                    <option value="labor_card">Approved Labor Contract</option>
-                    <option value="health_insurance">Health Insurance</option>
-                    <option value="medical_fitness">Medical Fitness Certificate</option>
-                    <option value="offer_letter">Offer Letter</option>
-                    <option value="noc">NOC Letter</option>
-                    <option value="salary_certificate">Salary Certificate</option>
-                    <option value="educational_degree">Educational Degree</option>
-                    <option value="photo">Photo / JPEG</option>
-                    <option value="other">Other</option>
+                    {(() => {
+                      const selEmpId = employees[0]?.id
+                      const uploadedTypes = new Set(companyDocs.filter((d: any) => d.employee_id === selEmpId).map((d: any) => d.document_type))
+                      const allTypes = [
+                        { value: "visa", label: "Visa / Residency" },
+                        { value: "emirates_id", label: "Emirates ID" },
+                        { value: "passport", label: "Passport (Front)" },
+                        { value: "passport_back", label: "Passport (Back)" },
+                        { value: "national_id", label: "National ID Card" },
+                        { value: "labor_card", label: "Approved Labor Contract" },
+                        { value: "health_insurance", label: "Health Insurance" },
+                        { value: "medical_fitness", label: "Medical Fitness Certificate" },
+                        { value: "noc", label: "NOC Letter" },
+                        { value: "salary_certificate", label: "Salary Certificate" },
+                        { value: "educational_degree", label: "Educational Degree" },
+                        { value: "photo", label: "Photo / JPEG" },
+                        { value: "other", label: "Other" },
+                      ]
+                      return allTypes
+                        .filter(t => !uploadedTypes.has(t.value) || t.value === "other" || t.value === "photo")
+                        .map(t => <option key={t.value} value={t.value}>{t.label}{uploadedTypes.has(t.value) ? " ✓" : ""}</option>)
+                    })()}
                   </select>
                   <input id="expiry-select" type="date" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" title="Expiry Date (optional)" placeholder="Expiry" />
                   <label className="inline-flex items-center gap-2 px-4 py-2 border border-[#1a3a6b] text-[#1a3a6b] rounded-lg text-sm font-medium cursor-pointer hover:bg-[#1a3a6b]/5 transition-colors">
