@@ -168,7 +168,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Search trigger */}
+            {/* Search trigger - icon on mobile, full bar on desktop */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors sm:hidden"
+              aria-label="Search"
+            >
+              <Search className="h-5 w-5" />
+            </button>
             <button
               onClick={() => setSearchOpen(true)}
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors w-64"
