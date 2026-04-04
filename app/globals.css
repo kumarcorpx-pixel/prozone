@@ -523,12 +523,12 @@ input[type="text"]:focus, input[type="search"]:focus {
 
 /* ========== COLORFUL ENHANCEMENTS ========== */
 
-/* Gradient primary buttons */
-.bg-\[\\#1a3a6b\] {
+/* Gradient primary buttons — targets bg-[#1a3a6b] via attribute selector */
+[class*="bg-\[#1a3a6b\]"] {
   background: linear-gradient(135deg, #1a3a6b 0%, #2563eb 100%) !important;
   box-shadow: 0 4px 14px rgba(26, 58, 107, 0.25);
 }
-.bg-\[\\#1a3a6b\]:hover {
+[class*="bg-\[#1a3a6b\]"]:hover {
   background: linear-gradient(135deg, #15305a 0%, #1d4ed8 100%) !important;
   box-shadow: 0 6px 20px rgba(26, 58, 107, 0.35);
 }
@@ -550,7 +550,7 @@ input[type="text"]:focus, input[type="search"]:focus {
 .bg-red-50 { background: linear-gradient(135deg, #fef2f2, #fee2e2) !important; }
 
 /* Sidebar active item gradient */
-.bg-\[\\#1a3a6b\].rounded-lg {
+[class*="bg-\[#1a3a6b\]"].rounded-lg {
   background: linear-gradient(135deg, #1a3a6b 0%, #1e4a8e 100%) !important;
 }
 
@@ -565,10 +565,10 @@ input[type="text"]:focus, input[type="search"]:focus {
 }
 
 /* Gold accent on filter pills */
-.rounded-full.bg-\[\\#1a3a6b\] {
+.rounded-full[class*="bg-\[#1a3a6b\]"] {
   background: linear-gradient(135deg, #1a3a6b 0%, #2563eb 100%) !important;
 }
-.rounded-full.bg-\[\\#c9a96e\] {
+.rounded-full[class*="bg-\[#c9a96e\]"] {
   background: linear-gradient(135deg, #c9a96e 0%, #e8c068 100%) !important;
 }
 
