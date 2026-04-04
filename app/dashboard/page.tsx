@@ -124,7 +124,7 @@ export default function DashboardPage() {
         <p className="text-sm text-gray-500 mt-1">{error}</p>
         <button
           onClick={() => { setError(null); setLoading(true); window.location.reload() }}
-          className="mt-4 px-4 py-2 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors"
+          className="mt-4 px-4 py-2 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
         >
           Try Again
         </button>

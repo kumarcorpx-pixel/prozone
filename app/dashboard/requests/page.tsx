@@ -112,7 +112,7 @@ export default function ClientRequestsPage() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Service Requests</h1>
@@ -120,7 +120,7 @@ export default function ClientRequestsPage() {
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white text-sm rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? "Cancel" : "New Request"}
@@ -216,7 +216,7 @@ export default function ClientRequestsPage() {
             <button
               onClick={handleAddRequest}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {saving ? "Submitting..." : "Submit Request"}

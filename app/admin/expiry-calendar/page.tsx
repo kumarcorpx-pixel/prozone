@@ -183,7 +183,7 @@ export default function ExpiryCalendarPage() {
         <button
           onClick={handleSyncToCalendar}
           disabled={syncing}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
         >
           {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
           {syncing ? `Syncing ${syncProgress}/${syncTotal}...` : "Sync to Calendar"}
