@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { jwtVerify } from "jose"
+import { isOriginAllowed, getCorsHeaders } from "@/lib/cors"
 
 const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/about", "/contact", "/services", "/faq", "/privacy", "/consultation", "/offline"]
 const publicApiPaths = ["/api/auth/login", "/api/auth/logout", "/api/auth/signup", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/refresh", "/api/auth/google", "/api/auth/google/callback", "/api/auth/zoho", "/api/auth/zoho/callback", "/api/contact", "/api/consultation", "/api/health", "/api/services"]
 const cronPaths = ["/api/cron/"]
 
-const ALLOWED_ORIGINS = [
-  "https://corporatepro.cloud",
-  "https://www.corporatepro.cloud",
-]
-
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET
   if (!secret) throw new Error("FATAL: JWT_SECRET environment variable is required")
   return new TextEncoder().encode(secret)
-}
-
-function isOriginAllowed(origin: string | null): boolean {
-  if (!origin) return true
-  return ALLOWED_ORIGINS.includes(origin)
 }
 
 async function verifyJWT(token: string): Promise<{ userId: string; email: string; role: string } | null> {
@@ -63,13 +54,7 @@ export async function middleware(request: NextRequest) {
   if (request.method === "OPTIONS") {
     return new NextResponse(null, {
       status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": origin && isOriginAllowed(origin) ? origin : ALLOWED_ORIGINS[0],
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-        "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Max-Age": "86400",
-      },
+      headers: getCorsHeaders(origin),
     })
   }
 

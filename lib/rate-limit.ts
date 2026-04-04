@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server"
+
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
 
 export interface RateLimitConfig {
@@ -26,3 +28,10 @@ export function rateLimit(key: string, config: RateLimitConfig): { success: bool
 export const loginRateLimit = { maxRequests: 5, windowMs: 15 * 60 * 1000 } // 5 per 15 min
 export const apiRateLimit = { maxRequests: 100, windowMs: 60 * 1000 } // 100 per min
 export const uploadRateLimit = { maxRequests: 20, windowMs: 60 * 1000 } // 20 per min
+
+export function withRateLimitHeaders(response: NextResponse, rl: { success: boolean; remaining: number; resetIn: number }, limit: { maxRequests: number }) {
+  response.headers.set("X-RateLimit-Limit", String(limit.maxRequests))
+  response.headers.set("X-RateLimit-Remaining", String(Math.max(0, rl.remaining)))
+  response.headers.set("X-RateLimit-Reset", String(Math.ceil(rl.resetIn / 1000)))
+  return response
+}
