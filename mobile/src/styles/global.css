@@ -562,7 +562,58 @@ body {
   border-top-color: var(--navy-light);
 }
 
+/* === Error Banner === */
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: rgba(255, 59, 48, 0.08);
+  color: #d70015;
+  font-size: 14px;
+  border: 1px solid rgba(255, 59, 48, 0.12);
+}
+.error-retry {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  background: white;
+  color: #d70015;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* === Skeleton Loading === */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+.skeleton-card {
+  height: 120px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .sentinel { height: 1px; }
+
+/* === Touch Targets (min 44px) === */
+button, a, input, select {
+  min-height: 44px;
+}
 
 /* === Utilities === */
 .text-muted { color: var(--text-secondary); font-size: 14px; }

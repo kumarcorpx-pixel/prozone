@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useCallback } from "react"
 
 interface Props {
   children: React.ReactNode
@@ -10,20 +10,26 @@ interface Props {
 
 export function InfiniteList({ children, loading, hasMore, onLoadMore, empty }: Props) {
   const sentinel = useRef<HTMLDivElement>(null)
+  // Stabilize callback ref to prevent infinite re-render
+  const onLoadMoreRef = useRef(onLoadMore)
+  onLoadMoreRef.current = onLoadMore
+
+  const loadingRef = useRef(loading)
+  loadingRef.current = loading
 
   useEffect(() => {
     if (!sentinel.current || !hasMore) return
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading && hasMore) {
-          onLoadMore()
+        if (entries[0].isIntersecting && !loadingRef.current && hasMore) {
+          onLoadMoreRef.current()
         }
       },
       { threshold: 0.1 }
     )
     observer.observe(sentinel.current)
     return () => observer.disconnect()
-  }, [hasMore, loading, onLoadMore])
+  }, [hasMore])
 
   if (empty) {
     return (

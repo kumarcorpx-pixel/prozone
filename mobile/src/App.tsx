@@ -1,6 +1,7 @@
 import React from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "./lib/auth-context"
+import { ErrorBoundary } from "./components/ErrorBoundary"
 import { LoginScreen } from "./screens/LoginScreen"
 import { DashboardScreen } from "./screens/DashboardScreen"
 import { CompaniesScreen } from "./screens/CompaniesScreen"
@@ -60,10 +61,12 @@ function AppRoutes() {
 
 export function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }

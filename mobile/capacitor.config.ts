@@ -4,15 +4,17 @@ const config: CapacitorConfig = {
   appId: "cloud.corporatepro.app",
   appName: "CorporatePRO",
   webDir: "dist",
+  // Production: uses bundled web assets (no server URL)
   server: {
-    // In development, point to live server for API
-    // In production, uses bundled web assets
     androidScheme: "https",
     iosScheme: "https",
+    // Only uncomment for local development:
+    // url: "http://localhost:5173",
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
+      launchAutoHide: true,
       backgroundColor: "#0f2340",
       showSpinner: false,
       androidScaleType: "CENTER_CROP",
@@ -30,11 +32,18 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
     },
+    Preferences: {
+      // Data encrypted at rest on iOS via Keychain
+    },
   },
   ios: {
     contentInset: "automatic",
     preferredContentMode: "mobile",
     scheme: "CorporatePRO",
+    backgroundColor: "#f2f2f7",
+  },
+  android: {
+    backgroundColor: "#f2f2f7",
   },
 }
 

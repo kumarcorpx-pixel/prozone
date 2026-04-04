@@ -3,20 +3,25 @@ import { api } from "../lib/api"
 import { ScreenHeader } from "../components/ScreenHeader"
 import { SearchBar } from "../components/SearchBar"
 import { InfiniteList } from "../components/InfiniteList"
+import { ErrorMessage } from "../components/ErrorMessage"
 
 export function CompaniesScreen() {
   const [companies, setCompanies] = useState<any[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [search, setSearch] = useState("")
 
   const load = useCallback(async (p: number, query: string, append = false) => {
     setLoading(true)
+    setError("")
     const res = await api.get(`/api/v1/companies?page=${p}&limit=20&search=${encodeURIComponent(query)}`)
     if (res.success && res.data) {
       setCompanies(prev => append ? [...prev, ...res.data] : res.data)
       setTotalPages(res.meta?.totalPages || 1)
+    } else {
+      setError(res.error || "Failed to load companies")
     }
     setLoading(false)
   }, [])
@@ -27,7 +32,7 @@ export function CompaniesScreen() {
   }, [search, load])
 
   const loadMore = () => {
-    if (page < totalPages) {
+    if (page < totalPages && !loading) {
       const next = page + 1
       setPage(next)
       load(next, search, true)
@@ -50,7 +55,8 @@ export function CompaniesScreen() {
       <ScreenHeader title="Companies" />
       <div className="content-pad">
         <SearchBar value={search} onChange={setSearch} placeholder="Search companies..." />
-        <InfiniteList loading={loading} hasMore={page < totalPages} onLoadMore={loadMore} empty={companies.length === 0 && !loading}>
+        {error && <ErrorMessage message={error} onRetry={() => load(1, search)} />}
+        <InfiniteList loading={loading} hasMore={page < totalPages} onLoadMore={loadMore} empty={companies.length === 0 && !loading && !error}>
           {companies.map((c) => (
             <div key={c.id} className="list-card">
               <div className="list-card-header">

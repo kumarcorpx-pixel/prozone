@@ -1,4 +1,4 @@
-import React, { useRef } from "react"
+import React, { useRef, useEffect } from "react"
 
 interface Props {
   value: string
@@ -7,10 +7,17 @@ interface Props {
 }
 
 export function SearchBar({ value, onChange, placeholder = "Search..." }: Props) {
-  const timer = useRef<any>(null)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Cleanup timer on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current)
+    }
+  }, [])
 
   const handleChange = (v: string) => {
-    clearTimeout(timer.current)
+    if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => onChange(v), 300)
   }
 

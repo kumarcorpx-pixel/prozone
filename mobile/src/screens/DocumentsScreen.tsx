@@ -3,6 +3,7 @@ import { api } from "../lib/api"
 import { ScreenHeader } from "../components/ScreenHeader"
 import { SearchBar } from "../components/SearchBar"
 import { InfiniteList } from "../components/InfiniteList"
+import { ErrorMessage } from "../components/ErrorMessage"
 
 const DOC_TYPES: Record<string, { label: string; icon: string }> = {
   trade_license: { label: "Trade License", icon: "TL" },
@@ -20,14 +21,18 @@ export function DocumentsScreen() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [search, setSearch] = useState("")
 
   const load = useCallback(async (p: number, append = false) => {
     setLoading(true)
+    setError("")
     const res = await api.get(`/api/v1/documents?page=${p}&limit=20`)
     if (res.success && res.data) {
       setDocuments(prev => append ? [...prev, ...res.data] : res.data)
       setTotalPages(res.meta?.totalPages || 1)
+    } else {
+      setError(res.error || "Failed to load documents")
     }
     setLoading(false)
   }, [])
@@ -38,7 +43,7 @@ export function DocumentsScreen() {
   }, [load])
 
   const loadMore = () => {
-    if (page < totalPages) {
+    if (page < totalPages && !loading) {
       const next = page + 1
       setPage(next)
       load(next, true)

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react"
 import { api } from "../lib/api"
 import { ScreenHeader } from "../components/ScreenHeader"
 import { InfiniteList } from "../components/InfiniteList"
+import { ErrorMessage } from "../components/ErrorMessage"
 
 const STATUS_FILTERS = ["all", "pending", "assigned", "in_progress", "completed"]
 
@@ -10,15 +11,19 @@ export function RequestsScreen() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
 
   const load = useCallback(async (p: number, status: string, append = false) => {
     setLoading(true)
+    setError("")
     const statusParam = status !== "all" ? `&status=${status}` : ""
     const res = await api.get(`/api/v1/requests?page=${p}&limit=20${statusParam}`)
     if (res.success && res.data) {
       setRequests(prev => append ? [...prev, ...res.data] : res.data)
       setTotalPages(res.meta?.totalPages || 1)
+    } else {
+      setError(res.error || "Failed to load requests")
     }
     setLoading(false)
   }, [])
@@ -29,7 +34,7 @@ export function RequestsScreen() {
   }, [statusFilter, load])
 
   const loadMore = () => {
-    if (page < totalPages) {
+    if (page < totalPages && !loading) {
       const next = page + 1
       setPage(next)
       load(next, statusFilter, true)
@@ -63,7 +68,8 @@ export function RequestsScreen() {
           ))}
         </div>
 
-        <InfiniteList loading={loading} hasMore={page < totalPages} onLoadMore={loadMore} empty={requests.length === 0 && !loading}>
+        {error && <ErrorMessage message={error} onRetry={() => load(1, statusFilter)} />}
+        <InfiniteList loading={loading} hasMore={page < totalPages} onLoadMore={loadMore} empty={requests.length === 0 && !loading && !error}>
           {requests.map((r) => (
             <div key={r.id} className="list-card">
               <div className="list-card-header">
