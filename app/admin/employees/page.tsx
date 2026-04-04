@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { fetchEmployees, fetchCompanies } from "@/lib/data-fetcher"
 import { createEmployee } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye, Loader2, X, Upload, FileSpreadsheet, Download, Building2 } from "lucide-react"
+import { Search, Plus, Users, UserCheck, AlertTriangle, XCircle, Eye, Loader2, X, Upload, FileSpreadsheet, Download, Building2, Pencil } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -630,11 +630,38 @@ export default function EmployeesPage() {
                       <StatusBadge status={emp.visa_status} />
                       <div className={`text-xs font-medium mt-0.5 ${visaExpiry.color}`}>{visaExpiry.text}</div>
                     </td>
-                    <td className="py-3 px-4">
-                      <Link href={`/admin/employees/${emp.id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1a3a6b] bg-[#1a3a6b]/10 rounded-lg hover:bg-[#1a3a6b]/20 transition-colors">
-                        <Eye className="h-3.5 w-3.5" />
-                        View
-                      </Link>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <Link href={`/admin/employees/${emp.id}`} prefetch={false}
+                          className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="View">
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                        <Link href={`/admin/employees/${emp.id}`} prefetch={false}
+                          className="p-1.5 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Edit">
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                        <label className="p-1.5 rounded-md text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer" title="Upload Document">
+                          <Upload className="h-4 w-4" />
+                          <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              try {
+                                const fd = new FormData()
+                                fd.append("file", file)
+                                fd.append("name", file.name.replace(/\.[^.]+$/, ""))
+                                fd.append("companyId", emp.company_id)
+                                fd.append("employeeId", emp.id)
+                                fd.append("documentType", "other")
+                                const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
+                                if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
+                                toast.success(`Document uploaded for ${emp.full_name}`)
+                              } catch (err: any) { toast.error(err?.message || "Upload failed") }
+                              e.target.value = ""
+                            }}
+                          />
+                        </label>
+                      </div>
                     </td>
                   </tr>
                 )

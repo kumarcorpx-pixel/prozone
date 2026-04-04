@@ -42,13 +42,122 @@ function parseCSV(text: string): Record<string, string>[] {
   return rows
 }
 
+async function parseMOHREPdf(buffer: Buffer): Promise<Record<string, string>[]> {
+  let pdfParse: any
+  try {
+    pdfParse = (await import("pdf-parse")).default
+  } catch {
+    throw new Error("PDF parsing not available. Install pdf-parse: npm install pdf-parse")
+  }
+
+  const pdf = await pdfParse(buffer)
+  const text = pdf.text
+  const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean)
+
+  // Find establishment name for company matching
+  let establishmentName = ""
+  for (const line of lines) {
+    if (line.includes("Establishment Name")) {
+      const match = line.match(/Establishment Name[\/\s]*اسم المنشأة\s*(.+)/i)
+      if (match) establishmentName = match[1].trim()
+      break
+    }
+  }
+
+  const employees: Record<string, string>[] = []
+
+  // Strategy: find passport numbers (pattern like A1234567, P1234567, Z1234567, etc.)
+  // and extract surrounding data
+  const passportPattern = /^[A-Z]\d{6,8}$/
+  const cardNumberPattern = /^\d{8,10}$/
+  const datePattern = /^\d{2}\/\d{2}\/\d{4}$/
+
+  // Parse line by line looking for passport numbers as row anchors
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // Check if this line looks like a passport number
+    if (passportPattern.test(line) || /^\d{7,8}$/.test(line)) {
+      const passportNumber = line
+
+      // Collect next lines until we hit another passport number or end
+      const rowLines: string[] = []
+      let j = i + 1
+      while (j < lines.length && j < i + 15) {
+        const nextLine = lines[j]
+        if (passportPattern.test(nextLine) || /^\d{7,8}$/.test(nextLine)) break
+        // Skip Arabic text and ID numbers for now
+        if (!/^[\u0600-\u06FF\s]+$/.test(nextLine)) {
+          rowLines.push(nextLine)
+        }
+        j++
+      }
+
+      // Extract name — first non-passport, non-number, non-Arabic line with letters
+      let fullName = ""
+      let designation = ""
+      let nationality = ""
+      let cardNumber = ""
+      let cardExpiry = ""
+      let contractType = ""
+
+      for (const rl of rowLines) {
+        // Name: contains multiple words with uppercase letters
+        if (!fullName && /^[A-Z\s]{5,}$/.test(rl) && rl.split(" ").length >= 2) {
+          fullName = rl.split(" ").map((w: string) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")
+        }
+        // Card number
+        else if (!cardNumber && cardNumberPattern.test(rl)) {
+          cardNumber = rl
+        }
+        // Date (card expiry)
+        else if (!cardExpiry && datePattern.test(rl)) {
+          cardExpiry = rl
+        }
+        // Nationality: single word in caps like INDIA, EGYPT, PHILIPPINES
+        else if (!nationality && /^[A-Z]{3,}$/.test(rl) && !rl.includes("NEW") && !rl.includes("LIMITED") && !rl.includes("ELECTRONIC")) {
+          nationality = rl.charAt(0) + rl.slice(1).toLowerCase()
+        }
+        // Contract type
+        else if (!contractType && (rl === "Limited" || rl === "Unlimited" || rl === "limited" || rl === "unlimited")) {
+          contractType = rl
+        }
+        // Job name: multi-word that's not a name (comes after card type info)
+        else if (!designation && /^[A-Za-z\s&]{3,}$/.test(rl) && rl.split(" ").length <= 4 && !rl.includes("WORK PERMIT") && !rl.includes("ELECTRONIC")) {
+          designation = rl
+        }
+      }
+
+      if (fullName || passportNumber) {
+        employees.push({
+          full_name: fullName || `Employee ${passportNumber}`,
+          passport_number: passportNumber,
+          designation: designation || "",
+          nationality: nationality || "",
+          labor_card_number: cardNumber || "",
+          labor_card_expiry: cardExpiry || "",
+          contract_type: contractType || "",
+          company_name: establishmentName || "",
+        })
+      }
+    }
+  }
+
+  return employees
+}
+
+function isPdfFile(file: File): boolean {
+  return file.type === "application/pdf" || file.name?.toLowerCase().endsWith(".pdf")
+}
+
 export async function POST(request: NextRequest) {
   const auth = await withAuth(request, ["admin"])
   if (!auth.success) return auth.response
 
   try {
     const contentType = request.headers.get("content-type") || ""
-    let csvText: string
+    let rows: Record<string, string>[]
+    let isPdf = false
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData()
@@ -56,14 +165,23 @@ export async function POST(request: NextRequest) {
       if (!file) {
         return NextResponse.json({ error: "No file uploaded" }, { status: 400 })
       }
-      csvText = await file.text()
+
+      if (isPdfFile(file)) {
+        isPdf = true
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        rows = await parseMOHREPdf(buffer)
+      } else {
+        const csvText = await file.text()
+        rows = parseCSV(csvText)
+      }
     } else {
-      csvText = await request.text()
+      const csvText = await request.text()
+      rows = parseCSV(csvText)
     }
 
-    const rows = parseCSV(csvText)
     if (rows.length === 0) {
-      return NextResponse.json({ error: "No data rows found in CSV" }, { status: 400 })
+      return NextResponse.json({ error: isPdf ? "No employee data found in PDF" : "No data rows found in CSV" }, { status: 400 })
     }
 
     let createdCount = 0
@@ -115,6 +233,26 @@ export async function POST(request: NextRequest) {
           continue
         }
 
+        // Build notes from PDF-specific fields
+        const notesParts: string[] = []
+        if (row.contract_type) notesParts.push(`Contract: ${row.contract_type}`)
+        if (row.card_type) notesParts.push(`Card Type: ${row.card_type}`)
+        const notes = notesParts.length > 0 ? notesParts.join("; ") : undefined
+
+        // Parse labor card expiry date if present
+        let laborCardExpiry: Date | null = null
+        const expiryStr = row.labor_card_expiry || row.laborCardExpiry || ""
+        if (expiryStr) {
+          // Handle DD/MM/YYYY format from MOHRE PDFs
+          const ddmmyyyy = expiryStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+          if (ddmmyyyy) {
+            laborCardExpiry = new Date(`${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`)
+          } else {
+            laborCardExpiry = new Date(expiryStr)
+          }
+          if (isNaN(laborCardExpiry.getTime())) laborCardExpiry = null
+        }
+
         try {
           await tx.employee.create({
             data: {
@@ -125,6 +263,10 @@ export async function POST(request: NextRequest) {
               designation: row.designation?.trim() || null,
               department: row.department?.trim() || null,
               nationality: row.nationality?.trim() || null,
+              passportNumber: (row.passport_number || row.passportNumber || "").trim() || null,
+              laborCardNumber: (row.labor_card_number || row.laborCardNumber || "").trim() || null,
+              laborCardExpiry,
+              notes: notes || null,
             },
           })
           createdCount++
