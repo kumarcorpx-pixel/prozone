@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     let userId: string | null = null
     try {
       const payload = verifyToken(token)
-      userId = payload.userId
+      userId = payload?.userId ?? null
     } catch (err: any) {
       // If token expired, try to extract userId from it anyway
       if (err.name === "TokenExpiredError") {
