@@ -185,6 +185,7 @@ export async function POST(request: NextRequest) {
     }
 
     let createdCount = 0
+    let updatedCount = 0
     let skippedCount = 0
     const errors: { row: number; error: string }[] = []
 
@@ -254,22 +255,61 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-          await tx.employee.create({
-            data: {
-              fullName,
-              companyId,
-              email: row.email?.trim() || null,
-              phone: row.phone?.trim() || null,
-              designation: row.designation?.trim() || null,
-              department: row.department?.trim() || null,
-              nationality: row.nationality?.trim() || null,
-              passportNumber: (row.passport_number || row.passportNumber || "").trim() || null,
-              laborCardNumber: (row.labor_card_number || row.laborCardNumber || "").trim() || null,
-              laborCardExpiry,
-              notes: notes || null,
-            },
-          })
-          createdCount++
+          const passportNum = (row.passport_number || row.passportNumber || "").trim() || null
+          const laborCardNum = (row.labor_card_number || row.laborCardNumber || "").trim() || null
+          const emailVal = row.email?.trim() || null
+
+          // Build update data — only set fields that have values (don't overwrite existing with null)
+          const updateData: any = {}
+          if (row.designation?.trim()) updateData.designation = row.designation.trim()
+          if (row.department?.trim()) updateData.department = row.department.trim()
+          if (row.nationality?.trim()) updateData.nationality = row.nationality.trim()
+          if (passportNum) updateData.passportNumber = passportNum
+          if (laborCardNum) updateData.laborCardNumber = laborCardNum
+          if (laborCardExpiry) updateData.laborCardExpiry = laborCardExpiry
+          if (row.phone?.trim()) updateData.phone = row.phone.trim()
+          if (emailVal) updateData.email = emailVal
+          if (notes) updateData.notes = notes
+
+          // Check if employee already exists — match by passport+company or name+company
+          let existing = null
+          if (passportNum) {
+            existing = await tx.employee.findFirst({
+              where: { passportNumber: passportNum, companyId },
+            })
+          }
+          if (!existing) {
+            existing = await tx.employee.findFirst({
+              where: { fullName, companyId },
+            })
+          }
+
+          if (existing) {
+            // Update existing employee with new data
+            await tx.employee.update({
+              where: { id: existing.id },
+              data: updateData,
+            })
+            updatedCount++
+          } else {
+            // Create new employee
+            await tx.employee.create({
+              data: {
+                fullName,
+                companyId,
+                email: emailVal,
+                phone: row.phone?.trim() || null,
+                designation: row.designation?.trim() || null,
+                department: row.department?.trim() || null,
+                nationality: row.nationality?.trim() || null,
+                passportNumber: passportNum,
+                laborCardNumber: laborCardNum,
+                laborCardExpiry,
+                notes: notes || null,
+              },
+            })
+            createdCount++
+          }
         } catch (err: any) {
           errors.push({ row: rowNum, error: err.message })
           skippedCount++
@@ -282,6 +322,7 @@ export async function POST(request: NextRequest) {
       summary: {
         total: rows.length,
         created: createdCount,
+        updated: updatedCount,
         skipped: skippedCount,
         errors,
       },

@@ -452,7 +452,7 @@ export default function EmployeesPage() {
           {importResult && (
             <div className={`rounded-lg p-4 text-sm ${importResult.summary?.errors?.length > 0 ? "bg-yellow-50 text-yellow-800" : "bg-green-50 text-green-800"}`}>
               <p className="font-medium">Import Complete</p>
-              <p>Created: {importResult.summary?.created || 0} | Skipped: {importResult.summary?.skipped || 0} | Total: {importResult.summary?.total || 0}</p>
+              <p>Created: {importResult.summary?.created || 0} | Updated: {importResult.summary?.updated || 0} | Skipped: {importResult.summary?.skipped || 0} | Total: {importResult.summary?.total || 0}</p>
               {importResult.summary?.errors?.length > 0 && (
                 <div className="mt-2 text-xs space-y-1">
                   {importResult.summary.errors.slice(0, 5).map((err: any, i: number) => (
