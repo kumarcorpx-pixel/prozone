@@ -1,10 +1,13 @@
-// @ts-nocheck
-const jwt = require("jsonwebtoken")
-const bcrypt = require("bcryptjs")
+import jwt from "jsonwebtoken"
+import bcrypt from "bcryptjs"
 import prisma from "./prisma"
 
-const JWT_SECRET = process.env.JWT_SECRET || "yabs-pro-secret-key-change-in-production"
-const JWT_EXPIRES = "24h"
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret) throw new Error("FATAL: JWT_SECRET environment variable is required")
+  return secret
+}
+const JWT_EXPIRES = "30m"
 
 export interface JWTPayload {
   userId: string
@@ -13,12 +16,12 @@ export interface JWTPayload {
 }
 
 export function signToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES })
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: JWT_EXPIRES })
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload
+    return jwt.verify(token, getJwtSecret()) as JWTPayload
   } catch {
     return null
   }

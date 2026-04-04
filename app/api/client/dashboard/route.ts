@@ -2,19 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-
-const demoDashboard = {
-  companies: [
-    { id: "comp-1", name: "My Trading LLC", emirate: "Dubai", licenseType: "mainland", status: "active" },
-  ],
-  activeRequests: 3,
-  completedRequests: 12,
-  documents: 8,
-  expiryAlerts: [
-    { id: "alert-1", type: "Trade License", companyName: "My Trading LLC", expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), daysLeft: 30 },
-    { id: "alert-2", type: "Employment Visa", employeeName: "John Doe", expiresAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(), daysLeft: 15 },
-  ],
-}
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"
@@ -28,14 +16,14 @@ export async function GET(request: NextRequest) {
     const user = token ? await getUserFromToken(token) : null
 
     if (!user) {
-      return NextResponse.json({ ...demoDashboard, demo: true })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Fetch client data in parallel
     const [companies, activeCount, completedCount, documentsCount] =
       await Promise.all([
         prisma.company.findMany({
-          where: { ownerId: user.id },
+          where: { createdById: user.id },
           orderBy: { createdAt: "desc" },
         }),
         prisma.serviceRequest.count({
@@ -51,7 +39,7 @@ export async function GET(request: NextRequest) {
           },
         }),
         prisma.document.count({
-          where: { ownerId: user.id },
+          where: { company: { createdById: user.id } },
         }),
       ])
 
@@ -59,7 +47,7 @@ export async function GET(request: NextRequest) {
     const sixtyDaysFromNow = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
     const expiryAlerts = await prisma.document.findMany({
       where: {
-        ownerId: user.id,
+        company: { createdById: user.id },
         expiryDate: {
           not: null,
           lte: sixtyDaysFromNow,
@@ -87,10 +75,7 @@ export async function GET(request: NextRequest) {
           : null,
       })),
     })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch dashboard" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

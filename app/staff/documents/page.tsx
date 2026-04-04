@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { fetchDocuments, fetchRequests, fetchCompanies } from "@/lib/data-fetcher"
+// Staff sees only documents from companies in their assigned requests
 import { FileText, Download } from "lucide-react"
 
 const docTypeColors: Record<string, string> = {
@@ -20,14 +20,32 @@ export default function StaffDocumentsPage() {
 
   useEffect(() => {
     async function load() {
-      const [d, r, c] = await Promise.all([
-        fetchDocuments(),
-        fetchRequests(),
-        fetchCompanies(),
+      // Fetch staff's assigned requests to scope documents
+      const [reqRes, docRes] = await Promise.all([
+        fetch("/api/staff/requests").then(r => r.ok ? r.json() : { requests: [] }),
+        fetch("/api/data/documents").then(r => r.ok ? r.json() : []),
       ])
-      setDocuments(d)
-      setRequests(r)
-      setCompanies(c)
+      const staffRequests = reqRes.requests || []
+      const allDocs = Array.isArray(docRes) ? docRes : []
+
+      // Only show documents from companies in staff's assigned requests
+      const companyIds = new Set(staffRequests.map((r: any) => r.company_id || r.companyId).filter(Boolean))
+      const scopedDocs = companyIds.size > 0
+        ? allDocs.filter((d: any) => !d.company_id || companyIds.has(d.company_id))
+        : allDocs
+
+      // Build companies list from requests
+      const companyMap = new Map()
+      for (const r of staffRequests) {
+        const cid = r.company_id || r.companyId
+        if (cid && !companyMap.has(cid)) {
+          companyMap.set(cid, { id: cid, name: r.company_name || r.companyName || r.company?.name || "Unknown" })
+        }
+      }
+
+      setDocuments(scopedDocs)
+      setRequests(staffRequests)
+      setCompanies(Array.from(companyMap.values()))
       setLoading(false)
     }
     load()
@@ -90,6 +108,21 @@ export default function StaffDocumentsPage() {
               <button
                 className="flex-shrink-0 p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                 title="Download"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/documents/${doc.id}/download`)
+                    if (!res.ok) throw new Error("Download failed")
+                    const blob = await res.blob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement("a")
+                    a.href = url
+                    a.download = doc.file_name || doc.name || "document"
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  } catch {
+                    // Silently fail or could add toast if available
+                  }
+                }}
               >
                 <Download className="h-4 w-4" />
               </button>

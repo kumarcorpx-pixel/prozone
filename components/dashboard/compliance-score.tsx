@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckCircle2, AlertTriangle, XCircle, MinusCircle } from "lucide-react"
+import { CheckCircle2, AlertTriangle, XCircle, MinusCircle, HelpCircle } from "lucide-react"
 
 interface ComplianceScoreProps {
   company: any
@@ -18,7 +18,7 @@ function getExpiryStatus(dateStr: string | null | undefined): "valid" | "expirin
   return "valid"
 }
 
-function StatusIcon({ status }: { status: "valid" | "expiring" | "expired" | "not_set" }) {
+function StatusIcon({ status }: { status: "valid" | "expiring" | "expired" | "not_set" | "unknown" }) {
   switch (status) {
     case "valid":
       return <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
@@ -26,12 +26,14 @@ function StatusIcon({ status }: { status: "valid" | "expiring" | "expired" | "no
       return <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
     case "expired":
       return <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+    case "unknown":
+      return <HelpCircle className="h-4 w-4 text-orange-400 flex-shrink-0" />
     case "not_set":
       return <MinusCircle className="h-4 w-4 text-gray-400 flex-shrink-0" />
   }
 }
 
-function statusLabel(status: "valid" | "expiring" | "expired" | "not_set", context?: string): string {
+function statusLabel(status: string, context?: string): string {
   switch (status) {
     case "valid":
       return "Valid"
@@ -39,63 +41,89 @@ function statusLabel(status: "valid" | "expiring" | "expired" | "not_set", conte
       return "Expiring Soon"
     case "expired":
       return "Expired"
+    case "unknown":
+      return context || "No Data"
     case "not_set":
       return context || "Not Set"
+    default:
+      return context || "Unknown"
   }
 }
 
 export function ComplianceScore({ company, employees, documents }: ComplianceScoreProps) {
-  // Calculate each checklist item
+  // Trade license
   const tradeLicenseStatus = getExpiryStatus(company.license_expiry)
+
+  // Establishment card — check both company field and uploaded documents
+  const hasEstabDoc = documents.some((d: any) => d.document_type === "establishment_card" && !d.employee_id)
   const establishmentCardStatus = company.establishment_card_expiry
     ? getExpiryStatus(company.establishment_card_expiry)
-    : "not_set"
+    : hasEstabDoc ? "unknown" as const : "not_set" as const
+
+  // Ejari — check both company field and uploaded documents
+  const hasEjariDoc = documents.some((d: any) => (d.document_type === "ejari" || d.document_type === "tawtheeq") && !d.employee_id)
   const ejariStatus = company.ejari_tawtheeq_expiry
     ? getExpiryStatus(company.ejari_tawtheeq_expiry)
-    : "not_set"
+    : hasEjariDoc ? "unknown" as const : "not_set" as const
 
-  // Employee visa stats
-  const visaExpired = employees.filter(
-    (e) => e.visa_expiry && getExpiryStatus(e.visa_expiry) === "expired"
-  ).length
-  const visaExpiring = employees.filter(
-    (e) => e.visa_expiry && getExpiryStatus(e.visa_expiry) === "expiring"
-  ).length
-  const visaStatus: "valid" | "expiring" | "expired" =
-    visaExpired > 0 ? "expired" : visaExpiring > 0 ? "expiring" : "valid"
+  // Employee visa stats — count those WITH data and those WITHOUT
+  const empsWithVisa = employees.filter((e) => e.visa_expiry)
+  const empsWithoutVisa = employees.length - empsWithVisa.length
+  const visaExpired = empsWithVisa.filter((e) => getExpiryStatus(e.visa_expiry) === "expired").length
+  const visaExpiring = empsWithVisa.filter((e) => getExpiryStatus(e.visa_expiry) === "expiring").length
+  const visaStatus: string =
+    employees.length === 0 ? "not_set"
+    : empsWithVisa.length === 0 ? "unknown"
+    : visaExpired > 0 ? "expired"
+    : visaExpiring > 0 ? "expiring"
+    : empsWithoutVisa > 0 ? "unknown"
+    : "valid"
 
   // EID stats
-  const eidExpired = employees.filter(
-    (e) => e.emirates_id_expiry && getExpiryStatus(e.emirates_id_expiry) === "expired"
-  ).length
-  const eidExpiring = employees.filter(
-    (e) => e.emirates_id_expiry && getExpiryStatus(e.emirates_id_expiry) === "expiring"
-  ).length
-  const eidStatus: "valid" | "expiring" | "expired" =
-    eidExpired > 0 ? "expired" : eidExpiring > 0 ? "expiring" : "valid"
+  const empsWithEid = employees.filter((e) => e.emirates_id_expiry)
+  const empsWithoutEid = employees.length - empsWithEid.length
+  const eidExpired = empsWithEid.filter((e) => getExpiryStatus(e.emirates_id_expiry) === "expired").length
+  const eidExpiring = empsWithEid.filter((e) => getExpiryStatus(e.emirates_id_expiry) === "expiring").length
+  const eidStatus: string =
+    employees.length === 0 ? "not_set"
+    : empsWithEid.length === 0 ? "unknown"
+    : eidExpired > 0 ? "expired"
+    : eidExpiring > 0 ? "expiring"
+    : empsWithoutEid > 0 ? "unknown"
+    : "valid"
 
   // Labor card stats
-  const lcExpired = employees.filter(
-    (e) => e.labor_card_expiry && getExpiryStatus(e.labor_card_expiry) === "expired"
-  ).length
-  const lcExpiring = employees.filter(
-    (e) => e.labor_card_expiry && getExpiryStatus(e.labor_card_expiry) === "expiring"
-  ).length
-  const lcStatus: "valid" | "expiring" | "expired" =
-    lcExpired > 0 ? "expired" : lcExpiring > 0 ? "expiring" : "valid"
+  const empsWithLc = employees.filter((e) => e.labor_card_expiry)
+  const empsWithoutLc = employees.length - empsWithLc.length
+  const lcExpired = empsWithLc.filter((e) => getExpiryStatus(e.labor_card_expiry) === "expired").length
+  const lcExpiring = empsWithLc.filter((e) => getExpiryStatus(e.labor_card_expiry) === "expiring").length
+  const lcStatus: string =
+    employees.length === 0 ? "not_set"
+    : empsWithLc.length === 0 ? "unknown"
+    : lcExpired > 0 ? "expired"
+    : lcExpiring > 0 ? "expiring"
+    : empsWithoutLc > 0 ? "unknown"
+    : "valid"
 
-  // Health insurance (placeholder)
-  const insuredCount = employees.length > 0 ? employees.length - 1 : 0
-  const uninsured = employees.length > 0 ? 1 : 0
-  const insuranceStatus: "valid" | "expired" = uninsured > 0 ? "expired" : "valid"
+  // Health insurance — count docs with type medical_insurance per employee
+  const insuredEmployeeIds = new Set(
+    documents.filter((d: any) => d.document_type === "medical_insurance" && d.employee_id).map((d: any) => d.employee_id)
+  )
+  const insuredCount = insuredEmployeeIds.size
+  const uninsured = employees.length - insuredCount
+  const insuranceStatus: string =
+    employees.length === 0 ? "not_set"
+    : uninsured === 0 ? "valid"
+    : insuredCount === 0 ? "unknown"
+    : "expired"
 
-  // Visa quota
+  // Visa quota — manual values from company record
   const quotaTotal = company.visa_quota_total || 0
   const quotaUsed = company.visa_quota_used || 0
   const quotaPercent = quotaTotal > 0 ? Math.round((quotaUsed / quotaTotal) * 100) : 0
 
-  // Build checklist for scoring
-  const items: { label: string; status: "valid" | "expiring" | "expired" | "not_set"; detail: string }[] = [
+  // Build checklist
+  const items: { label: string; status: string; detail: string }[] = [
     {
       label: "Trade License",
       status: tradeLicenseStatus,
@@ -104,50 +132,55 @@ export function ComplianceScore({ company, employees, documents }: ComplianceSco
     {
       label: "Establishment Card",
       status: establishmentCardStatus,
-      detail: statusLabel(establishmentCardStatus, "Not Set"),
+      detail: establishmentCardStatus === "unknown" ? "Uploaded — set expiry date" : statusLabel(establishmentCardStatus, "Not Set"),
     },
     {
       label: "Ejari/Tawtheeq",
       status: ejariStatus,
-      detail: statusLabel(ejariStatus, "Not Set"),
+      detail: ejariStatus === "unknown" ? "Uploaded — set expiry date" : statusLabel(ejariStatus, "Not Set"),
     },
     {
       label: "Employee Visas",
       status: visaStatus,
       detail:
-        visaStatus === "valid"
-          ? "All Valid"
-          : visaExpired > 0
-          ? `${visaExpired} expired`
-          : `${visaExpiring} expiring`,
+        visaStatus === "valid" ? "All Valid"
+        : visaStatus === "unknown" ? `${empsWithoutVisa} of ${employees.length} missing data`
+        : visaStatus === "not_set" ? "No employees"
+        : visaExpired > 0 ? `${visaExpired} expired`
+        : `${visaExpiring} expiring`,
     },
     {
       label: "Emirates IDs",
       status: eidStatus,
       detail:
-        eidStatus === "valid"
-          ? "All Valid"
-          : eidExpired > 0
-          ? `${eidExpired} expired`
-          : `${eidExpiring} expiring`,
+        eidStatus === "valid" ? "All Valid"
+        : eidStatus === "unknown" ? `${empsWithoutEid} of ${employees.length} missing data`
+        : eidStatus === "not_set" ? "No employees"
+        : eidExpired > 0 ? `${eidExpired} expired`
+        : `${eidExpiring} expiring`,
     },
     {
       label: "Labor Cards",
       status: lcStatus,
       detail:
-        lcStatus === "valid"
-          ? "All Valid"
-          : lcExpired > 0
-          ? `${lcExpired} expired`
-          : `${lcExpiring} expiring`,
+        lcStatus === "valid" ? "All Valid"
+        : lcStatus === "unknown" ? `${empsWithoutLc} of ${employees.length} missing data`
+        : lcStatus === "not_set" ? "No employees"
+        : lcExpired > 0 ? `${lcExpired} expired`
+        : `${lcExpiring} expiring`,
     },
     {
       label: "Health Insurance",
       status: insuranceStatus,
-      detail: insuranceStatus === "valid" ? "All Covered" : `${uninsured} missing`,
+      detail:
+        insuranceStatus === "valid" ? "All Covered"
+        : insuranceStatus === "unknown" ? `${uninsured} of ${employees.length} not covered`
+        : insuranceStatus === "not_set" ? "No employees"
+        : `${uninsured} missing`,
     },
   ]
 
+  // Score: only "valid" counts as green. "unknown" does NOT count.
   const greenCount = items.filter((i) => i.status === "valid").length
   const overallScore = items.length > 0 ? Math.round((greenCount / items.length) * 100) : 0
   const scoreColor =
@@ -196,7 +229,7 @@ export function ComplianceScore({ company, employees, documents }: ComplianceSco
             {items.map((item) => (
               <div key={item.label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-3">
-                  <StatusIcon status={item.status} />
+                  <StatusIcon status={item.status as any} />
                   <span className="text-sm text-gray-700">{item.label}</span>
                 </div>
                 <span
@@ -207,6 +240,8 @@ export function ComplianceScore({ company, employees, documents }: ComplianceSco
                       ? "text-yellow-600"
                       : item.status === "expired"
                       ? "text-red-600"
+                      : item.status === "unknown"
+                      ? "text-orange-500"
                       : "text-gray-400"
                   }`}
                 >
@@ -237,9 +272,10 @@ export function ComplianceScore({ company, employees, documents }: ComplianceSco
                   ? "bg-yellow-500"
                   : "bg-green-500"
               }`}
-              style={{ width: `${quotaPercent}%` }}
+              style={{ width: `${Math.min(quotaPercent, 100)}%` }}
             />
           </div>
+          <p className="text-xs text-gray-400 mt-2">Set via Edit Company Details → Visa Quota fields</p>
         </div>
       )}
     </div>

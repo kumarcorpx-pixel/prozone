@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
+import { employeeSchema } from "@/lib/validation/schemas"
+import { validateBody } from "@/lib/validation/validate"
+import { handleApiError } from "@/lib/api-error-handler"
+import { cached, CK, TTL, onEmployeeChange } from "@/lib/cache"
+import { logAudit } from "@/lib/audit"
 
 export async function GET(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+  const user = auth.user
+
   try {
     const companyId = request.nextUrl.searchParams.get("companyId")
+    const companyFilter = await getClientCompanyFilter(user)
+    const isAdminOrStaff = user.role === "admin" || user.role === "pro_staff"
 
-    const employees = await prisma.employee.findMany({
-      where: companyId ? { companyId } : undefined,
-      orderBy: { createdAt: "desc" },
-    })
-
-    const mapped = employees.map((e: any) => ({
+    const mapEmployee = (e: any) => ({
       id: e.id,
       company_id: e.companyId,
+      company_name: e.company?.name || "Unknown",
       full_name: e.fullName,
       email: e.email,
       phone: e.phone,
@@ -27,40 +35,84 @@ export async function GET(request: NextRequest) {
       passport_expiry: e.passportExpiry,
       labor_card_number: e.laborCardNumber,
       labor_card_expiry: e.laborCardExpiry,
+      work_permit_expiry: e.workPermitExpiry,
+      health_insurance_expiry: e.healthInsuranceExpiry,
+      medical_fitness_date: e.medicalFitnessDate,
       salary: e.salary,
       join_date: e.joinDate,
       status: e.status,
       notes: e.notes,
       created_at: e.createdAt,
-    }))
+    })
+
+    if (isAdminOrStaff && !companyId) {
+      const mapped = await cached(CK.employees(), TTL.EMPLOYEES, async () => {
+        const employees = await prisma.employee.findMany({
+          include: { company: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        })
+        return employees.map(mapEmployee)
+      })
+      return NextResponse.json(mapped)
+    }
+
+    const whereClause: any = {}
+    if (companyId) {
+      // If client user, ensure the requested companyId is within their allowed companies
+      if (companyFilter) {
+        if (!companyFilter.includes(companyId)) {
+          return NextResponse.json([])
+        }
+      }
+      whereClause.companyId = companyId
+    } else if (companyFilter) {
+      whereClause.companyId = { in: companyFilter }
+    }
+
+    const employees = await prisma.employee.findMany({
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
+      include: { company: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    })
+    const mapped = employees.map(mapEmployee)
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch employees:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch employees" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff"])
+  if (!auth.success) return auth.response
+
   try {
     const body = await request.json()
+    const validation = validateBody(employeeSchema, {
+      fullName: body.full_name || body.fullName,
+      companyId: body.company_id || body.companyId,
+      nationality: body.nationality,
+      passportNumber: body.passport_number || body.passportNumber,
+      designation: body.designation,
+      phone: body.phone,
+      email: body.email,
+    })
+    if (!validation.success) return validation.response
+
     const e = await prisma.employee.create({
       data: {
-        companyId: body.company_id || body.companyId,
-        fullName: body.full_name || body.fullName,
-        email: body.email,
-        phone: body.phone,
-        designation: body.designation,
+        company: { connect: { id: validation.data.companyId } },
+        fullName: validation.data.fullName,
+        email: validation.data.email,
+        phone: validation.data.phone,
+        designation: validation.data.designation,
         department: body.department,
-        nationality: body.nationality,
+        nationality: validation.data.nationality,
         visaStatus: body.visa_status || body.visaStatus,
         visaExpiry: body.visa_expiry || body.visaExpiry,
         emiratesId: body.emirates_id || body.emiratesId,
         emiratesIdExpiry: body.emirates_id_expiry || body.emiratesIdExpiry,
-        passportNumber: body.passport_number || body.passportNumber,
+        passportNumber: validation.data.passportNumber,
         passportExpiry: body.passport_expiry || body.passportExpiry,
         laborCardNumber: body.labor_card_number || body.laborCardNumber,
         laborCardExpiry: body.labor_card_expiry || body.laborCardExpiry,
@@ -95,8 +147,10 @@ export async function POST(request: NextRequest) {
       created_at: e.createdAt,
     }
 
+    await onEmployeeChange(body.companyId || body.company_id)
+    logAudit(auth.user.id, "CREATE", "employee", mapped.id, { name: mapped.full_name }).catch(() => {})
     return NextResponse.json(mapped)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

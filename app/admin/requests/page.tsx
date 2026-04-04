@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { fetchRequests, fetchProfiles, fetchCompanies } from "@/lib/data-fetcher"
-import { createServiceRequest } from "@/lib/supabase/api"
+import { createServiceRequest } from "@/lib/api"
+import { serviceCatalog, getCategories } from "@/lib/service-catalog"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Search, FileText, Plus, X, Loader2 } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
 
-const statusOptions = ["all", "pending", "in_progress", "under_review", "completed", "rejected"]
+const statusOptions = ["all", "pending", "assigned", "in_progress", "under_review", "completed", "rejected", "cancelled"]
 const priorityOptions = ["all", "urgent", "high", "medium", "low"]
 
 const priorityColors: Record<string, string> = {
@@ -102,7 +104,7 @@ export default function RequestsPage() {
 
   const filtered = requests.filter((r) => {
     const matchesSearch =
-      (r.company?.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (r.company_name || "").toLowerCase().includes(search.toLowerCase()) ||
       (r.service_type || "").toLowerCase().includes(search.toLowerCase()) ||
       (r.description || "").toLowerCase().includes(search.toLowerCase())
     const matchesStatus = statusFilter === "all" || r.status === statusFilter
@@ -111,15 +113,21 @@ export default function RequestsPage() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="page-entrance space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1a3a6b]">Service Requests</h1>
           <p className="text-sm text-gray-500 mt-1">Manage all service requests across clients</p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full">{requests.length} Total</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">{requests.filter(r => r.status === "pending").length} Pending</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">{requests.filter(r => r.status === "in_progress").length} In Progress</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">{requests.filter(r => r.status === "completed").length} Completed</span>
+          </div>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? "Cancel" : "New Request"}
@@ -127,7 +135,7 @@ export default function RequestsPage() {
       </div>
 
       {showAddForm && (
-        <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">Create New Service Request</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
@@ -158,13 +166,20 @@ export default function RequestsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Service Type *</label>
-              <input
-                type="text"
+              <select
                 value={formData.service_type}
                 onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
-                placeholder="e.g. Visa Renewal, License Amendment"
-              />
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
+              >
+                <option value="">Select a service</option>
+                {getCategories().map((cat) => (
+                  <optgroup key={cat} label={cat.charAt(0).toUpperCase() + cat.slice(1)}>
+                    {serviceCatalog.filter(s => s.category === cat).map((s) => (
+                      <option key={s.id} value={s.name}>{s.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
@@ -209,7 +224,7 @@ export default function RequestsPage() {
             <button
               onClick={handleAddRequest}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {saving ? "Creating..." : "Create Request"}
@@ -227,7 +242,7 @@ export default function RequestsPage() {
             placeholder="Search by company, service type..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
           />
         </div>
         <select
@@ -255,33 +270,41 @@ export default function RequestsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Client</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Company</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Service Type</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Status</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Priority</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Assigned To</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Created</th>
+              <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Client</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Company</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Service Type</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Status</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Priority</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Assigned To</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Created</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((req) => (
-                <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => window.location.href = `/admin/requests/${req.id}`}>
-                  <td className="px-6 py-4 text-gray-900 font-medium">{req.client?.full_name || "N/A"}</td>
-                  <td className="px-6 py-4 text-gray-600">{req.company?.name || "N/A"}</td>
-                  <td className="px-6 py-4 text-[#1a3a6b] font-medium underline">{req.service_type}</td>
+                <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 text-gray-900 font-medium">
+                    <Link href={`/admin/requests/${req.id}`} prefetch={false} className="hover:text-[#1a3a6b]">
+                      {req.client_name || "N/A"}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">{req.company_name || "N/A"}</td>
+                  <td className="px-6 py-4">
+                    <Link href={`/admin/requests/${req.id}`} prefetch={false} className="text-[#1a3a6b] font-medium underline hover:text-[#15305a]">
+                      {req.service_type}
+                    </Link>
+                  </td>
                   <td className="px-6 py-4"><StatusBadge status={req.status} /></td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityColors[req.priority] || "bg-gray-100 text-gray-600"}`}>
                       {req.priority.charAt(0).toUpperCase() + req.priority.slice(1)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{req.assignee?.full_name || "Unassigned"}</td>
+                  <td className="px-6 py-4 text-gray-600">{req.assignee_name || "Unassigned"}</td>
                   <td className="px-6 py-4 text-gray-500">{new Date(req.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}

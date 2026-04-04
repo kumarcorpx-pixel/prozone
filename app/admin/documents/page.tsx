@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { fetchDocuments, fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
-import { createCompanyDocument, uploadFile, getFileUrl } from "@/lib/supabase/api"
 import { documentCategories } from "@/lib/company-data"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Search, FileText, Loader2, Plus, X, Upload } from "lucide-react"
+import { OCRConfirmModal } from "@/components/OCRConfirmModal"
+import { Search, FileText, Loader2, Plus, X, Upload, ScanLine, Download, Eye, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 const statusOptions = ["all", "valid", "expiring_soon", "expired"]
@@ -43,6 +43,13 @@ export default function DocumentsPage() {
   const [formData, setFormData] = useState(defaultDocForm)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
+  const [ocrScanning, setOcrScanning] = useState(false)
+  const [ocrModal, setOcrModal] = useState<{
+    isOpen: boolean
+    documentType: "Trade License" | "Passport" | "Emirates ID" | "Visa"
+    extractedData: Record<string, { value: string | null; confidence: "high" | "low" | null }>
+    rawText: string
+  }>({ isOpen: false, documentType: "Trade License", extractedData: {}, rawText: "" })
 
   useEffect(() => {
     async function load() {
@@ -59,6 +66,62 @@ export default function DocumentsPage() {
     load()
   }, [])
 
+  const ocrDocTypeMap: Record<string, "Trade License" | "Passport" | "Emirates ID" | "Visa"> = {
+    trade_license: "Trade License",
+    passport: "Passport",
+    emirates_id: "Emirates ID",
+    visa: "Visa",
+  }
+
+  const handleOCRScan = async () => {
+    if (!selectedFile) return
+    const ocrDocType = ocrDocTypeMap[formData.document_type]
+    if (!ocrDocType) {
+      toast.info("OCR is available for Trade License, Passport, Emirates ID, and Visa documents")
+      return
+    }
+    setOcrScanning(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", selectedFile)
+      fd.append("documentType", ocrDocType)
+      const res = await fetch("/api/ocr/process", { method: "POST", body: fd })
+      if (!res.ok) throw new Error("OCR processing failed")
+      const data = await res.json()
+      setOcrModal({
+        isOpen: true,
+        documentType: ocrDocType,
+        extractedData: data.extractedData || {},
+        rawText: data.rawText || "",
+      })
+    } catch (err: any) {
+      toast.error(err?.message || "OCR scan failed")
+    } finally {
+      setOcrScanning(false)
+    }
+  }
+
+  const handleOCRConfirm = (data: Record<string, string>) => {
+    // Auto-fill form fields from OCR data
+    if (data.expiryDate || data.expiry_date) {
+      setFormData(prev => ({ ...prev, expiry_date: data.expiryDate || data.expiry_date || prev.expiry_date }))
+    }
+    if (data.companyName || data.company_name) {
+      const name = data.companyName || data.company_name || ""
+      const match = companies.find(c => c.name.toLowerCase().includes(name.toLowerCase()))
+      if (match) setFormData(prev => ({ ...prev, company_id: match.id }))
+    }
+    if (data.licenseNumber || data.passportNumber || data.eidNumber || data.visaNumber) {
+      const ref = data.licenseNumber || data.passportNumber || data.eidNumber || data.visaNumber || ""
+      setFormData(prev => ({ ...prev, notes: ref ? `Ref: ${ref}${prev.notes ? `\n${prev.notes}` : ""}` : prev.notes }))
+    }
+    if (!formData.name && (data.documentType || data.holderName)) {
+      setFormData(prev => ({ ...prev, name: data.holderName ? `${formData.document_type} - ${data.holderName}` : prev.name }))
+    }
+    setOcrModal(prev => ({ ...prev, isOpen: false }))
+    toast.success("OCR data applied to form")
+  }
+
   const handleAddDocument = async () => {
     if (!formData.name.trim()) {
       toast.error("Document name is required")
@@ -68,34 +131,32 @@ export default function DocumentsPage() {
       toast.error("Please select a company")
       return
     }
+    if (!selectedFile) {
+      toast.error("Please select a file to upload")
+      return
+    }
     setSaving(true)
     try {
-      let fileUrl: string | null = null
-      if (selectedFile) {
-        const path = `documents/${Date.now()}-${selectedFile.name}`
-        fileUrl = await uploadFile(selectedFile, path)
+      const fd = new FormData()
+      fd.append("file", selectedFile)
+      fd.append("name", formData.name)
+      fd.append("companyId", formData.company_id)
+      if (formData.employee_id) fd.append("employeeId", formData.employee_id)
+      fd.append("documentType", formData.document_type)
+      if (formData.expiry_date) fd.append("expiryDate", formData.expiry_date)
+      if (formData.notes) fd.append("notes", formData.notes)
+
+      const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Upload failed")
       }
 
-      await createCompanyDocument({
-        company_id: formData.company_id,
-        employee_id: formData.employee_id || null,
-        name: formData.name,
-        document_type: formData.document_type,
-        file_url: fileUrl,
-        file_size: selectedFile?.size || null,
-        expiry_date: formData.expiry_date || null,
-        status: "valid",
-        uploaded_by: null,
-        notes: formData.notes || null,
-        issue_date: null,
-        issuing_authority: null,
-        reference_number: null,
-        reminder_days: 30,
-      })
       toast.success("Document uploaded successfully")
       setShowAddForm(false)
       setFormData(defaultDocForm)
       setSelectedFile(null)
+      // Refresh documents list
       const updated = await fetchDocuments()
       setDocuments(updated)
     } catch (err: any) {
@@ -104,6 +165,27 @@ export default function DocumentsPage() {
       setSaving(false)
     }
   }
+
+  const handleDeleteDocument = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this document?")) return
+    try {
+      const res = await fetch(`/api/documents/${id}`, { method: "DELETE" })
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || "Delete failed") }
+      toast.success("Document deleted")
+      const updated = await fetchDocuments()
+      setDocuments(updated)
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete document")
+    }
+  }
+
+  const stats = useMemo(() => {
+    const total = documents.length
+    const valid = documents.filter(d => d.status === "valid").length
+    const expiringSoon = documents.filter(d => d.status === "expiring_soon").length
+    const expired = documents.filter(d => d.status === "expired").length
+    return { total, valid, expiringSoon, expired }
+  }, [documents])
 
   const sorted = useMemo(() => {
     const filtered = documents.filter((doc) => {
@@ -132,15 +214,21 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-entrance space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1a3a6b]">Document Management</h1>
           <p className="text-sm text-gray-500 mt-1">All documents across companies with expiry tracking</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full">{stats.total} Total</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">{stats.valid} Valid</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">{stats.expiringSoon} Expiring Soon</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">{stats.expired} Expired</span>
+          </div>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? "Cancel" : "Upload Document"}
@@ -162,14 +250,38 @@ export default function DocumentsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">File</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">File *</label>
               <div className="relative">
                 <input
                   type="file"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null
+                    if (file && file.size > 25 * 1024 * 1024) {
+                      toast.error("File size must be less than 25MB")
+                      return
+                    }
+                    setSelectedFile(file)
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#1a3a6b]/10 file:text-[#1a3a6b]"
                 />
               </div>
+              {selectedFile && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedFile.name} ({(selectedFile.size / 1024).toFixed(0)} KB)
+                </p>
+              )}
+              {selectedFile && ocrDocTypeMap[formData.document_type] && (
+                <button
+                  type="button"
+                  onClick={handleOCRScan}
+                  disabled={ocrScanning}
+                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 disabled:opacity-50"
+                >
+                  {ocrScanning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ScanLine className="h-3.5 w-3.5" />}
+                  {ocrScanning ? "Scanning..." : "Auto-fill with OCR"}
+                </button>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company *</label>
@@ -241,7 +353,7 @@ export default function DocumentsPage() {
             <button
               onClick={handleAddDocument}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {saving ? "Uploading..." : "Upload Document"}
@@ -259,7 +371,7 @@ export default function DocumentsPage() {
             placeholder="Search documents..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b]"
           />
         </div>
         <select
@@ -291,13 +403,14 @@ export default function DocumentsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Name</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Company</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Employee</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Type</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Expiry Date</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Status</th>
+              <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Name</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Company</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Employee</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Type</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Expiry Date</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Status</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -310,11 +423,11 @@ export default function DocumentsPage() {
                   <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span className={`inline-flex items-center justify-center h-8 w-8 rounded-lg text-[10px] font-bold ${cat.color}`}>{cat.icon}</span>
                         <span className="font-medium text-gray-900">{doc.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{company?.name || "Unknown"}</td>
+                    <td className="px-6 py-4 text-gray-600">{company?.name || "Unassigned"}</td>
                     <td className="px-6 py-4 text-gray-600">{employee?.full_name || "-"}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cat?.color || "bg-gray-100 text-gray-700"}`}>
@@ -325,12 +438,33 @@ export default function DocumentsPage() {
                       {doc.expiry_date ? new Date(doc.expiry_date).toLocaleDateString() : "No expiry"}
                     </td>
                     <td className="px-6 py-4"><StatusBadge status={doc.status} /></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        {doc.file_url ? (
+                          <>
+                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                              className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
+                              <Download className="h-4 w-4" />
+                            </a>
+                            <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                              className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Preview">
+                              <Eye className="h-4 w-4" />
+                            </a>
+                          </>
+                        ) : (
+                          <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">No file</span>
+                        )}
+                        <button onClick={() => handleDeleteDocument(doc.id)} className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 )
               })}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     <FileText className="h-8 w-8 mx-auto text-gray-300 mb-2" />
                     No documents found matching your filters.
                   </td>
@@ -340,6 +474,15 @@ export default function DocumentsPage() {
           </table>
         </div>
       </div>
+
+      <OCRConfirmModal
+        isOpen={ocrModal.isOpen}
+        documentType={ocrModal.documentType}
+        extractedData={ocrModal.extractedData}
+        rawText={ocrModal.rawText}
+        onConfirm={handleOCRConfirm}
+        onSkip={() => setOcrModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

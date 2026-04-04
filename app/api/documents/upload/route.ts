@@ -1,14 +1,111 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, uploadRateLimit } from "@/lib/rate-limit"
-import { writeFile, mkdir } from "fs/promises"
-import path from "path"
+import prisma from "@/lib/prisma"
+import { withAuth } from "@/lib/auth-middleware"
+import { handleApiError } from "@/lib/api-error-handler"
+import { onDocumentChange } from "@/lib/cache"
+import { logAudit } from "@/lib/audit"
+import { processDocument } from "@/lib/ocr"
+
+async function runOcrAndUpdate(buffer: Buffer, docType: string, companyId: string, employeeId: string | null, expiryDate: string | null) {
+  try {
+    const { extractedData, documentType: detectedType } = await processDocument(buffer, "auto-detect")
+    if (!extractedData) return { extractedData: null, detectedType }
+
+    const updates: Record<string, any> = {}
+
+    // Auto-populate company fields from OCR
+    if (companyId && companyId !== "general") {
+      if (detectedType === "trade-license") {
+        const d = extractedData as any
+        if (d.licenseNumber?.value) updates.licenseNumber = d.licenseNumber.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) updates.licenseExpiry = p } catch {}
+        }
+        if (d.legalForm?.value) updates.legalForm = d.legalForm.value
+      }
+      if (detectedType === "establishment-card") {
+        const d = extractedData as any
+        if (d.cardNumber?.value) updates.establishmentCardNumber = d.cardNumber.value
+        if (d.molNumber?.value) updates.molNumber = d.molNumber.value
+        if (d.sponsorName?.value) updates.sponsorName = d.sponsorName.value
+        if (d.sponsorEid?.value) updates.sponsorEid = d.sponsorEid.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) updates.establishmentCardExpiry = p } catch {}
+        }
+      }
+      if (detectedType === "ejari") {
+        const d = extractedData as any
+        if (d.contractNumber?.value) updates.ejariTawtheeqNumber = d.contractNumber.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) updates.ejariTawtheeqExpiry = p } catch {}
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await prisma.company.update({ where: { id: companyId }, data: updates }).catch(() => {})
+      }
+    }
+
+    // Auto-populate employee fields from OCR
+    if (employeeId) {
+      const empUpdates: Record<string, any> = {}
+      if (detectedType === "passport") {
+        const d = extractedData as any
+        if (d.passportNumber?.value) empUpdates.passportNumber = d.passportNumber.value
+        if (d.nationality?.value) empUpdates.nationality = d.nationality.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) empUpdates.passportExpiry = p } catch {}
+        }
+      }
+      if (detectedType === "emirates-id") {
+        const d = extractedData as any
+        if (d.idNumber?.value) empUpdates.emiratesId = d.idNumber.value
+        if (d.nationality?.value) empUpdates.nationality = d.nationality.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) empUpdates.emiratesIdExpiry = p } catch {}
+        }
+      }
+      if (detectedType === "visa") {
+        const d = extractedData as any
+        if (d.visaNumber?.value) empUpdates.visaNumber = d.visaNumber.value
+        if (d.expiryDate?.value && !expiryDate) {
+          try { const p = parseFlexDate(d.expiryDate.value); if (p) empUpdates.visaExpiry = p } catch {}
+        }
+      }
+      if (Object.keys(empUpdates).length > 0) {
+        await prisma.employee.update({ where: { id: employeeId }, data: empUpdates }).catch(() => {})
+      }
+    }
+
+    return { extractedData, detectedType }
+  } catch (err) {
+    console.error("[OCR] Processing failed:", err)
+    return { extractedData: null, detectedType: docType }
+  }
+}
+
+function parseFlexDate(dateStr: string): Date | null {
+  // Handle DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+  const parts = dateStr.split(/[\/\-\.]/)
+  if (parts.length === 3) {
+    const [d, m, y] = parts.map(Number)
+    if (y > 100) return new Date(y, m - 1, d)
+    if (y > 25) return new Date(1900 + y, m - 1, d)
+    return new Date(2000 + y, m - 1, d)
+  }
+  const parsed = new Date(dateStr)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
 
 export async function POST(request: NextRequest) {
-  // Rate limit
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+
   const ip = request.headers.get("x-forwarded-for") || "unknown"
   const rl = rateLimit(`upload:${ip}`, uploadRateLimit)
   if (!rl.success) {
-    return NextResponse.json({ error: "Too many uploads" }, { status: 429 })
+    return NextResponse.json({ error: "Too many uploads. Try again later." }, { status: 429 })
   }
 
   try {
@@ -16,39 +113,232 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File
     if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 })
 
-    // Validate file type
-    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "text/csv",
+      "application/octet-stream",
+    ]
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: "File type not allowed. Use PDF, JPG, PNG, or DOCX" }, { status: 400 })
+      return NextResponse.json({ error: "File type not allowed. Use PDF, JPG, PNG, DOCX, XLSX, CSV, or SIF" }, { status: 400 })
     }
 
-    // Validate file size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: "File too large. Maximum 10MB" }, { status: 400 })
+    if (file.size > 25 * 1024 * 1024) {
+      return NextResponse.json({ error: "File too large. Maximum 25MB" }, { status: 400 })
     }
 
-    const companyId = formData.get("companyId") as string || "general"
-    const docType = formData.get("documentType") as string || "other"
+    const name = (formData.get("name") as string) || file.name
+    const companyId = (formData.get("companyId") as string) || "general"
+    const employeeId = (formData.get("employeeId") as string) || null
+    let documentType = (formData.get("documentType") as string) || "other"
+    const expiryDate = formData.get("expiryDate") as string | null
+    const notes = (formData.get("notes") as string) || null
+    const issueDate = formData.get("issueDate") as string | null
+    const referenceNumber = (formData.get("referenceNumber") as string) || null
+    const issuingAuthority = (formData.get("issuingAuthority") as string) || null
+    const reminderDays = parseInt((formData.get("reminderDays") as string) || "30", 10)
+
+    // Normalize Labour → Labor (British/American spelling)
+    if (documentType === "labour_card") documentType = "labor_card"
+
+    // Auto-detect document type from filename if type is "other"
+    if (documentType === "other") {
+      const fn = (name || file.name).toLowerCase()
+      if (fn.includes("trade") && fn.includes("licen")) documentType = "trade_license"
+      else if (fn.includes("establishment") || fn.includes("estab")) documentType = "establishment_card"
+      else if (fn.includes("ejari") || fn.includes("tawtheeq")) documentType = "ejari"
+      else if (fn.includes("memorandum") || fn.includes("moa")) documentType = "moa"
+      else if (fn.includes("power of attorney") || fn.includes("poa")) documentType = "poa"
+      else if (fn.includes("labour") || fn.includes("labor")) documentType = "labor_card"
+      else if (fn.includes("visa")) documentType = "visa"
+      else if (fn.includes("emirates") && fn.includes("id")) documentType = "emirates_id"
+      else if (fn.includes("passport")) documentType = "passport"
+      else if (fn.includes("noc") || fn.includes("no objection")) documentType = "noc"
+      else if (fn.includes("wps") || fn.includes("sif")) documentType = "wps"
+      else if (fn.includes("insurance") || fn.includes("medical")) documentType = "medical_insurance"
+      else if (fn.includes("immigration")) documentType = "immigration_card"
+      else if (fn.includes("offer") && fn.includes("letter")) documentType = "offer_letter"
+    }
+
+    // Duplicate detection: check if same name + type + company/employee already exists
+    try {
+      const where: any = { name, documentType }
+      if (companyId && companyId !== "general") where.companyId = companyId
+      if (employeeId) where.employeeId = employeeId
+      const existing = await prisma.document.findFirst({ where }).catch(() => null)
+      if (existing) {
+        return NextResponse.json({
+          error: `Duplicate document: "${name}" (${documentType}) already exists. Delete the existing one first or rename this file.`,
+          existingId: existing.id,
+        }, { status: 409 })
+      }
+    } catch {}
+
     const timestamp = Date.now()
-    const ext = file.name.split(".").pop()
-    const fileName = `${companyId}-${docType}-${timestamp}.${ext}`
-
-    // Save file to local uploads directory
-    const uploadsDir = path.join(process.cwd(), "public", "uploads")
-    await mkdir(uploadsDir, { recursive: true })
-
     const buffer = Buffer.from(await file.arrayBuffer())
-    await writeFile(path.join(uploadsDir, fileName), buffer)
 
+    // Check if image — process with Sharp
+    const { isImage, processImage } = await import("@/lib/image-processor")
+    const imageFile = isImage(file.type)
+
+    let uploadBuffer: any = buffer
+    let uploadMime = file.type
+    let uploadExt = file.name.split(".").pop() || "bin"
+    let finalSize = file.size
+    let thumbnailPath: string | null = null
+    let compressionSaved = 0
+
+    if (imageFile) {
+      try {
+        const processed = await processImage(buffer)
+        uploadBuffer = processed.compressed
+        uploadMime = "image/jpeg"
+        uploadExt = "jpg"
+        finalSize = processed.compressed.length
+        compressionSaved = Math.round((1 - finalSize / file.size) * 100)
+
+        // Upload thumbnail to MinIO
+        try {
+          const { uploadToMinio } = await import("@/lib/minio")
+          const thumbPath = `${companyId}/thumb/${documentType}-${timestamp}.jpg`
+          await uploadToMinio(processed.thumbnail, thumbPath, "image/jpeg")
+          thumbnailPath = thumbPath
+        } catch {}
+
+      } catch (sharpErr) {
+        console.error("[Upload] Sharp processing failed, using original:", sharpErr)
+        // Fall back to original buffer
+      }
+    }
+
+    // Persistent upload directory (survives deploys)
+    const UPLOAD_ROOT = process.env.UPLOAD_DIR || "/var/www/uploads"
+
+    // Store file to persistent local directory
+    const { writeFile, mkdir } = await import("fs/promises")
+    const path = await import("path")
+    const uploadDir = path.join(UPLOAD_ROOT, companyId)
+    await mkdir(uploadDir, { recursive: true })
+    const localFileName = `${documentType}-${timestamp}.${uploadExt}`
+    await writeFile(path.join(uploadDir, localFileName), uploadBuffer)
+
+    // Save thumbnail
+    if (imageFile && thumbnailPath === null) {
+      try {
+        const processed = await processImage(buffer)
+        const thumbDir = path.join(UPLOAD_ROOT, companyId, "thumb")
+        await mkdir(thumbDir, { recursive: true })
+        const thumbFile = `${documentType}-${timestamp}.jpg`
+        await writeFile(path.join(thumbDir, thumbFile), processed.thumbnail)
+        thumbnailPath = `/uploads/${companyId}/thumb/${thumbFile}`
+      } catch {}
+    }
+
+    const localFileUrl = `/uploads/${companyId}/${localFileName}`
+
+    const docData: any = {
+        name,
+        documentType,
+        fileUrl: localFileUrl,
+        fileSize: finalSize,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        issueDate: issueDate ? new Date(issueDate) : null,
+        referenceNumber,
+        issuingAuthority,
+        reminderDays,
+        uploadedById: auth.user.id,
+        status: "valid",
+        notes: [
+          notes,
+          `file:${file.name}`,
+          `mime:${uploadMime}`,
+          thumbnailPath ? `thumb:${thumbnailPath}` : null,
+          compressionSaved > 0 ? `compressed:${compressionSaved}%` : null,
+        ].filter(Boolean).join("\n") || null,
+    }
+    if (companyId && companyId !== "general") docData.companyId = companyId
+    if (employeeId) docData.employeeId = employeeId
+    try { docData.fileName = file.name; docData.mimeType = uploadMime } catch {}
+
+    const doc = await prisma.document.create({ data: docData }).catch(async (err: any) => {
+      if (err.message?.includes("fileName") || err.message?.includes("mimeType")) {
+        delete docData.fileName
+        delete docData.mimeType
+        return prisma.document.create({ data: docData })
+      }
+      if (err.message?.includes("companyId") || err.message?.includes("employeeId")) {
+        delete docData.companyId
+        delete docData.employeeId
+        if (companyId && companyId !== "general") docData.company = { connect: { id: companyId } }
+        if (employeeId) docData.employee = { connect: { id: employeeId } }
+        return prisma.document.create({ data: docData })
+      }
+      throw err
+    })
+
+    // Auto-populate expiry fields on company/employee
+    if (expiryDate && companyId && companyId !== "general") {
+      const companyExpiryMap: Record<string, string> = {
+        trade_license: "licenseExpiry",
+        establishment_card: "establishmentCardExpiry",
+        ejari: "ejariTawtheeqExpiry",
+        chamber_commerce: "chamberCommerceExpiry",
+        lease: "leaseExpiry",
+      }
+      const compField = companyExpiryMap[documentType]
+      if (compField) {
+        await prisma.company.update({ where: { id: companyId }, data: { [compField]: new Date(expiryDate) } }).catch(() => {})
+      }
+    }
+    if (expiryDate && employeeId) {
+      const expiryField: Record<string, string> = {
+        visa: "visaExpiry",
+        emirates_id: "emiratesIdExpiry",
+        passport: "passportExpiry",
+        passport_back: "passportExpiry",
+        labor_card: "laborCardExpiry",
+        medical_insurance: "healthInsuranceExpiry",
+        health_insurance: "healthInsuranceExpiry",
+        medical_fitness: "medicalFitnessDate",
+      }
+      const field = expiryField[documentType]
+      if (field) {
+        await prisma.employee.update({ where: { id: employeeId }, data: { [field]: new Date(expiryDate) } }).catch(() => {})
+      }
+    }
+
+    // OCR in background (don't block response)
+    runOcrAndUpdate(buffer, documentType, companyId, employeeId, expiryDate).then(async (ocrResult) => {
+      if (ocrResult.extractedData && !expiryDate) {
+        const ed = ocrResult.extractedData as any
+        if (ed.expiryDate?.value) {
+          try {
+            const parsed = parseFlexDate(ed.expiryDate.value)
+            if (parsed) await prisma.document.update({ where: { id: doc.id }, data: { expiryDate: parsed } }).catch(() => {})
+          } catch {}
+        }
+      }
+    }).catch(() => {})
+
+    await onDocumentChange()
+    logAudit(auth.user.id, "UPLOAD", "document", doc.id, { name, documentType, companyId }).catch(() => {})
     return NextResponse.json({
       success: true,
+      id: doc.id,
       fileName: file.name,
-      storedName: fileName,
-      fileUrl: `/uploads/${fileName}`,
-      fileSize: file.size,
-      mimeType: file.type,
+      fileUrl: localFileUrl,
+      thumbnailUrl: thumbnailPath,
+      fileSize: finalSize,
+      originalSize: file.size,
+      compressionSaved: `${compressionSaved}%`,
+      mimeType: uploadMime,
+      storage: "local",
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Upload failed" }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }

@@ -3,26 +3,25 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { demoRequestDocuments } from "@/lib/demo-data"
+import { fetchDocuments } from "@/lib/data-fetcher"
 import { getChecklistForServiceType } from "@/lib/checklist-templates"
-import { isChecklistItemCompleted, toggleChecklistItem, addNote, getNotes, getTimelineEntries, setRequestStatus, getRequestStatus } from "@/lib/demo-store"
-import { fetchRequests } from "@/lib/data-fetcher"
-import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/supabase/api"
+import { updateServiceRequest, addTimelineEntry, getRequestTimeline } from "@/lib/api"
 import type { ServiceRequest, RequestTimeline } from "@/lib/types"
 import { toast } from "sonner"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ArrowLeft, FileText, CheckSquare, Clock, Upload, Plus, ChevronDown, MessageSquare, User, Loader2 } from "lucide-react"
 import { AedIcon } from "@/components/ui/aed-icon"
 
-const statusOptions = ["pending", "in_progress", "under_review", "completed", "rejected"]
+const statusTransitions: Record<string, string[]> = {
+  pending: ["assigned", "in_progress", "rejected", "cancelled"],
+  assigned: ["in_progress", "cancelled"],
+  in_progress: ["under_review", "completed", "cancelled"],
+  under_review: ["completed", "in_progress", "rejected"],
+  completed: [],
+  rejected: ["pending"],
+  cancelled: ["pending"],
+}
 
-const demoFees = [
-  { type: "MOHRE Work Permit", amount: 3500, status: "paid_by_yabs", receipt: "MOHRE-2025-78901", date: "2025-03-15" },
-  { type: "GDRFA Entry Permit", amount: 1500, status: "paid_by_yabs", receipt: "GDRFA-2025-45678", date: "2025-03-16" },
-  { type: "Medical Fitness", amount: 350, status: "paid_by_yabs", receipt: "MED-2025-12345", date: "2025-03-18" },
-  { type: "Typing / Amer Center", amount: 200, status: "paid_by_yabs", receipt: "AMR-2025-67890", date: "2025-03-15" },
-  { type: "YABS Service Fee", amount: 2500, status: "pending_reimbursement", receipt: "YABS-INV-2025-001", date: "2025-03-14" },
-]
 
 const feeStatusColors: Record<string, string> = {
   paid_by_yabs: "bg-green-100 text-green-800",
@@ -42,24 +41,47 @@ export default function AdminRequestDetailPage() {
   const [noteInput, setNoteInput] = useState("")
   const [newChecklistItem, setNewChecklistItem] = useState("")
   const [extraItems, setExtraItems] = useState<string[]>([])
+  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({})
   const [realTimeline, setRealTimeline] = useState<any[]>([])
+  const [governmentFees, setGovernmentFees] = useState<any[]>([])
+  const [realDocs, setRealDocs] = useState<any[]>([])
+  const [staffList, setStaffList] = useState<any[]>([])
+  const [assignedTo, setAssignedTo] = useState<string>("")
+  const [statusNote, setStatusNote] = useState("")
 
   useEffect(() => {
     async function load() {
-      const requests = await fetchRequests()
-      const found = requests.find((r: any) => r.id === requestId)
-      const req = found || requests[0]
-      setRequest(req)
-      if (req) {
-        setStatus(getRequestStatus(req.id, req.status))
-      }
-      // Try to load real timeline
+      // Fetch the single request directly by ID
+      try {
+        const reqRes = await fetch(`/api/data/requests/${requestId}`)
+        if (reqRes.ok) {
+          const reqData = await reqRes.json()
+          setRequest(reqData)
+          setStatus(reqData.status)
+          setAssignedTo(reqData.assigned_to || "")
+          if (reqData.government_fees) setGovernmentFees(reqData.government_fees)
+          // Fetch real documents for this request's company (fallback to all if no company_id)
+          try {
+            const docs = reqData.company_id
+              ? await fetchDocuments(reqData.company_id)
+              : await fetchDocuments()
+            setRealDocs(docs)
+          } catch {}
+        }
+      } catch {}
+      // Load real timeline
       try {
         const timeline = await getRequestTimeline(requestId)
         setRealTimeline(timeline)
-      } catch {
-        // Fallback: no real timeline available
-      }
+      } catch {}
+      // Load staff list for assignment dropdown
+      try {
+        const staffRes = await fetch("/api/data/users?role=pro_staff")
+        if (staffRes.ok) {
+          const staffData = await staffRes.json()
+          setStaffList(Array.isArray(staffData) ? staffData : staffData.users || [])
+        }
+      } catch {}
       setLoading(false)
     }
     load()
@@ -76,10 +98,10 @@ export default function AdminRequestDetailPage() {
   if (!request) {
     return (
       <div className="space-y-6">
-        <Link href="/admin/requests" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => window.history.back()} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
           <ArrowLeft className="h-4 w-4" />
-          Back to Requests
-        </Link>
+          Back
+        </button>
         <div className="text-center py-12">
           <p className="text-lg font-medium text-gray-900">Request not found</p>
         </div>
@@ -88,44 +110,45 @@ export default function AdminRequestDetailPage() {
   }
 
   const checklistItems = [...getChecklistForServiceType(request.service_type), ...extraItems]
-  const reqDocs = demoRequestDocuments.filter(d => d.request_id === request.id)
-  const demoTimelineEntries = getTimelineEntries(request.id)
-  const notes = getNotes(request.id)
-  const completedCount = checklistItems.filter(item => isChecklistItemCompleted(request.id, item) === true).length
+  const reqDocs = realDocs.filter((d: any) => d.request_id === request.id || d.company_id === request.company_id)
+  const completedCount = checklistItems.filter(item => checklistState[item] === true).length
 
-  // Merge real timeline + demo timeline + notes
-  const allTimeline = [
-    ...realTimeline.map(t => ({
-      id: t.id,
-      request_id: t.request_id,
-      message: t.message,
-      created_by: t.creator?.full_name || t.created_by || "System",
-      created_at: t.created_at,
-      status: t.status,
-    })),
-    ...demoTimelineEntries,
-    ...notes.map(n => ({ id: n.id, request_id: n.request_id, message: `Note: ${n.content}`, created_by: n.user_name, created_at: n.created_at, status: undefined })),
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  const allTimeline = realTimeline.map(t => ({
+    id: t.id,
+    request_id: t.request_id,
+    message: t.message,
+    created_by: t.creator?.full_name || t.created_by || "System",
+    created_at: t.created_at,
+    status: t.status,
+  })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   const handleStatusUpdate = async () => {
     try {
+      const newStatusLabel = status.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())
+      const noteText = statusNote.trim()
+      const message = noteText
+        ? `Status changed to ${status}. Note: ${noteText}`
+        : `Status changed to ${status}`
       await updateServiceRequest(request.id, { status: status as ServiceRequest["status"] })
       await addTimelineEntry({
         request_id: request.id,
         status,
-        message: `Status changed to ${status}`,
+        message,
         created_by: "admin",
       } as Omit<RequestTimeline, "id" | "created_at" | "creator">)
-      toast.success("Status updated")
+      toast.success(`Status updated to ${newStatusLabel}`)
+      setStatusNote("")
       // Refresh
-      const requests = await fetchRequests()
-      setRequest(requests.find((r: any) => r.id === requestId))
+      const reqRes = await fetch(`/api/data/requests/${requestId}`)
+      if (reqRes.ok) {
+        const reqData = await reqRes.json()
+        setRequest(reqData)
+        setStatus(reqData.status)
+      }
       const timeline = await getRequestTimeline(requestId)
       setRealTimeline(timeline)
     } catch (err: any) {
-      // Fallback to demo store
-      setRequestStatus(request.id, status, "Sarah Admin")
-      toast.error(err?.message || "Failed to update via Supabase, saved locally")
+      toast.error(err?.message || "Failed to update status")
     }
   }
 
@@ -138,19 +161,15 @@ export default function AdminRequestDetailPage() {
         message: noteInput,
         created_by: "admin",
       })
-      // Also save to demo store for immediate UI update
-      addNote(request.id, "Sarah Admin", "admin", noteInput)
       setNoteInput("")
       toast.success("Note added")
-      // Refresh real timeline
+      // Refresh timeline
       try {
         const timeline = await getRequestTimeline(requestId)
         setRealTimeline(timeline)
       } catch {}
-    } catch {
-      // Fallback to demo store only
-      addNote(request.id, "Sarah Admin", "admin", noteInput)
-      setNoteInput("")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add note")
     }
   }
 
@@ -178,13 +197,18 @@ export default function AdminRequestDetailPage() {
 
   return (
     <div className="space-y-6">
+      <button onClick={() => window.history.back()}
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a3a6b] transition-colors mb-4">
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </button>
       <div className="flex items-center gap-3">
-        <Link href="/admin/requests" className="p-2 rounded-lg hover:bg-gray-100">
+        <button onClick={() => window.history.back()} className="p-2 rounded-lg hover:bg-gray-100">
           <ArrowLeft className="h-5 w-5 text-gray-500" />
-        </Link>
+        </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{request.service_type}</h1>
-          <p className="text-sm text-gray-500">{request.company?.name} &middot; {new Date(request.created_at).toLocaleDateString()}</p>
+          <p className="text-sm text-gray-500">{request.company_name || "N/A"} &middot; {new Date(request.created_at).toLocaleDateString()}</p>
         </div>
         <div className="ml-auto">
           <StatusBadge status={status} />
@@ -210,16 +234,16 @@ export default function AdminRequestDetailPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6">
+      <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6">
         {activeTab === "overview" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { label: "Service Type", value: request.service_type },
-                { label: "Company", value: request.company?.name || "N/A" },
-                { label: "Client", value: request.client?.full_name || "N/A" },
+                { label: "Company", value: request.company_name || "N/A" },
+                { label: "Client", value: request.client_name || "N/A" },
                 { label: "Priority", value: request.priority },
-                { label: "Assigned To", value: request.assignee?.full_name || "Unassigned" },
+                { label: "Assigned To", value: request.assignee_name || "Unassigned" },
                 { label: "Created", value: new Date(request.created_at).toLocaleDateString() },
                 { label: "Due Date", value: request.due_date ? new Date(request.due_date).toLocaleDateString() : "Not set" },
                 { label: "Description", value: request.description || "No description" },
@@ -230,22 +254,75 @@ export default function AdminRequestDetailPage() {
                 </div>
               ))}
             </div>
-            <div className="border-t pt-4 flex items-end gap-3">
-              <div className="flex-1">
-                <label className="text-sm font-medium text-gray-700">Update Status</label>
-                <select
-                  value={status}
-                  onChange={e => setStatus(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                >
-                  {statusOptions.map(s => (
-                    <option key={s} value={s}>{s.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</option>
-                  ))}
-                </select>
+            <div className="border-t pt-4 space-y-4">
+              {(statusTransitions[request.status]?.length ?? 0) === 0 ? (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Status</label>
+                  <div className="mt-1"><StatusBadge status={request.status} /></div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-700">Update Status</label>
+                      <select
+                        value={status}
+                        onChange={e => setStatus(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      >
+                        <option value={request.status}>{request.status.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} (current)</option>
+                        {(statusTransitions[request.status] || []).map((s: string) => (
+                          <option key={s} value={s}>{s.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={handleStatusUpdate}
+                      disabled={status === request.status}
+                      className="px-4 py-2 bg-[#1a3a6b] text-white text-sm rounded-lg hover:bg-[#15305a] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Update
+                    </button>
+                  </div>
+                  {status !== request.status && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Note / Reason (optional)</label>
+                      <input
+                        value={statusNote}
+                        onChange={e => setStatusNote(e.target.value)}
+                        placeholder="Add a reason or comment for this status change..."
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">Assign Staff</label>
+                  <select
+                    value={assignedTo}
+                    onChange={async (e) => {
+                      const staffId = e.target.value
+                      setAssignedTo(staffId)
+                      try {
+                        await updateServiceRequest(request.id, { assigned_to: staffId || null })
+                        toast.success("Staff assignment updated")
+                        const reqRes = await fetch(`/api/data/requests/${requestId}`)
+                        if (reqRes.ok) setRequest(await reqRes.json())
+                      } catch (err: any) {
+                        toast.error(err?.message || "Failed to assign staff")
+                      }
+                    }}
+                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  >
+                    <option value="">Unassigned</option>
+                    {staffList.map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.full_name || s.email}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <button onClick={handleStatusUpdate} className="px-4 py-2 bg-[#1a3a6b] text-white text-sm rounded-lg hover:bg-[#15305a]">
-                Update
-              </button>
             </div>
           </div>
         )}
@@ -260,9 +337,9 @@ export default function AdminRequestDetailPage() {
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-[#1a3a6b]" />
                     <div>
-                      <p className="text-sm font-medium">{doc.file_name}</p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${docTypeBadge[doc.doc_type] || docTypeBadge.general}`}>
-                        {doc.doc_type}
+                      <p className="text-sm font-medium">{doc.file_name || doc.name}</p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${docTypeBadge[doc.doc_type || doc.document_type] || docTypeBadge.general}`}>
+                        {doc.doc_type || doc.document_type || "general"}
                       </span>
                     </div>
                   </div>
@@ -294,13 +371,13 @@ export default function AdminRequestDetailPage() {
             ) : (
               <div className="space-y-2">
                 {checklistItems.map((item, i) => {
-                  const completed = isChecklistItemCompleted(request.id, item) === true
+                  const completed = checklistState[item] === true
                   return (
                     <label key={i} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${completed ? "bg-green-50" : "bg-gray-50 hover:bg-gray-100"}`}>
                       <input
                         type="checkbox"
                         checked={completed}
-                        onChange={() => toggleChecklistItem(request.id, item, !completed, "Sarah Admin")}
+                        onChange={() => setChecklistState(prev => ({ ...prev, [item]: !completed }))}
                         className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#1a3a6b]"
                       />
                       <span className={`text-sm ${completed ? "line-through text-gray-400" : "text-gray-700"}`}>{item}</span>
@@ -357,39 +434,43 @@ export default function AdminRequestDetailPage() {
 
         {activeTab === "fees" && (
           <div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Fee Type</th>
-                  <th className="text-right px-4 py-3 text-gray-500 font-medium">Amount (AED)</th>
-                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Receipt #</th>
-                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {demoFees.map((fee, i) => (
-                  <tr key={i} className="border-b border-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{fee.type}</td>
-                    <td className="px-4 py-3 text-right">{fee.amount.toLocaleString()}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${feeStatusColors[fee.status] || "bg-gray-100"}`}>
-                        {fee.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">{fee.receipt}</td>
-                    <td className="px-4 py-3 text-gray-500">{new Date(fee.date).toLocaleDateString()}</td>
+            {governmentFees.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Fee Type</th>
+                    <th className="text-right px-4 py-3 text-gray-500 font-medium">Amount (AED)</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Status</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Receipt #</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Date</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-gray-50 font-semibold">
-                  <td className="px-4 py-3">Total</td>
-                  <td className="px-4 py-3 text-right">AED {demoFees.reduce((s, f) => s + f.amount, 0).toLocaleString()}</td>
-                  <td colSpan={3} />
-                </tr>
-              </tfoot>
-            </table>
+                </thead>
+                <tbody>
+                  {governmentFees.map((fee: any, i: number) => (
+                    <tr key={fee.id || i} className="border-b border-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{fee.fee_type || fee.feeType}</td>
+                      <td className="px-4 py-3 text-right">{Number(fee.amount).toLocaleString()}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${feeStatusColors[fee.payment_status || fee.paymentStatus] || "bg-gray-100"}`}>
+                          {(fee.payment_status || fee.paymentStatus || "pending").replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 font-mono text-xs">{fee.receipt_number || fee.receiptNumber || "---"}</td>
+                      <td className="px-4 py-3 text-gray-500">{fee.paid_date || fee.paidDate ? new Date(fee.paid_date || fee.paidDate).toLocaleDateString() : "---"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50 font-semibold">
+                    <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3 text-right">AED {governmentFees.reduce((s: number, f: any) => s + Number(f.amount), 0).toLocaleString()}</td>
+                    <td colSpan={3} />
+                  </tr>
+                </tfoot>
+              </table>
+            ) : (
+              <p className="text-center text-gray-500 py-8">No government fees recorded for this request.</p>
+            )}
           </div>
         )}
       </div>

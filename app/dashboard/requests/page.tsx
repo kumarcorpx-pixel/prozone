@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { fetchRequests, fetchCompanies } from "@/lib/data-fetcher"
-import { createServiceRequest, getSession } from "@/lib/supabase/api"
-import { getChecklistForServiceType } from "@/lib/checklist-templates"
+import { serviceCatalog, getCategories } from "@/lib/service-catalog"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Plus, Calendar, User, ArrowRight, X, Loader2 } from "lucide-react"
+import { Plus, Calendar, User, ArrowRight, X, Loader2, Upload, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 
 const tabs = ["all", "active", "completed", "cancelled"] as const
@@ -15,26 +13,10 @@ const priorityColors: Record<string, string> = {
   medium: "bg-yellow-100 text-yellow-700", low: "bg-gray-100 text-gray-600",
 }
 
-const commonServices = [
-  "New Visa Application",
-  "Visa Renewal",
-  "Visa Cancellation",
-  "Emirates ID New/Renewal",
-  "Trade License Renewal",
-  "License Amendment",
-  "Establishment Card Renewal",
-  "Labor Card New/Renewal",
-  "Medical Fitness Test",
-  "Entry Permit",
-  "Status Change",
-  "Document Attestation",
-  "PRO Typing Services",
-  "Other",
-]
 
 const defaultRequestForm = {
-  company_id: "",
-  service_type: "",
+  companyId: "",
+  serviceType: "",
   description: "",
   priority: "medium" as const,
 }
@@ -44,55 +26,75 @@ export default function ClientRequestsPage() {
   const [requests, setRequests] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState(defaultRequestForm)
+  const [attachments, setAttachments] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [r, c] = await Promise.all([
-        fetchRequests(),
-        fetchCompanies(),
-      ])
-      setRequests(r)
-      setCompanies(c)
+      try {
+        const [requestsRes, companiesRes] = await Promise.all([
+          fetch("/api/client/requests"),
+          fetch("/api/client/companies"),
+        ])
+        if (requestsRes.ok) {
+          const reqs = await requestsRes.json()
+          setRequests(reqs)
+        }
+        if (companiesRes.ok) setCompanies(await companiesRes.json())
+      } catch {}
       setLoading(false)
     }
     load()
   }, [])
 
   const handleAddRequest = async () => {
-    if (!formData.service_type) {
+    if (!formData.serviceType) {
       toast.error("Please select a service type")
       return
     }
     setSaving(true)
     try {
-      const session = await getSession()
-      const clientId = session?.user?.id
-      if (!clientId) {
-        toast.error("You must be logged in to create a request")
-        setSaving(false)
-        return
-      }
-      await createServiceRequest({
-        client_id: clientId,
-        company_id: formData.company_id || null,
-        service_type: formData.service_type,
-        description: formData.description || null,
-        status: "pending",
-        priority: formData.priority as any,
-        assigned_to: null,
-        notes: null,
-        due_date: null,
-        completed_date: null,
+      const res = await fetch("/api/client/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceType: formData.serviceType,
+          ...(formData.companyId ? { companyId: formData.companyId } : {}),
+          ...(formData.description ? { description: formData.description } : {}),
+          priority: formData.priority,
+        }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to submit request")
+      }
+      const newReq = await res.json()
+      // Upload attachments if any (don't block on failure)
+      if (attachments.length > 0) {
+        const reqId = newReq.request?.id || newReq.id
+        const compId = formData.companyId || "general"
+        for (const file of attachments) {
+          try {
+            const fd = new FormData()
+            fd.append("file", file)
+            fd.append("name", file.name)
+            fd.append("companyId", compId)
+            fd.append("documentType", "other")
+            const upRes = await fetch("/api/documents/upload", { method: "POST", body: fd })
+            if (!upRes.ok) console.error("Upload failed:", await upRes.text())
+          } catch (e) {
+            console.error("Upload error:", e)
+          }
+        }
+      }
       toast.success("Request submitted successfully")
       setShowAddForm(false)
       setFormData(defaultRequestForm)
-      const updated = await fetchRequests()
-      setRequests(updated)
+      setAttachments([])
+      const updatedRes = await fetch("/api/client/requests")
+      if (updatedRes.ok) setRequests(await updatedRes.json())
     } catch (err: any) {
       toast.error(err?.message || "Failed to submit request")
     } finally {
@@ -103,14 +105,14 @@ export default function ClientRequestsPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
   const filtered = requests.filter(r => {
-    if (tab === "active") return ["pending", "in_progress", "under_review"].includes(r.status)
+    if (tab === "active") return ["pending", "assigned", "in_progress", "under_review"].includes(r.status)
     if (tab === "completed") return r.status === "completed"
-    if (tab === "cancelled") return r.status === "rejected"
+    if (tab === "cancelled") return ["cancelled", "rejected"].includes(r.status)
     return true
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Service Requests</h1>
@@ -118,7 +120,7 @@ export default function ClientRequestsPage() {
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white text-sm rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? "Cancel" : "New Request"}
@@ -132,8 +134,8 @@ export default function ClientRequestsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
               <select
-                value={formData.company_id}
-                onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
+                value={formData.companyId}
+                onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
               >
                 <option value="">Select a company</option>
@@ -145,13 +147,17 @@ export default function ClientRequestsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Service Type *</label>
               <select
-                value={formData.service_type}
-                onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
+                value={formData.serviceType}
+                onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 focus:border-[#1a3a6b] bg-white"
               >
                 <option value="">Select a service</option>
-                {commonServices.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                {getCategories().map((cat) => (
+                  <optgroup key={cat} label={cat.charAt(0).toUpperCase() + cat.slice(1)}>
+                    {serviceCatalog.filter(s => s.category === cat).map((s) => (
+                      <option key={s.id} value={s.name}>{s.name}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -179,9 +185,30 @@ export default function ClientRequestsPage() {
               />
             </div>
           </div>
+          {/* File Attachments */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Attachments (optional)</label>
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
+                <Upload className="h-4 w-4" /> Choose Files
+                <input type="file" multiple className="hidden" accept=".pdf,.jpg,.jpeg,.png,.docx"
+                  onChange={(e) => { if (e.target.files) setAttachments(prev => [...prev, ...Array.from(e.target.files!)]) }} />
+              </label>
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {attachments.map((f, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+                      {f.name.length > 20 ? f.name.substring(0, 20) + "..." : f.name}
+                      <button onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))} className="text-blue-400 hover:text-blue-700">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <button
-              onClick={() => { setShowAddForm(false); setFormData(defaultRequestForm) }}
+              onClick={() => { setShowAddForm(false); setFormData(defaultRequestForm); setAttachments([]) }}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             >
               Cancel
@@ -189,7 +216,7 @@ export default function ClientRequestsPage() {
             <button
               onClick={handleAddRequest}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1a3a6b] rounded-lg hover:bg-[#15305a] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {saving ? "Submitting..." : "Submit Request"}
@@ -199,23 +226,31 @@ export default function ClientRequestsPage() {
       )}
 
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-md text-sm font-medium capitalize ${tab === t ? "bg-white text-[#1a3a6b] shadow-sm" : "text-gray-600"}`}>
-            {t}
-          </button>
-        ))}
+        {tabs.map(t => {
+          const tabLabels: Record<string, string> = { all: "All", active: "Active", completed: "Completed", cancelled: "Cancelled/Rejected" }
+          return (
+            <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-md text-sm font-medium ${tab === t ? "bg-white text-[#1a3a6b] shadow-sm" : "text-gray-600"}`}>
+              {tabLabels[t] || t}
+            </button>
+          )
+        })}
       </div>
 
       <div className="space-y-4">
         {filtered.map(req => {
-          const steps = getChecklistForServiceType(req.service_type)
-          const completedSteps = Math.min(Math.floor(steps.length * 0.4), steps.length)
+          const progressMap: Record<string, number> = {
+            pending: 10, assigned: 25, in_progress: 50, under_review: 80, completed: 100, rejected: 0, cancelled: 0,
+          }
+          const pct = progressMap[req.status] ?? 0
+          const progressLabel: Record<string, string> = {
+            pending: "Pending", assigned: "Assigned", in_progress: "In Progress", under_review: "Under Review", completed: "Completed", rejected: "Rejected", cancelled: "Cancelled",
+          }
           return (
             <Link key={req.id} href={`/dashboard/requests/${req.id}`} className="block bg-white rounded-xl ring-1 ring-gray-200 p-5 hover:ring-[#1a3a6b]/30 hover:shadow-md transition-all">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900">{req.service_type}</h3>
-                  <p className="text-sm text-gray-500 mt-0.5">{req.company?.name || "N/A"}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{req.company_name || "N/A"}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={req.status} />
@@ -226,19 +261,17 @@ export default function ClientRequestsPage() {
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-500">
                 <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(req.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-                <span className="flex items-center gap-1"><User className="h-3 w-3" />{req.assignee?.full_name || "Unassigned"}</span>
+                <span className="flex items-center gap-1"><User className="h-3 w-3" />{req.assignee_name || "Unassigned"}</span>
               </div>
-              {steps.length > 0 && (
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500">Progress</span>
-                    <span className="font-medium text-[#1a3a6b]">{completedSteps}/{steps.length} steps</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-200 rounded-full">
-                    <div className="h-1.5 bg-[#1a3a6b] rounded-full" style={{ width: `${(completedSteps / steps.length) * 100}%` }} />
-                  </div>
+              <div className="mt-3">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-500">Progress</span>
+                  <span className="font-medium text-[#1a3a6b]">{pct}% &middot; {progressLabel[req.status] || req.status}</span>
                 </div>
-              )}
+                <div className="h-1.5 bg-gray-200 rounded-full">
+                  <div className={`h-1.5 rounded-full ${["rejected", "cancelled"].includes(req.status) ? "bg-red-400" : "bg-[#1a3a6b]"}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
               <div className="flex items-center justify-end mt-3 text-xs text-[#1a3a6b]">
                 View Details <ArrowRight className="h-3 w-3 ml-1" />
               </div>

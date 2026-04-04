@@ -2,31 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { handleApiError } from "@/lib/api-error-handler"
+import { dispatchRequestLifecycle } from "@/lib/notify-dispatch"
 
-const demoRequests = [
-  {
-    id: "req-s1",
-    serviceType: "Visa Renewal",
-    status: "in_progress",
-    priority: "high",
-    companyName: "ABC Trading LLC",
-    clientName: "Ahmed Hassan",
-    description: "Employment visa renewal for 3 employees",
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "req-s2",
-    serviceType: "MOHRE Work Permit - New",
-    status: "pending",
-    priority: "medium",
-    companyName: "XYZ Services",
-    clientName: "Mohammed Ali",
-    description: "New work permit application",
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-]
 
 async function checkStaffAuth(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value
@@ -36,7 +14,7 @@ async function checkStaffAuth(request: NextRequest) {
     return { authorized: false, user: null }
   }
 
-  if (!["staff", "admin"].includes(user.role)) {
+  if (!["pro_staff", "admin"].includes(user.role)) {
     return { authorized: false, user }
   }
 
@@ -54,7 +32,7 @@ export async function GET(request: NextRequest) {
     const auth = await checkStaffAuth(request)
 
     if (!auth.user) {
-      return NextResponse.json({ requests: demoRequests, demo: true })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     if (!auth.authorized) {
@@ -65,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     const requests = await prisma.serviceRequest.findMany({
-      where: { assignedTo: auth.user.id },
+      where: { assignedToId: auth.user.id },
       include: {
         client: { select: { fullName: true } },
         company: { select: { name: true } },
@@ -75,16 +53,33 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       requests: requests.map((r: any) => ({
-        ...r,
-        clientName: r.client?.fullName,
-        companyName: r.company?.name,
+        id: r.id,
+        client_id: r.clientId,
+        company_id: r.companyId,
+        service_type: r.serviceType,
+        description: r.description,
+        status: r.status,
+        priority: r.priority,
+        assigned_to: r.assignedToId,
+        notes: r.notes,
+        due_date: r.dueDate,
+        completed_date: r.completedDate,
+        created_at: r.createdAt,
+        updated_at: r.updatedAt,
+        client_name: r.client?.fullName || null,
+        company_name: r.company?.name || null,
+        // Keep camelCase aliases for backward compatibility
+        companyId: r.companyId,
+        companyName: r.company?.name || null,
+        clientName: r.client?.fullName || null,
+        serviceType: r.serviceType,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        company: r.company,
       })),
     })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch requests" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -122,7 +117,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const validStatuses = ["pending", "in_progress", "under_review", "completed", "cancelled"]
+    const validStatuses = ["pending", "assigned", "in_progress", "under_review", "completed", "cancelled"]
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
         { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
@@ -133,14 +128,14 @@ export async function PATCH(request: NextRequest) {
     // Verify the request is assigned to this staff member
     const existing = await prisma.serviceRequest.findUnique({
       where: { id },
-      select: { id: true, assignedTo: true },
+      select: { id: true, assignedToId: true, status: true, serviceType: true, clientId: true },
     })
 
     if (!existing) {
       return NextResponse.json({ error: "Request not found" }, { status: 404 })
     }
 
-    if (existing.assignedTo !== auth.user.id) {
+    if (existing.assignedToId !== auth.user.id) {
       return NextResponse.json(
         { error: "You can only update requests assigned to you" },
         { status: 403 }
@@ -149,7 +144,6 @@ export async function PATCH(request: NextRequest) {
 
     const updateData: Record<string, any> = {
       status,
-      updatedAt: new Date(),
     }
     if (notes) updateData.notes = notes
 
@@ -158,11 +152,31 @@ export async function PATCH(request: NextRequest) {
       data: updateData,
     })
 
+    // Create timeline entry on status change
+    if (existing && status !== existing.status) {
+      prisma.requestTimeline.create({
+        data: {
+          requestId: id,
+          status,
+          message: `Status changed to ${status.replace(/_/g, " ")}`,
+          createdById: auth.user!.id,
+        },
+      }).catch(() => {})
+
+      // Dispatch lifecycle notifications
+      dispatchRequestLifecycle({
+        id,
+        serviceType: existing.serviceType || "PRO Service",
+        oldStatus: existing.status,
+        newStatus: status,
+        clientId: existing.clientId,
+        assignedToId: existing.assignedToId,
+        changedByRole: "pro_staff",
+      }).catch(err => console.error("[Notify] Lifecycle dispatch error:", err))
+    }
+
     return NextResponse.json({ request: updated })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to update request" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

@@ -1,15 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { fetchEmployees, fetchCompanies, fetchDocuments } from "@/lib/data-fetcher"
-import { updateEmployee } from "@/lib/supabase/api"
+import { documentCategories } from "@/lib/company-data"
+import { updateEmployee } from "@/lib/api"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { toast } from "sonner"
 import {
   ArrowLeft, User, Building2, FileText, Clock, Shield,
-  Phone, Mail, MapPin, Calendar, CreditCard, Save, Edit2, X
+  Phone, Mail, MapPin, Calendar, CreditCard, Save, Edit2, X, Upload, Download
 } from "lucide-react"
 
 function getExpiryInfo(date: string | null) {
@@ -32,7 +33,9 @@ function InfoRow({ label, value, valueColor }: { label: string; value: string | 
 
 export default function EmployeeDetailPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const employeeId = params.id as string
+  const initialTab = searchParams.get("tab") || "personal"
   const [employee, setEmployee] = useState<any>(null)
   const [company, setCompany] = useState<any>(null)
   const [documents, setDocuments] = useState<any[]>([])
@@ -40,7 +43,7 @@ export default function EmployeeDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editData, setEditData] = useState<any>({})
-  const [activeTab, setActiveTab] = useState("personal")
+  const [activeTab, setActiveTab] = useState(initialTab)
 
   useEffect(() => {
     async function load() {
@@ -81,7 +84,7 @@ export default function EmployeeDetailPage() {
     <div className="text-center py-20">
       <User className="h-12 w-12 text-gray-300 mx-auto mb-3" />
       <h2 className="text-lg font-semibold">Employee not found</h2>
-      <Link href="/admin/employees" className="text-sm text-[#1a3a6b] hover:underline mt-2 inline-block">Back to Employees</Link>
+      <button onClick={() => window.history.back()} className="text-sm text-[#1a3a6b] hover:underline mt-2 inline-block">Back</button>
     </div>
   )
 
@@ -98,11 +101,15 @@ export default function EmployeeDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Back link */}
+      <button onClick={() => window.history.back()} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
       {/* Header */}
       <div className="flex items-start gap-4">
-        <Link href="/admin/employees" className="p-2 rounded-lg hover:bg-gray-100 mt-1">
+        <button onClick={() => window.history.back()} className="p-2 rounded-lg hover:bg-gray-100 mt-1">
           <ArrowLeft className="h-5 w-5 text-gray-500" />
-        </Link>
+        </button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-full bg-[#1a3a6b] flex items-center justify-center">
@@ -238,32 +245,115 @@ export default function EmployeeDetailPage() {
         )}
 
         {activeTab === "documents" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Upload button */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">{documents.length} document(s)</p>
+              <div className="flex items-center gap-2">
+                <select id="emp-doctype-select" className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                  {(() => {
+                    const uploadedTypes = new Set(documents.map((d: any) => d.document_type))
+                    const types = [
+                      { value: "visa", label: "Visa / Residency" },
+                      { value: "emirates_id", label: "Emirates ID" },
+                      { value: "passport", label: "Passport (Front)" },
+                      { value: "passport_back", label: "Passport (Back)" },
+                      { value: "national_id", label: "National ID Card" },
+                      { value: "labor_card", label: "Labor Card" },
+                      { value: "approved_labor_contract", label: "Approved Labor Contract" },
+                      { value: "health_insurance", label: "Health Insurance" },
+                      { value: "medical_fitness", label: "Medical Fitness Certificate" },
+                      { value: "salary_certificate", label: "Salary Certificate" },
+                      { value: "noc", label: "NOC Letter" },
+                      { value: "educational_degree", label: "Educational Degree" },
+                      { value: "photo", label: "Photo / JPEG" },
+                      { value: "other", label: "Other" },
+                    ]
+                    return types
+                      .filter(t => !uploadedTypes.has(t.value) || t.value === "other" || t.value === "photo")
+                      .map(t => <option key={t.value} value={t.value}>{t.label}</option>)
+                  })()}
+                </select>
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-[#15305a] transition-colors">
+                  <Upload className="h-4 w-4" />
+                  Upload Document
+                  <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      if (file.size > 25 * 1024 * 1024) { toast.error("File too large (max 25MB)"); return }
+                      const docType = (document.getElementById("emp-doctype-select") as HTMLSelectElement)?.value || "other"
+                      try {
+                        const fd = new FormData()
+                        fd.append("file", file)
+                        fd.append("name", file.name.replace(/\.[^.]+$/, ""))
+                        if (employee.company_id) fd.append("companyId", employee.company_id)
+                        fd.append("employeeId", employeeId)
+                        fd.append("documentType", docType)
+                        const res = await fetch("/api/documents/upload", { method: "POST", body: fd })
+                        if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Upload failed") }
+                        toast.success("Document uploaded!")
+                        const docs = await fetchDocuments()
+                        setDocuments(docs.filter((d: any) => d.employee_id === employeeId))
+                      } catch (err: any) { toast.error(err?.message || "Upload failed") }
+                      e.target.value = ""
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
             {documents.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <FileText className="h-8 w-8 mx-auto text-gray-300 mb-2" />
                 <p>No documents found for this employee</p>
               </div>
             ) : (
-              documents.map((doc: any) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-[#1a3a6b]" />
-                    <div>
-                      <p className="text-sm font-medium">{doc.name}</p>
-                      <p className="text-xs text-gray-500">{doc.document_type || "Document"}</p>
+              <div className="space-y-3">
+                {documents.map((doc: any) => {
+                  const cat = documentCategories[doc.document_type] || documentCategories.other
+                  return (
+                  <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <span className={`inline-flex items-center justify-center h-8 w-8 rounded-lg text-[10px] font-bold flex-shrink-0 ${cat.color}`}>{cat.icon}</span>
+                      <div>
+                        <p className="text-sm font-medium">{doc.name}</p>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cat.color}`}>{cat.label}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {doc.expiry_date && (
+                        <p className={`text-xs font-medium ${getExpiryInfo(doc.expiry_date).color}`}>
+                          {new Date(doc.expiry_date).toLocaleDateString()}
+                        </p>
+                      )}
+                      <StatusBadge status={doc.status || "valid"} />
+                      {doc.file_url && (
+                        <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer"
+                          className="p-1.5 rounded-md text-gray-400 hover:text-[#1a3a6b] hover:bg-gray-100 transition-colors" title="Download">
+                          <Download className="h-4 w-4" />
+                        </a>
+                      )}
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete "${doc.name}"? This cannot be undone.`)) return
+                          try {
+                            const res = await fetch(`/api/documents/${doc.id}`, { method: "DELETE" })
+                            if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Delete failed") }
+                            toast.success("Document deleted")
+                            const docs = await fetchDocuments()
+                            setDocuments(docs.filter((d: any) => d.employee_id === employeeId))
+                          } catch (err: any) { toast.error(err?.message || "Failed to delete") }
+                        }}
+                        className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="text-right">
-                    {doc.expiry_date && (
-                      <p className={`text-xs font-medium ${getExpiryInfo(doc.expiry_date).color}`}>
-                        {new Date(doc.expiry_date).toLocaleDateString()}
-                      </p>
-                    )}
-                    <StatusBadge status={doc.status || "valid"} />
-                  </div>
-                </div>
-              ))
+                  )
+                })}
+              </div>
             )}
           </div>
         )}

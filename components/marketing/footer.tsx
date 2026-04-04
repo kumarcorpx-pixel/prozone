@@ -15,6 +15,7 @@ const quickLinks = [
   { label: "FAQ", href: "/faq" },
   { label: "Contact", href: "/contact" },
   { label: "Client Login", href: "/login" },
+  { label: "Privacy Policy", href: "/privacy" },
 ]
 
 export function Footer() {

@@ -132,6 +132,41 @@ export default function ServicesPage() {
         </section>
       ))}
 
+      {/* Pricing */}
+      <section className="py-16 bg-white">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center text-[#1a3a6b] mb-4">Simple, Transparent Pricing</h2>
+          <p className="text-center text-gray-500 mb-12 max-w-2xl mx-auto">Government fees are separate and passed through at cost. Our service fees cover PRO processing, tracking, and compliance management.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { name: "Starter", price: "1,500", period: "/month", desc: "For small businesses with 1-2 companies", features: ["Up to 2 companies", "10 employees", "Document management", "Expiry alerts", "Email support"], highlight: false },
+              { name: "Professional", price: "3,500", period: "/month", desc: "For growing businesses managing multiple entities", features: ["Up to 10 companies", "50 employees", "Priority processing", "Dedicated PRO officer", "WhatsApp + phone support", "Invoice management"], highlight: true },
+              { name: "Enterprise", price: "Custom", period: "", desc: "For large groups with complex requirements", features: ["Unlimited companies", "Unlimited employees", "API access", "Custom workflows", "24/7 priority support", "Dedicated account manager"], highlight: false },
+            ].map(plan => (
+              <div key={plan.name} className={`rounded-2xl p-8 ${plan.highlight ? "bg-[#1a3a6b] text-white ring-4 ring-[#1a3a6b]/20 scale-105" : "bg-white ring-1 ring-gray-200"}`}>
+                <h3 className={`text-xl font-bold ${plan.highlight ? "text-white" : "text-gray-900"}`}>{plan.name}</h3>
+                <p className={`text-sm mt-1 ${plan.highlight ? "text-blue-200" : "text-gray-500"}`}>{plan.desc}</p>
+                <div className="mt-6 mb-8">
+                  <span className={`text-4xl font-bold ${plan.highlight ? "text-white" : "text-[#1a3a6b]"}`}>AED {plan.price}</span>
+                  <span className={`text-sm ${plan.highlight ? "text-blue-200" : "text-gray-500"}`}>{plan.period}</span>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map(f => (
+                    <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight ? "text-blue-100" : "text-gray-600"}`}>
+                      <svg className={`h-4 w-4 flex-shrink-0 ${plan.highlight ? "text-green-300" : "text-green-500"}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <a href="/contact" className={`block text-center py-3 rounded-xl text-sm font-semibold transition-colors ${plan.highlight ? "bg-white text-[#1a3a6b] hover:bg-gray-100" : "bg-[#1a3a6b] text-white hover:bg-[#15305a]"}`}>
+                  {plan.price === "Custom" ? "Contact Sales" : "Get Started"}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="bg-[#1a3a6b] text-white py-16">
         <div className="max-w-4xl mx-auto px-4 text-center">

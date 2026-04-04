@@ -2,17 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, apiRateLimit } from "@/lib/rate-limit"
 import { getUserFromToken } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-
-const demoDashboard = {
-  assignedRequests: 8,
-  pendingTasks: 3,
-  completedToday: 2,
-  recentActivity: [
-    { id: "act-1", type: "status_updated", description: "Visa renewal moved to In Progress", createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
-    { id: "act-2", type: "document_reviewed", description: "Reviewed passport copy for ABC Corp", createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString() },
-    { id: "act-3", type: "request_completed", description: "Trade name reservation completed", createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString() },
-  ],
-}
+import { handleApiError } from "@/lib/api-error-handler"
 
 export async function GET(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown"
@@ -26,10 +16,10 @@ export async function GET(request: NextRequest) {
     const user = token ? await getUserFromToken(token) : null
 
     if (!user) {
-      return NextResponse.json({ ...demoDashboard, demo: true })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (!["staff", "admin"].includes(user.role)) {
+    if (!["pro_staff", "admin"].includes(user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -39,19 +29,19 @@ export async function GET(request: NextRequest) {
     const [assignedCount, pendingCount, completedTodayCount] = await Promise.all([
       prisma.serviceRequest.count({
         where: {
-          assignedTo: user.id,
+          assignedToId: user.id,
           status: { in: ["pending", "in_progress", "under_review"] },
         },
       }),
       prisma.serviceRequest.count({
         where: {
-          assignedTo: user.id,
+          assignedToId: user.id,
           status: "pending",
         },
       }),
       prisma.serviceRequest.count({
         where: {
-          assignedTo: user.id,
+          assignedToId: user.id,
           status: "completed",
           updatedAt: { gte: todayStart },
         },
@@ -65,16 +55,32 @@ export async function GET(request: NextRequest) {
       take: 10,
     })
 
+    // Map activity log entries to the format the frontend expects
+    const mappedActivity = (recentActivity || []).map((a: any) => {
+      const createdAt = a.createdAt || a.created_at
+      const diffMs = Date.now() - new Date(createdAt).getTime()
+      const minutes = Math.floor(diffMs / 60000)
+      let time = ""
+      if (minutes < 60) time = `${minutes}m ago`
+      else if (minutes < 1440) time = `${Math.floor(minutes / 60)}h ago`
+      else time = `${Math.floor(minutes / 1440)}d ago`
+
+      return {
+        id: a.id,
+        message: a.action || "Activity",
+        time,
+        type: a.entityType || "general",
+        entityId: a.entityId,
+      }
+    })
+
     return NextResponse.json({
       assignedRequests: assignedCount,
       pendingTasks: pendingCount,
       completedToday: completedTodayCount,
-      recentActivity: recentActivity || [],
+      recentActivity: mappedActivity,
     })
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Failed to fetch dashboard" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

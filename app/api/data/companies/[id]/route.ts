@@ -1,12 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
+import { handleApiError } from "@/lib/api-error-handler"
+import { onCompanyChange } from "@/lib/cache"
+import { logAudit } from "@/lib/audit"
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+  const user = auth.user
+
   try {
     const { id } = await params
+
+    // For clients, verify company belongs to them
+    const companyFilter = await getClientCompanyFilter(user)
+    if (companyFilter && !companyFilter.includes(id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
     const c = await prisma.company.findUnique({
       where: { id },
@@ -39,16 +53,13 @@ export async function GET(
       notes: c.notes,
       visa_quota_total: c.visaQuotaTotal,
       visa_quota_used: c.visaQuotaUsed,
+      created_by: c.createdById,
       created_at: c.createdAt,
     }
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch company:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch company" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -56,16 +67,23 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await withAuth(request, ["admin"])
+  if (!auth.success) return auth.response
+
   try {
     const { id } = await params
     const body = await request.json()
 
     const data: any = {}
+    // Standard fields
     if (body.name !== undefined) data.name = body.name
     if (body.trade_name !== undefined || body.tradeName !== undefined) data.tradeName = body.trade_name || body.tradeName
     if (body.license_number !== undefined || body.licenseNumber !== undefined) data.licenseNumber = body.license_number || body.licenseNumber
     if (body.license_type !== undefined || body.licenseType !== undefined) data.licenseType = body.license_type || body.licenseType
-    if (body.license_expiry !== undefined || body.licenseExpiry !== undefined) data.licenseExpiry = body.license_expiry || body.licenseExpiry
+    if (body.license_expiry !== undefined || body.licenseExpiry !== undefined) {
+      const val = body.license_expiry || body.licenseExpiry
+      data.licenseExpiry = val ? new Date(val) : null
+    }
     if (body.legal_form !== undefined || body.legalForm !== undefined) data.legalForm = body.legal_form || body.legalForm
     if (body.status !== undefined) data.status = body.status
     if (body.emirate !== undefined) data.emirate = body.emirate
@@ -76,13 +94,27 @@ export async function PATCH(
     if (body.email !== undefined) data.email = body.email
     if (body.industry !== undefined) data.industry = body.industry
     if (body.notes !== undefined) data.notes = body.notes
-    if (body.visa_quota_total !== undefined) data.visaQuotaTotal = body.visa_quota_total
-    if (body.visa_quota_used !== undefined) data.visaQuotaUsed = body.visa_quota_used
+    if (body.visa_quota_total !== undefined) data.visaQuotaTotal = Number(body.visa_quota_total) || 0
+    if (body.visa_quota_used !== undefined) data.visaQuotaUsed = Number(body.visa_quota_used) || 0
+    if (body.created_by !== undefined) data.createdById = body.created_by || null
 
-    const c = await prisma.company.update({
-      where: { id },
-      data,
-    })
+    // Try to update — if fields don't exist in VPS schema, retry without them
+    let c
+    try {
+      c = await prisma.company.update({ where: { id }, data })
+    } catch (err: any) {
+      // If unknown field error, remove problematic fields and retry
+      if (err.message?.includes("Unknown argument")) {
+        const safeData: any = {}
+        const safeFields = ["name", "tradeName", "licenseNumber", "licenseType", "licenseExpiry", "legalForm", "status", "emirate", "jurisdiction", "freeZone", "address", "phone", "email", "industry", "notes", "visaQuotaTotal", "visaQuotaUsed", "createdById"]
+        for (const key of safeFields) {
+          if (data[key] !== undefined) safeData[key] = data[key]
+        }
+        c = await prisma.company.update({ where: { id }, data: safeData })
+      } else {
+        throw err
+      }
+    }
 
     const mapped = {
       id: c.id,
@@ -104,15 +136,14 @@ export async function PATCH(
       notes: c.notes,
       visa_quota_total: c.visaQuotaTotal,
       visa_quota_used: c.visaQuotaUsed,
+      created_by: c.createdById,
       created_at: c.createdAt,
     }
 
+    await onCompanyChange()
+    logAudit(auth.user.id, "UPDATE", "company", id, { fields: Object.keys(data) }).catch(() => {})
     return NextResponse.json(mapped)
-  } catch (error: any) {
-    console.error("Failed to update company:", error)
-    return NextResponse.json(
-      { error: error.message || "Failed to update company" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }

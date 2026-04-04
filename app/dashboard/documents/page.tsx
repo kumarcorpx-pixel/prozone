@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { fetchDocuments, fetchCompanies, fetchEmployees } from "@/lib/data-fetcher"
 import { documentCategories } from "@/lib/company-data"
-import { demoRequestDocuments } from "@/lib/demo-data"
-import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2 } from "lucide-react"
+import { toast } from "sonner"
+import { Upload, Download, FileText, Calendar, HardDrive, Filter, Link2, User, Building2, Search, Eye, ArrowLeft } from "lucide-react"
+import Link from "next/link"
+import { DocumentPreview } from "@/components/ui/document-preview"
 
 const allCategories = ["all", ...Object.keys(documentCategories)] as const
 
@@ -37,33 +38,70 @@ export default function DocumentsPage() {
   const [companies, setCompanies] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [previewDoc, setPreviewDoc] = useState<any>(null)
+  const [companyFilter, setCompanyFilter] = useState("all")
+  const [uploadDocType, setUploadDocType] = useState("other")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("name", file.name)
+      const targetCompany = companyFilter !== "all" ? companyFilter : companies[0]?.id
+      if (targetCompany) formData.append("companyId", targetCompany)
+      formData.append("documentType", uploadDocType)
+      const res = await fetch("/api/documents/upload", { method: "POST", body: formData })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success("Document uploaded successfully")
+        // Reload documents
+        const updatedRes = await fetch("/api/client/documents")
+        if (updatedRes.ok) setDocuments(await updatedRes.json())
+      } else {
+        toast.error(data.error || "Upload failed")
+      }
+    } catch {
+      toast.error("Upload failed")
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
 
   useEffect(() => {
     async function load() {
-      const [d, c, e] = await Promise.all([
-        fetchDocuments(user?.company_id || undefined),
-        fetchCompanies(),
-        fetchEmployees(),
-      ])
-      setDocuments(d)
-      setCompanies(c)
-      setEmployees(e)
+      try {
+        const [documentsRes, companiesRes, employeesRes] = await Promise.all([
+          fetch("/api/client/documents"),
+          fetch("/api/client/companies"),
+          fetch("/api/client/employees"),
+        ])
+        if (documentsRes.ok) setDocuments(await documentsRes.json())
+        if (companiesRes.ok) setCompanies(await companiesRes.json())
+        if (employeesRes.ok) setEmployees(await employeesRes.json())
+      } catch {}
       setLoading(false)
     }
     load()
-  }, [user?.company_id])
+  }, [])
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
-  const myCompany = companies.find(c => c.id === user?.company_id)
-  const myEmployees = employees.filter(e => e.company_id === user?.company_id)
+  // Filter by selected company
+  const filteredByCompany = companyFilter === "all" ? documents : documents.filter(d => d.company_id === companyFilter)
 
-  // Company documents
-  const myCompanyDocs = documents.filter(d => d.company_id === user?.company_id && !d.employee_id)
+  // Company documents (no employee linked)
+  const myCompanyDocs = filteredByCompany.filter(d => !d.employee_id)
   // Employee documents
-  const myEmployeeDocs = documents.filter(d => d.company_id === user?.company_id && d.employee_id)
+  const myEmployeeDocs = filteredByCompany.filter(d => d.employee_id)
   // Request-linked documents
-  const myRequestDocs = demoRequestDocuments
+  const myRequestDocs = filteredByCompany.filter(d => d.request_id)
 
   const getTabDocs = () => {
     switch (activeTab) {
@@ -74,8 +112,13 @@ export default function DocumentsPage() {
   }
 
   const filteredDocs = getTabDocs().filter(doc => {
-    if (selectedCategory === "all") return true
-    return doc.document_type === selectedCategory
+    if (selectedCategory !== "all" && doc.document_type !== selectedCategory) return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      const empName = doc.employee_id ? employees.find((e: any) => e.id === doc.employee_id)?.full_name?.toLowerCase() : ""
+      return doc.name?.toLowerCase().includes(q) || doc.document_type?.toLowerCase().includes(q) || empName?.includes(q)
+    }
+    return true
   })
 
   const tabs: { id: TabType; label: string; icon: typeof FileText; count: number }[] = [
@@ -85,20 +128,59 @@ export default function DocumentsPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
+      {/* Back link */}
+      <button onClick={() => window.history.back()} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Documents</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {myCompany ? `${myCompany.name} — ` : ""}All documents linked to your company, employees, and service requests.
+            {documents.length} documents across {companies.length} {companies.length === 1 ? "company" : "companies"}
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors">
-          <Upload className="h-4 w-4" />
-          Upload Document
-        </button>
+        <div className="flex items-center gap-2">
+          <select value={uploadDocType} onChange={e => setUploadDocType(e.target.value)}
+            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20">
+            <option value="other">Doc Type</option>
+            <option value="trade_license">Trade License</option>
+            <option value="visa">Visa</option>
+            <option value="emirates_id">Emirates ID</option>
+            <option value="passport">Passport</option>
+            <option value="labor_card">Labor Card</option>
+            <option value="establishment_card">Establishment Card</option>
+            <option value="ejari">Ejari</option>
+            <option value="contract">Contract</option>
+            <option value="financial">Financial</option>
+          </select>
+          <label className={`inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white text-sm rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+            <Upload className="h-4 w-4" />
+            {uploading ? "Uploading..." : "Upload"}
+            <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.docx" />
+          </label>
+        </div>
       </div>
+
+      {/* Company Filter */}
+      {companies.length > 1 && (
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setCompanyFilter("all")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${companyFilter === "all" ? "bg-[#1a3a6b] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            All Companies ({documents.length})
+          </button>
+          {companies.map((c: any) => {
+            const count = documents.filter(d => d.company_id === c.id).length
+            return (
+              <button key={c.id} onClick={() => setCompanyFilter(c.id)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${companyFilter === c.id ? "bg-[#1a3a6b] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                {c.name} ({count})
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
@@ -132,7 +214,7 @@ export default function DocumentsPage() {
               const reqDocs = myRequestDocs.filter(d => d.request_id === requestId)
               return (
                 <div key={requestId} className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
-                  <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                  <div className="px-5 py-3 bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-[#1a3a6b]" />
                     <span className="font-medium text-sm">Request {requestId}</span>
                   </div>
@@ -144,16 +226,16 @@ export default function DocumentsPage() {
                             <FileText className="h-4 w-4 text-[#1a3a6b]" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{doc.file_name}</p>
+                            <p className="text-sm font-medium text-gray-900">{doc.file_name || doc.name}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                doc.doc_type === "required" ? "bg-blue-100 text-blue-700" :
-                                doc.doc_type === "submitted" ? "bg-yellow-100 text-yellow-700" :
-                                doc.doc_type === "processed" ? "bg-purple-100 text-purple-700" :
-                                doc.doc_type === "final" ? "bg-green-100 text-green-700" :
+                                (doc.doc_type || doc.document_type) === "required" ? "bg-blue-100 text-blue-700" :
+                                (doc.doc_type || doc.document_type) === "submitted" ? "bg-yellow-100 text-yellow-700" :
+                                (doc.doc_type || doc.document_type) === "processed" ? "bg-purple-100 text-purple-700" :
+                                (doc.doc_type || doc.document_type) === "final" ? "bg-green-100 text-green-700" :
                                 "bg-gray-100 text-gray-700"
                               }`}>
-                                {doc.doc_type}
+                                {doc.doc_type || doc.document_type || "general"}
                               </span>
                               <span className="text-xs text-gray-400">
                                 {new Date(doc.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
@@ -161,7 +243,25 @@ export default function DocumentsPage() {
                             </div>
                           </div>
                         </div>
-                        <button className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5">
+                        <button
+                          className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              const res = await fetch(`/api/documents/${doc.id}/download`)
+                              if (!res.ok) throw new Error("Download failed")
+                              const blob = await res.blob()
+                              const url = URL.createObjectURL(blob)
+                              const a = document.createElement("a")
+                              a.href = url
+                              a.download = doc.file_name || doc.name || "document"
+                              a.click()
+                              URL.revokeObjectURL(url)
+                            } catch {
+                              toast.error("Failed to download document")
+                            }
+                          }}
+                        >
                           <Download className="h-4 w-4" />
                         </button>
                       </div>
@@ -180,6 +280,13 @@ export default function DocumentsPage() {
         </div>
       ) : (
         <>
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input type="text" placeholder="Search by document name, type, or employee..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 shadow-sm rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20" />
+          </div>
+
           {/* Category Filter */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             <Filter className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -205,14 +312,19 @@ export default function DocumentsPage() {
           {filteredDocs.length === 0 ? (
             <div className="bg-white rounded-xl ring-1 ring-gray-200 p-12 text-center">
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No documents found</p>
+              <p className="text-gray-500 font-medium">No documents uploaded yet</p>
+              <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Upload your trade license, visa copies, Emirates ID, passport, and other documents. Select the document type before uploading.</p>
+              <label className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white text-sm rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
+                <Upload className="h-4 w-4" /> Upload Your First Document
+                <input type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.docx" />
+              </label>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredDocs.map((doc) => {
                 const catConfig = documentCategories[doc.document_type || "other"] || documentCategories.other
                 const expiryStatus = getExpiryStatus(doc.expiry_date)
-                const employee = doc.employee_id ? myEmployees.find(e => e.id === doc.employee_id) : null
+                const employee = doc.employee_id ? employees.find((e: any) => e.id === doc.employee_id) : null
 
                 return (
                   <div key={doc.id} className="bg-white rounded-xl ring-1 ring-gray-200 p-5 hover:ring-gray-300 transition-all">
@@ -240,9 +352,18 @@ export default function DocumentsPage() {
                           </div>
                         </div>
                       </div>
-                      <button className="flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5 transition-colors">
-                        <Download className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {doc.file_url && (
+                          <button onClick={() => setPreviewDoc(doc)} className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5 transition-colors" title="Preview">
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        )}
+                        {doc.file_url && (
+                          <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-gray-400 hover:text-[#1a3a6b] hover:bg-[#1a3a6b]/5 transition-colors" title="Download">
+                            <Download className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
                       {doc.expiry_date && (
@@ -262,6 +383,15 @@ export default function DocumentsPage() {
             </div>
           )}
         </>
+      )}
+      {previewDoc && (
+        <DocumentPreview
+          docId={previewDoc.id}
+          docName={previewDoc.name}
+          mimeType={previewDoc.mime_type || previewDoc.notes?.match?.(/mime:(\S+)/)?.[1]}
+          fileUrl={previewDoc.file_url}
+          onClose={() => setPreviewDoc(null)}
+        />
       )}
     </div>
   )

@@ -1,18 +1,30 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { withAuth, getClientCompanyFilter } from "@/lib/auth-middleware"
+import { companySchema } from "@/lib/validation/schemas"
+import { validateBody } from "@/lib/validation/validate"
+import { handleApiError } from "@/lib/api-error-handler"
+import { cached, CK, TTL, onCompanyChange } from "@/lib/cache"
+import { logAudit } from "@/lib/audit"
 
 export async function POST(request: NextRequest) {
+  const auth = await withAuth(request, ["admin"])
+  if (!auth.success) return auth.response
+
   try {
     const body = await request.json()
+    const validation = validateBody(companySchema, body)
+    if (!validation.success) return validation.response
+
     const company = await prisma.company.create({
       data: {
-        name: body.name,
+        name: validation.data.name,
         tradeName: body.trade_name || body.tradeName,
         licenseNumber: body.license_number || body.licenseNumber,
-        licenseType: body.license_type || body.licenseType,
-        emirate: body.emirate,
-        phone: body.phone,
-        email: body.email,
+        licenseType: validation.data.licenseType,
+        emirate: validation.data.emirate,
+        phone: validation.data.phone,
+        email: validation.data.email,
         status: body.status || "active",
         jurisdiction: body.jurisdiction,
         freeZone: body.free_zone || body.freeZone,
@@ -48,19 +60,24 @@ export async function POST(request: NextRequest) {
       created_at: company.createdAt,
     }
 
+    await onCompanyChange()
+    logAudit(auth.user.id, "CREATE", "company", mapped.id, { name: mapped.name }).catch(() => {})
     return NextResponse.json(mapped)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
-export async function GET() {
-  try {
-    const companies = await prisma.company.findMany({
-      orderBy: { createdAt: "desc" },
-    })
+export async function GET(request: NextRequest) {
+  const auth = await withAuth(request, ["admin", "pro_staff", "client"])
+  if (!auth.success) return auth.response
+  const user = auth.user
 
-    const mapped = companies.map((c: any) => ({
+  try {
+    const companyFilter = await getClientCompanyFilter(user)
+    const isAdminOrStaff = user.role === "admin" || user.role === "pro_staff"
+
+    const mapCompany = (c: any) => ({
       id: c.id,
       name: c.name,
       trade_name: c.tradeName,
@@ -80,15 +97,35 @@ export async function GET() {
       notes: c.notes,
       visa_quota_total: c.visaQuotaTotal,
       visa_quota_used: c.visaQuotaUsed,
+      establishment_card_expiry: c.establishmentCardExpiry,
+      chamber_commerce_expiry: c.chamberCommerceExpiry,
+      ejari_tawtheeq_expiry: c.ejariTawtheeqExpiry,
+      lease_expiry: c.leaseExpiry,
       created_at: c.createdAt,
-    }))
+      created_by: c.createdById,
+      owner_name: c.createdBy?.fullName || null,
+    })
+
+    if (isAdminOrStaff) {
+      const mapped = await cached(CK.companies(), TTL.COMPANIES, async () => {
+        const companies = await prisma.company.findMany({
+          orderBy: { createdAt: "desc" },
+          include: { createdBy: { select: { fullName: true } } },
+        })
+        return companies.map(mapCompany)
+      })
+      return NextResponse.json(mapped)
+    }
+
+    const companies = await prisma.company.findMany({
+      where: companyFilter ? { id: { in: companyFilter } } : undefined,
+      orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { fullName: true } } },
+    })
+    const mapped = companies.map(mapCompany)
 
     return NextResponse.json(mapped)
   } catch (error) {
-    console.error("Failed to fetch companies:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch companies" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

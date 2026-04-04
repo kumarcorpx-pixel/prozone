@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { fetchRequests } from "@/lib/data-fetcher"
-import { demoChecklist } from "@/lib/demo-data"
+// Uses staff-scoped endpoint instead of admin data-fetcher
 import { StatusBadge } from "@/components/dashboard/status-badge"
 
 const priorityColors: Record<string, string> = {
@@ -15,12 +14,17 @@ const priorityColors: Record<string, string> = {
 
 const tabs = [
   { key: "all", label: "All" },
+  { key: "assigned", label: "Assigned" },
   { key: "in_progress", label: "In Progress" },
+  { key: "under_review", label: "Under Review" },
   { key: "pending", label: "Pending" },
   { key: "completed", label: "Completed" },
 ] as const
 
 type TabKey = (typeof tabs)[number]["key"]
+
+/** Statuses where the PRO staff member needs to take action */
+const needsActionStatuses = new Set(["assigned", "in_progress"])
 
 export default function StaffRequestsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("all")
@@ -29,8 +33,9 @@ export default function StaffRequestsPage() {
 
   useEffect(() => {
     async function load() {
-      const r = await fetchRequests()
-      setRequests(r)
+      const res = await fetch("/api/staff/requests")
+      const data = res.ok ? await res.json() : { requests: [] }
+      setRequests(data.requests || [])
       setLoading(false)
     }
     load()
@@ -45,13 +50,6 @@ export default function StaffRequestsPage() {
     activeTab === "all"
       ? allRequests
       : allRequests.filter((r) => r.status === activeTab)
-
-  function getChecklistProgress(requestId: string) {
-    const items = demoChecklist.filter((c) => c.request_id === requestId)
-    if (items.length === 0) return null
-    const completed = items.filter((c) => c.is_completed).length
-    return { completed, total: items.length }
-  }
 
   return (
     <div className="space-y-6">
@@ -82,17 +80,29 @@ export default function StaffRequestsPage() {
       {/* Request Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredRequests.map((request) => {
-          const progress = getChecklistProgress(request.id)
           return (
             <Link
               key={request.id}
               href={`/staff/requests/${request.id}`}
-              className="bg-white rounded-xl ring-1 ring-gray-200 p-5 hover:ring-[#1a3a6b] transition-all hover:shadow-sm"
+              className={`bg-white rounded-xl ring-1 p-5 hover:ring-[#1a3a6b] transition-all hover:shadow-sm ${
+                needsActionStatuses.has(request.status)
+                  ? "ring-amber-300 border-l-4 border-l-amber-400"
+                  : "ring-gray-200"
+              }`}
             >
               <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">{request.service_type}</h3>
+                <h3 className="font-semibold text-gray-900">{request.service_type || request.serviceType}</h3>
+                {needsActionStatuses.has(request.status) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Action needed
+                  </span>
+                )}
               </div>
-              <p className="text-sm text-gray-600 mb-3">{request.company?.name}</p>
+              <p className="text-sm text-gray-600 mb-1">{request.company_name || request.company?.name || "N/A"}</p>
+              {(request.client_name || request.clientName) && (
+                <p className="text-xs text-gray-400 mb-3">Client: {request.client_name || request.clientName}</p>
+              )}
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <StatusBadge status={request.status} />
                 <span
@@ -105,30 +115,12 @@ export default function StaffRequestsPage() {
               </div>
               <p className="text-xs text-gray-400 mb-2">
                 Created{" "}
-                {new Date(request.created_at).toLocaleDateString("en-GB", {
+                {new Date(request.created_at || request.createdAt).toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "short",
                   year: "numeric",
                 })}
               </p>
-              {progress && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                    <span>Checklist</span>
-                    <span>
-                      {progress.completed}/{progress.total} items completed
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-1.5">
-                    <div
-                      className="bg-[#1a3a6b] h-1.5 rounded-full transition-all"
-                      style={{
-                        width: `${(progress.completed / progress.total) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
             </Link>
           )
         })}

@@ -1,18 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Pencil, Upload, UserPlus, AlertTriangle, CheckSquare, ScrollText } from "lucide-react"
-
-const demoAuditLog = [
-  { id: "al1", user: "Sarah Admin", action: "Updated request status", entity: "Trade License Renewal", details: "Changed from 'pending' to 'in_progress'", time: "2 hours ago", type: "update" },
-  { id: "al2", user: "Mohammed PRO", action: "Uploaded document", entity: "Trade_License_Copy.pdf", details: "Uploaded for Gulf Trading LLC", time: "3 hours ago", type: "upload" },
-  { id: "al3", user: "Ahmed Al Mansoori", action: "Created service request", entity: "New Employment Visa", details: "For Gulf Trading LLC, Priority: High", time: "5 hours ago", type: "create" },
-  { id: "al4", user: "Sarah Admin", action: "Assigned staff", entity: "Visa Renewal", details: "Assigned to Mohammed PRO", time: "Yesterday", type: "assign" },
-  { id: "al5", user: "Sarah Admin", action: "Created invoice", entity: "INV-2026-001", details: "AED 12,600 for Trade License Renewal", time: "Yesterday", type: "create" },
-  { id: "al6", user: "Mohammed PRO", action: "Completed checklist item", entity: "Verify tenancy contract", details: "Trade License Renewal - Gulf Trading", time: "2 days ago", type: "checklist" },
-  { id: "al7", user: "System", action: "Expiry alert sent", entity: "Trade License", details: "Gulf Trading LLC - expires in 5 days", time: "2 days ago", type: "alert" },
-  { id: "al8", user: "Ahmed Al Mansoori", action: "Uploaded document", entity: "Passport_Copy.pdf", details: "Employee document upload", time: "3 days ago", type: "upload" },
-]
 
 const typeConfig: Record<string, { icon: typeof Plus; color: string; bgColor: string }> = {
   create: { icon: Plus, color: "text-green-600", bgColor: "bg-green-100" },
@@ -23,21 +12,65 @@ const typeConfig: Record<string, { icon: typeof Plus; color: string; bgColor: st
   checklist: { icon: CheckSquare, color: "text-teal-600", bgColor: "bg-teal-100" },
 }
 
-const uniqueUsers = Array.from(new Set(demoAuditLog.map((entry) => entry.user)))
-const uniqueTypes = Array.from(new Set(demoAuditLog.map((entry) => entry.type)))
+function classifyAction(action: string): string {
+  const lower = action.toLowerCase()
+  if (lower.includes("creat") || lower.includes("add")) return "create"
+  if (lower.includes("upload")) return "upload"
+  if (lower.includes("assign")) return "assign"
+  if (lower.includes("alert") || lower.includes("expir")) return "alert"
+  if (lower.includes("checklist") || lower.includes("complet")) return "checklist"
+  return "update"
+}
+
+function formatActionLabel(action: string): string {
+  return action
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 export default function AuditLogPage() {
+  const [auditLog, setAuditLog] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [userFilter, setUserFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
 
-  const filtered = demoAuditLog.filter((entry) => {
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch("/api/admin/audit-log")
+        if (res.ok) {
+          const data = await res.json()
+          setAuditLog(((data.data || data.activities || []) as any[]).map((a: any) => ({
+            id: a.id,
+            user: a.user_name || "System",
+            role: a.user_role || "",
+            action: formatActionLabel(a.action || ""),
+            entity: a.entity_type ? `${a.entity_type}${a.entity_id ? ` #${a.entity_id.substring(0, 8)}` : ""}` : "",
+            details: typeof a.details === "string" ? a.details : a.details ? JSON.stringify(a.details).substring(0, 100) : a.message || "",
+            time: a.time || "",
+            type: classifyAction(a.action || a.message || ""),
+          })))
+        }
+      } catch {}
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const uniqueUsers = Array.from(new Set(auditLog.map((entry) => entry.user)))
+  const uniqueTypes = Array.from(new Set(auditLog.map((entry) => entry.type)))
+
+  const filtered = auditLog.filter((entry) => {
     const matchesUser = userFilter === "all" || entry.user === userFilter
     const matchesType = typeFilter === "all" || entry.type === typeFilter
     return matchesUser && matchesType
   })
 
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       <div>
         <h1 className="text-2xl font-bold text-[#1a3a6b]">Audit Log</h1>
         <p className="text-sm text-gray-500 mt-1">Track all system activity and changes</p>
@@ -72,13 +105,13 @@ export default function AuditLogPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-3 text-gray-500 font-medium w-10"></th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Timestamp</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">User</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Action</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Entity</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Details</th>
+              <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider w-10"></th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Timestamp</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">User</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Action</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Entity</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Details</th>
               </tr>
             </thead>
             <tbody>

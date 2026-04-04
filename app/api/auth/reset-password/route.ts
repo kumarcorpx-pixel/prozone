@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { resetPasswordSchema } from "@/lib/validation/schemas"
 import { rateLimit } from "@/lib/rate-limit"
+import prisma from "@/lib/prisma"
+const bcrypt = require("bcryptjs")
 
 const resetPasswordRateLimit = { maxRequests: 5, windowMs: 15 * 60 * 1000 }
 
@@ -15,7 +17,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: errors[0] }, { status: 400 })
     }
 
-    const { token } = result.data
+    const { token, password } = result.data
 
     // Rate limit by token
     const rateLimitResult = rateLimit(`reset-password:${token}`, resetPasswordRateLimit)
@@ -26,9 +28,38 @@ export async function POST(request: Request) {
       )
     }
 
-    // Placeholder for actual password reset logic
-    // In production, this would verify the token and update the password
-    // via Supabase or your auth provider
+    // Find user by reset token
+    const user = await prisma.user.findFirst({
+      where: { resetToken: token },
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Invalid or expired reset token." },
+        { status: 400 }
+      )
+    }
+
+    // Verify token hasn't expired
+    if (!user.resetTokenExpiry || new Date(user.resetTokenExpiry) < new Date()) {
+      return NextResponse.json(
+        { error: "Reset token has expired. Please request a new one." },
+        { status: 400 }
+      )
+    }
+
+    // Hash new password
+    const hash = await bcrypt.hash(password, 12)
+
+    // Update user password and clear reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    })
 
     return NextResponse.json({ message: "Password has been reset successfully." })
   } catch {
