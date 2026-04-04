@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { jwtVerify } from "jose"
 
 const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/about", "/contact", "/services", "/faq", "/privacy", "/consultation", "/offline"]
-const publicApiPaths = ["/api/auth/login", "/api/auth/logout", "/api/auth/signup", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/google", "/api/auth/google/callback", "/api/auth/zoho", "/api/auth/zoho/callback", "/api/contact", "/api/consultation", "/api/health", "/api/services"]
+const publicApiPaths = ["/api/auth/login", "/api/auth/logout", "/api/auth/signup", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/refresh", "/api/auth/google", "/api/auth/google/callback", "/api/auth/zoho", "/api/auth/zoho/callback", "/api/contact", "/api/consultation", "/api/health", "/api/services"]
 const cronPaths = ["/api/cron/"]
 
 const ALLOWED_ORIGINS = [
@@ -84,8 +84,11 @@ export async function middleware(request: NextRequest) {
   if (publicApiPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
   if (cronPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
 
-  // Get and VERIFY token
-  const token = request.cookies.get("auth_token")?.value
+  // Get and VERIFY token — check Authorization header first (for mobile/API clients), then cookie fallback
+  const authHeader = request.headers.get("authorization")
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : request.cookies.get("auth_token")?.value
   const user = token ? await verifyJWT(token) : null
 
   // No valid token — redirect or 401

@@ -1,8 +1,9 @@
-const ALLOWED_ORIGINS = [
+const ALLOWED_ORIGINS: string[] = [
   "https://corporatepro.cloud",
   "https://www.corporatepro.cloud",
-  process.env.NODE_ENV === "development" ? "http://localhost:3000" : "",
-].filter(Boolean)
+  ...(process.env.EXTRA_CORS_ORIGINS?.split(",").map(s => s.trim()).filter(Boolean) || []),
+  ...(process.env.NODE_ENV === "development" ? ["http://localhost:3000", "http://localhost:8081"] : []),
+]
 
 const ALLOWED_METHODS = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
 const ALLOWED_HEADERS = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
@@ -26,6 +27,7 @@ export function getCorsHeaders(origin: string | null): Record<string, string> {
 }
 
 export function isOriginAllowed(origin: string | null): boolean {
+  // Mobile apps and server-to-server requests have no origin
   if (!origin) return true
   return ALLOWED_ORIGINS.includes(origin)
 }

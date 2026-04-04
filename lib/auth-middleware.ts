@@ -22,7 +22,11 @@ export async function withAuth(
   request: NextRequest,
   allowedRoles: string[] = ["admin", "pro_staff", "client"]
 ): Promise<AuthResult> {
-  const token = request.cookies.get("auth_token")?.value
+  // Check Authorization header first (for mobile/API clients), then cookie fallback
+  const authHeader = request.headers.get("authorization")
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : request.cookies.get("auth_token")?.value
 
   if (!token) {
     return {
