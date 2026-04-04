@@ -128,7 +128,7 @@ export default function DocumentsPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       {/* Back link */}
       <button onClick={() => window.history.back()} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
         <ArrowLeft className="h-4 w-4" /> Back
@@ -155,7 +155,7 @@ export default function DocumentsPage() {
             <option value="contract">Contract</option>
             <option value="financial">Financial</option>
           </select>
-          <label className={`inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+          <label className={`inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white text-sm rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
             <Upload className="h-4 w-4" />
             {uploading ? "Uploading..." : "Upload"}
             <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.docx" />
@@ -214,7 +214,7 @@ export default function DocumentsPage() {
               const reqDocs = myRequestDocs.filter(d => d.request_id === requestId)
               return (
                 <div key={requestId} className="bg-white rounded-xl ring-1 ring-gray-200 overflow-hidden">
-                  <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                  <div className="px-5 py-3 bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-[#1a3a6b]" />
                     <span className="font-medium text-sm">Request {requestId}</span>
                   </div>
@@ -284,7 +284,7 @@ export default function DocumentsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input type="text" placeholder="Search by document name, type, or employee..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20" />
+              className="w-full pl-10 pr-4 py-2.5 shadow-sm rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20" />
           </div>
 
           {/* Category Filter */}
@@ -314,7 +314,7 @@ export default function DocumentsPage() {
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500 font-medium">No documents uploaded yet</p>
               <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Upload your trade license, visa copies, Emirates ID, passport, and other documents. Select the document type before uploading.</p>
-              <label className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a] transition-colors cursor-pointer">
+              <label className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white text-sm rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
                 <Upload className="h-4 w-4" /> Upload Your First Document
                 <input type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.docx" />
               </label>

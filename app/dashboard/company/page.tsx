@@ -197,7 +197,7 @@ export default function CompanyPage() {
   const compliancePercent = complianceItems.length > 0 ? Math.round((complianceGreen / complianceItems.length) * 100) : 0
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       <style>{`@keyframes progress { from { width: 0% } to { width: 100% } }`}</style>
       {/* Back link */}
       <button onClick={() => window.history.back()} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a3a6b] mb-2">
