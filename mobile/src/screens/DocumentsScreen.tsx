@@ -70,7 +70,8 @@ export function DocumentsScreen() {
     <div className="screen">
       <ScreenHeader title="Documents" />
       <div className="content-pad">
-        <InfiniteList loading={loading} hasMore={page < totalPages} onLoadMore={loadMore} empty={documents.length === 0 && !loading}>
+        {error && <ErrorMessage message={error} onRetry={() => load(1)} />}
+        <InfiniteList loading={loading} hasMore={page < totalPages} onLoadMore={loadMore} empty={documents.length === 0 && !loading && !error}>
           {documents.map((doc) => {
             const info = getDocInfo(doc.documentType)
             return (
