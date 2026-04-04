@@ -225,7 +225,7 @@ export default function EmployeesPage() {
             className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <FileSpreadsheet className="h-4 w-4" />
-            Import CSV
+            Import
           </button>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
@@ -418,17 +418,18 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* Import CSV Panel */}
+      {/* Import Employees Panel */}
       {showImport && (
         <div className="bg-white rounded-xl ring-1 ring-gray-200 p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Import Employees from CSV</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Import Employees</h2>
             <button onClick={() => { setShowImport(false); setImportResult(null) }} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
           </div>
           <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
             <p className="font-medium mb-2">CSV Format — Required columns:</p>
             <code className="text-xs bg-white px-2 py-1 rounded block overflow-x-auto">full_name,company_name,designation,department,nationality,phone,email</code>
             <p className="mt-2 text-xs">Use <strong>company_name</strong> (exact match) or <strong>company_id</strong>. <strong>full_name</strong> is required.</p>
+            <p className="mt-1 text-xs">Supports CSV and MOHRE PDF employee lists.</p>
             <a href="data:text/csv;charset=utf-8,full_name,company_name,designation,department,nationality,phone,email%0AJohn Doe,ALBA CLEANING SERVICES L.L.C,Cleaner,Operations,Indian,+971501234567,john@example.com" download="employee-template.csv" className="inline-flex items-center gap-1 mt-2 text-xs text-[#1a3a6b] font-medium hover:underline">
               <Download className="h-3 w-3" /> Download Template CSV
             </a>
@@ -443,10 +444,10 @@ export default function EmployeesPage() {
             ) : (
               <>
                 <Upload className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Click to select CSV file</p>
+                <p className="text-sm text-gray-500">Click to select CSV or PDF file</p>
               </>
             )}
-            <input id="csv-file-input" type="file" className="hidden" accept=".csv" onChange={e => { setImportFile(e.target.files?.[0] || null); setImportResult(null) }} />
+            <input id="csv-file-input" type="file" className="hidden" accept=".csv,.pdf" onChange={e => { setImportFile(e.target.files?.[0] || null); setImportResult(null) }} />
           </div>
           {importResult && (
             <div className={`rounded-lg p-4 text-sm ${importResult.summary?.errors?.length > 0 ? "bg-yellow-50 text-yellow-800" : "bg-green-50 text-green-800"}`}>
