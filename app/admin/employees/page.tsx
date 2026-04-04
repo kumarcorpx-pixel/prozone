@@ -613,7 +613,7 @@ export default function EmployeesPage() {
                     <td className="py-3 px-4 text-gray-500">{index + 1}</td>
                     <td className="py-3 px-4 text-gray-600 font-mono text-xs">{personCode}</td>
                     <td className="py-3 px-4">
-                      <Link href={`/admin/employees/${emp.id}`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">
+                      <Link href={`/admin/employees/${emp.id}?tab=documents`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">
                         {emp.full_name}
                       </Link>
                     </td>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { fetchEmployees, fetchCompanies, fetchDocuments } from "@/lib/data-fetcher"
 import { documentCategories } from "@/lib/company-data"
@@ -33,7 +33,9 @@ function InfoRow({ label, value, valueColor }: { label: string; value: string | 
 
 export default function EmployeeDetailPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const employeeId = params.id as string
+  const initialTab = searchParams.get("tab") || "personal"
   const [employee, setEmployee] = useState<any>(null)
   const [company, setCompany] = useState<any>(null)
   const [documents, setDocuments] = useState<any[]>([])
@@ -41,7 +43,7 @@ export default function EmployeeDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editData, setEditData] = useState<any>({})
-  const [activeTab, setActiveTab] = useState("personal")
+  const [activeTab, setActiveTab] = useState(initialTab)
 
   useEffect(() => {
     async function load() {

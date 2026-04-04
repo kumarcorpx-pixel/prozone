@@ -515,7 +515,7 @@ export default function CompanyDetailPage() {
                     {employees.map((emp) => {
                       return (
                         <tr key={emp.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
-                          <td className="px-4 py-3"><a href={`/admin/employees/${emp.id}`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">{emp.full_name}</a></td>
+                          <td className="px-4 py-3"><a href={`/admin/employees/${emp.id}?tab=documents`} className="font-medium text-[#1a3a6b] hover:underline cursor-pointer">{emp.full_name}</a></td>
                           <td className="px-4 py-3 text-gray-600">{emp.designation || "-"}</td>
                           <td className="px-4 py-3 text-gray-600">{emp.nationality || "-"}</td>
                           <td className="px-4 py-3">
