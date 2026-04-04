@@ -237,7 +237,7 @@ export default function ExpiryCalendarPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or entity..."
-          className="px-2.5 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 sm:ml-auto sm:w-60"
+          className="px-2.5 py-1 text-sm shadow-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1a3a6b]/20 sm:ml-auto sm:w-60"
         />
       </div>
 

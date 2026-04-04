@@ -158,7 +158,7 @@ export default function DashboardPage() {
             </p>
             <Link
               href="/dashboard/company"
-              className="inline-flex items-center gap-2 w-full justify-center bg-[#1a3a6b] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#15305a] transition-colors"
+              className="inline-flex items-center gap-2 w-full justify-center bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white py-3 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
             >
               <Building2 className="h-4 w-4" />
               Add Company
@@ -202,7 +202,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex gap-3 mt-4">
-            <Link href="/dashboard/messages" className="flex-1 text-center bg-[#1a3a6b] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#15305a] transition-colors">
+            <Link href="/dashboard/messages" className="flex-1 text-center bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5">
               Send Message
             </Link>
             <a href="https://wa.me/971565204844" target="_blank" rel="noopener noreferrer" className="flex-1 text-center bg-green-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors">
@@ -276,7 +276,7 @@ export default function DashboardPage() {
   // --- Admin dashboard (unchanged) ---
   if (isAdmin) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 page-entrance">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user?.full_name}</h1>
@@ -334,7 +334,7 @@ export default function DashboardPage() {
 
   // --- Client Portfolio Dashboard ---
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
 
       {/* Row 1: Welcome Banner */}
       <div className="rounded-2xl p-6 md:p-8" style={{ background: "linear-gradient(135deg, #1a3a6b 0%, #15305a 60%, #0f2440 100%)" }}>
@@ -433,7 +433,7 @@ export default function DashboardPage() {
                 {/* View Details */}
                 <Link
                   href={`/dashboard/company?id=${co.id}`}
-                  className="block w-full text-center bg-[#1a3a6b] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#15305a] transition-colors"
+                  className="block w-full text-center bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white py-2 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
                 >
                   View Details
                 </Link>
@@ -454,7 +454,7 @@ export default function DashboardPage() {
               <FileText className="h-10 w-10 text-gray-200 mx-auto mb-3" />
               <p className="text-sm text-gray-500 mb-1">No active requests</p>
               <p className="text-xs text-gray-400 mb-4">Submit a new request to get started</p>
-              <Link href="/dashboard/requests" className="inline-flex items-center gap-2 bg-[#1a3a6b] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#15305a] transition-colors">
+              <Link href="/dashboard/requests" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5">
                 <Plus className="h-4 w-4" /> New Request
               </Link>
             </div>
@@ -512,7 +512,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-3">
             <Link href="/dashboard/requests"
-              className="flex items-center gap-3 w-full px-4 py-3.5 bg-[#1a3a6b] text-white rounded-xl hover:bg-[#15305a] transition-colors">
+              className="flex items-center gap-3 w-full px-4 py-3.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5">
               <div className="h-9 w-9 rounded-lg bg-white/15 flex items-center justify-center">
                 <Plus className="h-4 w-4" />
               </div>

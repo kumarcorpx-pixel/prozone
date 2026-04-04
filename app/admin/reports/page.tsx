@@ -220,12 +220,12 @@ export default function ReportsPage() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Month</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Revenue</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Collected</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Pending</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Overdue</th>
+                <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                  <th className="text-left py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Month</th>
+                  <th className="text-right py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Revenue</th>
+                  <th className="text-right py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Collected</th>
+                  <th className="text-right py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Pending</th>
+                  <th className="text-right py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Overdue</th>
                 </tr>
               </thead>
               <tbody>
@@ -263,11 +263,11 @@ export default function ReportsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Staff Name</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Active Requests</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Completed This Month</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Avg Days</th>
+                <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                  <th className="text-left py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Staff Name</th>
+                  <th className="text-right py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Active Requests</th>
+                  <th className="text-right py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Completed This Month</th>
+                  <th className="text-right py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Avg Days</th>
                 </tr>
               </thead>
               <tbody>
@@ -349,9 +349,9 @@ export default function ReportsPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-gray-200">
+                        <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
                           {Object.keys(rows[0]).map((key) => (
-                            <th key={key} className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th key={key} className="text-left py-2 px-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">
                               {key.replace(/_/g, " ")}
                             </th>
                           ))}
