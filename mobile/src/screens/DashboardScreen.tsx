@@ -1,32 +1,47 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useAuth } from "../lib/auth-context"
 import { api } from "../lib/api"
 import { useNavigate } from "react-router-dom"
+import { ErrorMessage } from "../components/ErrorMessage"
 
 export function DashboardScreen() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [stats, setStats] = useState({ companies: 0, employees: 0, requests: 0, documents: 0 })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  useEffect(() => {
-    async function load() {
+  const loadStats = useCallback(async () => {
+    setLoading(true)
+    setError("")
+    try {
       const [compRes, empRes, reqRes, docRes] = await Promise.all([
         api.get("/api/v1/companies?limit=1"),
         api.get("/api/v1/employees?limit=1"),
         api.get("/api/v1/requests?limit=1"),
         api.get("/api/v1/documents?limit=1"),
       ])
+      // Check if any call failed
+      if (!compRes.success && !empRes.success && !reqRes.success && !docRes.success) {
+        setError(compRes.error || "Failed to load dashboard")
+        setLoading(false)
+        return
+      }
       setStats({
         companies: compRes.meta?.total || 0,
         employees: empRes.meta?.total || 0,
         requests: reqRes.meta?.total || 0,
         documents: docRes.meta?.total || 0,
       })
-      setLoading(false)
+    } catch {
+      setError("Failed to load dashboard data")
     }
-    load()
+    setLoading(false)
   }, [])
+
+  useEffect(() => {
+    loadStats()
+  }, [loadStats])
 
   const greeting = new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 17 ? "Good Afternoon" : "Good Evening"
 
@@ -46,6 +61,7 @@ export function DashboardScreen() {
       </div>
 
       <div className="content-pad">
+        {error && <ErrorMessage message={error} onRetry={loadStats} />}
         {/* Stats Grid */}
         <div className="stats-grid">
           <button className="stat-card" onClick={() => navigate("/companies")}>
