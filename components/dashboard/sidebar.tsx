@@ -78,9 +78,10 @@ interface SidebarProps {
   role: "client" | "admin" | "pro_staff"
   onClose?: () => void
   mobile?: boolean
+  autoCollapse?: boolean
 }
 
-export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
+export function Sidebar({ role, onClose, mobile = false, autoCollapse = false }: SidebarProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const links = role === "admin" ? adminLinks : role === "pro_staff" ? staffLinks : clientLinks
@@ -91,7 +92,20 @@ export function Sidebar({ role, onClose, mobile = false }: SidebarProps) {
     if (mobile) return
     const saved = localStorage.getItem("sidebarCollapsed")
     if (saved === "true") setCollapsed(true)
-  }, [mobile])
+
+    // Auto-collapse on screens < 1440px (13" laptops)
+    if (autoCollapse) {
+      const mq = window.matchMedia("(max-width: 1440px)")
+      const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+        if (e.matches && localStorage.getItem("sidebarCollapsed") !== "false") {
+          setCollapsed(true)
+        }
+      }
+      handler(mq)
+      mq.addEventListener("change", handler)
+      return () => mq.removeEventListener("change", handler)
+    }
+  }, [mobile, autoCollapse])
 
   const toggleCollapse = () => {
     const next = !collapsed

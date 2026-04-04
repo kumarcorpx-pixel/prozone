@@ -123,9 +123,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — auto-collapse on smaller screens */}
       <div className="hidden lg:flex lg:flex-shrink-0">
-        <Sidebar role={sidebarRole} />
+        <Sidebar role={sidebarRole} autoCollapse />
       </div>
 
       {/* Mobile sidebar overlay */}
@@ -272,12 +272,52 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6">
           {user?.role !== "admin" && <NotificationSubscribe />}
           <Breadcrumbs />
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation — visible only on phones */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-gray-200 flex justify-around items-center lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        {(() => {
+          const base = sidebarRole === "admin" ? "/admin" : sidebarRole === "pro_staff" ? "/staff" : "/dashboard"
+          const tabs = sidebarRole === "admin" ? [
+            { href: "/admin", label: "Home", icon: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" },
+            { href: "/admin/companies", label: "Companies", icon: "M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18Z" },
+            { href: "/admin/employees", label: "People", icon: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" },
+            { href: "/admin/requests", label: "Requests", icon: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8Z" },
+            { href: "/admin/documents", label: "Docs", icon: "M15 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7Z" },
+          ] : sidebarRole === "pro_staff" ? [
+            { href: "/staff", label: "Home", icon: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" },
+            { href: "/staff/requests", label: "Tasks", icon: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8Z" },
+            { href: "/staff/companies", label: "Companies", icon: "M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18Z" },
+            { href: "/staff/documents", label: "Docs", icon: "M15 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7Z" },
+            { href: "/staff/schedule", label: "Schedule", icon: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" },
+          ] : [
+            { href: "/dashboard", label: "Home", icon: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" },
+            { href: "/dashboard/requests", label: "Services", icon: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8Z" },
+            { href: "/dashboard/company", label: "Company", icon: "M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18Z" },
+            { href: "/dashboard/documents", label: "Docs", icon: "M15 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7Z" },
+            { href: "/dashboard/notifications", label: "Alerts", icon: "M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" },
+          ]
+          return tabs.map((tab) => {
+            const active = tab.href === base ? pathname === tab.href : pathname.startsWith(tab.href)
+            return (
+              <Link key={tab.href} href={tab.href} prefetch={false} className={`flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] transition-colors ${active ? "text-[#1a3a6b]" : "text-gray-400"}`}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? "2.5" : "1.5"} strokeLinecap="round" strokeLinejoin="round">
+                  <path d={tab.icon} />
+                  {tab.label === "People" && <circle cx="9" cy="7" r="4" />}
+                  {tab.label === "Alerts" && <></>}
+                </svg>
+                <span className={`text-[10px] font-medium ${active ? "font-semibold" : ""}`}>{tab.label}</span>
+                {active && <span className="absolute bottom-0 h-0.5 w-6 bg-[#1a3a6b] rounded-full" style={{ bottom: "env(safe-area-inset-bottom, 2px)" }} />}
+              </Link>
+            )
+          })
+        })()}
+      </nav>
 
       {/* Command Palette */}
       <CommandPalette
