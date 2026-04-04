@@ -404,13 +404,13 @@ export default function DocumentsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
-                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Name</th>
-                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Company</th>
-                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Employee</th>
-                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Type</th>
-                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Expiry Date</th>
-                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Status</th>
-                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold">Actions</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Name</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Company</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Employee</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Type</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Expiry Date</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Status</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>

@@ -138,7 +138,7 @@ export default function DashboardPage() {
   // Welcome wizard for new clients with no companies and no requests
   if (!isAdmin && companies.length === 0 && requests.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 page-entrance">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome to CorporatePRO, {user?.full_name}!</h1>
           <p className="text-sm text-gray-500 mt-1">Let's get you started in just a few steps.</p>

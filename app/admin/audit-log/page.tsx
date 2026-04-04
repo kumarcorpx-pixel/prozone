@@ -70,7 +70,7 @@ export default function AuditLogPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 border-4 border-[#1a3a6b] border-t-transparent rounded-full animate-spin" /></div>
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       <div>
         <h1 className="text-2xl font-bold text-[#1a3a6b]">Audit Log</h1>
         <p className="text-sm text-gray-500 mt-1">Track all system activity and changes</p>
@@ -105,13 +105,13 @@ export default function AuditLogPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-3 text-gray-500 font-medium w-10"></th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Timestamp</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">User</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Action</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Entity</th>
-                <th className="text-left px-6 py-3 text-gray-500 font-medium">Details</th>
+              <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200">
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider w-10"></th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Timestamp</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">User</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Action</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Entity</th>
+                <th className="text-left px-6 py-3 text-[#1a3a6b] font-bold text-xs uppercase tracking-wider">Details</th>
               </tr>
             </thead>
             <tbody>

@@ -237,11 +237,19 @@ export default function InvoicesPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Invoicing</h1>
           <p className="text-sm text-gray-500 mb-2">Create and manage tax invoices</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-50 px-2.5 py-1 rounded-full">{invoices.length} Total</span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">{invoices.filter(i => i.status === "paid").length} Paid</span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">{invoices.filter(i => i.status === "pending").length} Pending</span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">{invoices.filter(i => i.status === "overdue").length} Overdue</span>
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+              {invoices.length} Total
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+              {invoices.filter((i: any) => i.status === "paid").length} Paid
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">
+              {invoices.filter((i: any) => i.status === "pending").length} Pending
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">
+              {invoices.filter((i: any) => i.status === "overdue").length} Overdue
+            </span>
           </div>
         </div>
         <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5">

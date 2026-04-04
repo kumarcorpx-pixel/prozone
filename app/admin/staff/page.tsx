@@ -142,7 +142,7 @@ export default function StaffManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-entrance">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
@@ -150,7 +150,7 @@ export default function StaffManagementPage() {
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a3a6b] text-white text-sm font-medium rounded-lg hover:bg-[#15305a]"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 text-sm"
         >
           {showAddForm ? <X className="h-4 w-4" /> : <UserCog className="h-4 w-4" />}
           {showAddForm ? "Cancel" : "+ Add Staff"}

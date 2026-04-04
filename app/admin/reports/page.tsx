@@ -152,7 +152,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-entrance space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#1a3a6b]">Reports & Analytics</h1>
         <p className="text-sm text-gray-500 mt-1">Generate and export business reports</p>
@@ -313,7 +313,7 @@ export default function ReportsPage() {
                         }
                       }}
                       disabled={isGenerating}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
                     >
                       {isGenerating ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -400,7 +400,7 @@ export default function ReportsPage() {
             }
             toast.success(`Exported ${keys.length} report(s) as CSV`)
           }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1a3a6b] text-white rounded-lg text-sm font-medium hover:bg-[#15305a] transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#1a3a6b] to-[#2a5298] text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all duration-200 hover:-translate-y-0.5"
         >
           <FileDown className="h-4 w-4" />
           Export All Reports

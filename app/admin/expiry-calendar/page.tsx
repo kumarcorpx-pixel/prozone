@@ -171,7 +171,7 @@ export default function ExpiryCalendarPage() {
   const filtered = search ? byType.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.entity.toLowerCase().includes(search.toLowerCase())) : byType
 
   return (
-    <div className="space-y-3">
+    <div className="page-entrance space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
